@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 	"github.com/gorilla/mux"
-	. "github.com/aamirl/uploader/models"
+	"github.com/TruStory/uploader/models"
 	"github.com/aws/aws-sdk-go/aws"
     "github.com/aws/aws-sdk-go/aws/session"
     "github.com/aws/aws-sdk-go/service/s3"

@@ -14,11 +14,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type Url struct {
+// URL defines the struct for input data from the client
+type URL struct {
 	Name    string `json:"image_name"`
 	Content string `json:"content_type"`
 }
 
+// Config defines the configuration TOML file and the variables with it
 type Config struct {
 	AWSKey      string
 	AWSSecret   string
@@ -37,15 +39,14 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/v1/upload/aws", getUrl).Methods("POST")
+	r.HandleFunc("/v1/upload/aws", getURL).Methods("POST")
 	if err := http.ListenAndServe(":"+conf.Port, r); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func getUrl(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-	var url Url
+func getURL(w http.ResponseWriter, r *http.Request) {
+	var url URL
 	var conf Config
 	if _, err := toml.DecodeFile("config.toml", &conf); err != nil {
 		errorHandler(w, http.StatusBadRequest, err.Error())
@@ -79,8 +80,18 @@ func errorHandler(w http.ResponseWriter, code int, msg string) {
 }
 
 func response(w http.ResponseWriter, code int, payload interface{}) {
-	response, _ := json.Marshal(payload)
+	response, err := json.Marshal(payload)
+	if err != nil {
+		errorHandler(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Write(response)
+	_, err = w.Write(response)
+	if err != nil {
+		errorHandler(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 }

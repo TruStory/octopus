@@ -1,2 +1,6 @@
-server="localhost"
-database="trustory"
+AWSKey=""
+AWSSecret=""
+Port="4000"
+BucketName="trustory"
+Region="us-west-1"
+ImageFolder="images/"

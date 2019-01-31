@@ -1,0 +1,21 @@
+
+[Unit]
+Description=Trustory Uploader
+ConditionPathExists=/home/ubuntu/go/src/github.com/TruStory/uploader/uploader
+After=network.target
+ 
+[Service]
+Type=simple
+User=trustory
+Group=trustory
+LimitNOFILE=1024
+
+Restart=on-failure
+RestartSec=10
+startLimitIntervalSec=60
+
+WorkingDirectory=/home/ubuntu/go/src/github.com/TruStory/uploader/
+ExecStart=/home/ubuntu/go/src/github.com/TruStory/uploader/uploader
+ 
+[Install]
+WantedBy=multi-user.target

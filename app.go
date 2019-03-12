@@ -39,7 +39,8 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/v1/upload/aws", getURL).Methods("POST")
+	r.Use(CORSMiddleware)
+	r.HandleFunc("/v1/upload/aws", getURL).Methods("POST", "OPTIONS")
 	if err := http.ListenAndServe(":"+conf.Port, r); err != nil {
 		log.Fatal(err)
 	}
@@ -94,4 +95,17 @@ func response(w http.ResponseWriter, code int, payload interface{}) {
 		return
 	}
 
+}
+
+// CORSMiddleware is an HTTP-handling middleware that adds `Access-Control-Allow-Origin: *` to the response.
+func CORSMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		if r.Method == "OPTIONS" {
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

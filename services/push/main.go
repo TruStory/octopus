@@ -20,6 +20,7 @@ func main() {
 	timeout := 5 * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+	// query := query.MustParse("tm.event='NewBlock'")
 	query := query.MustParse("tru.event = 'Push'")
 	txs := make(chan interface{})
 	err = client.Subscribe(ctx, "trustory-push-client", query, txs)
@@ -32,6 +33,7 @@ func main() {
 
 	for {
 		for e := range txs {
+			// fmt.Println(e)
 			testE := e.(types.EventDataTx)
 			fmt.Println(testE.Result.String())
 		}

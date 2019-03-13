@@ -28,3 +28,9 @@ ImageFolder="images/"
 go build -o uploader app.go
 ./uploader
 ```
+
+## Service
+
+Uploader is run as a systemd service that is located under `/etc/systemd/system/uploader.service` or `/lib/systemd/system/uploader.service`.
+
+To start the service: `sudo systemctl uploader.service start`

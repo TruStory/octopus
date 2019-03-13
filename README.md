@@ -1,36 +1,12 @@
-# TruStory Uploader Service
+# 🐙
+## TruStory Go Services
 
-## Environment setup
+#### [AWS S3 Uploader](./services/uploader/README.md)
 
-```
-Install Go
-```
+#### [Push Notification Service](./services/push/README.md)
 
-## CORS
-
-In order to speed deployment and configuration, the url generating service
-is open to the world using CORS and `Access-Control-Allow-Origin: *`.
-
-## Run
-
-Create `config.toml` and fill in required data
+### Linting
 
 ```
-AWSKey=[your key]
-AWSSecret=[your secret]
-Port="4000"
-BucketName="trustory"
-Region="us-west-1"
-ImageFolder="images/"
+make check
 ```
-
-```
-go build -o uploader app.go
-./uploader
-```
-
-## Service
-
-Uploader is run as a systemd service that is located under `/etc/systemd/system/uploader.service` or `/lib/systemd/system/uploader.service`.
-
-To start the service: `sudo systemctl uploader.service start`

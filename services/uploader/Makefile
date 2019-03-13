@@ -1,0 +1,2 @@
+PACKAGES=$(shell go list ./...)
+

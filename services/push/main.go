@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
+	truchain "github.com/TruStory/truchain/types"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
 	"github.com/tendermint/tendermint/rpc/client"
 	"github.com/tendermint/tendermint/types"
@@ -34,8 +36,10 @@ func main() {
 	for {
 		for e := range txs {
 			// fmt.Println(e)
-			testE := e.(types.EventDataTx)
-			fmt.Println(testE.Result.String())
+			pushEvent := e.(types.EventDataTx)
+			fmt.Println(pushEvent.Result.String())
+			var pushData truchain.PushData
+			json.Unmarshal(pushEvent.Result.Data, pushData)
 		}
 	}
 }

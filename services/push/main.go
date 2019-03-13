@@ -38,7 +38,8 @@ func main() {
 			// fmt.Println(e)
 			pushEvent := e.(types.EventDataTx)
 			fmt.Println(pushEvent.Result.String())
-			var pushData truchain.PushData
+			// var pushData truchain.PushData
+			var pushData truchain.Timestamp
 			json.Unmarshal(pushEvent.Result.Data, pushData)
 		}
 	}

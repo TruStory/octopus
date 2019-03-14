@@ -1,6 +1,7 @@
 module github.com/TruStory/octopus
 
 require (
+	github.com/TruStory/truchain d83551ed90282402171a78b064540788d88bc7c3
 	github.com/BurntSushi/toml v0.3.1
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/aws/aws-sdk-go v1.18.1

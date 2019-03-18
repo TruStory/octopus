@@ -1,5 +1,5 @@
 PACKAGES=$(shell go list ./...)
 
 build:
-	go build -o ../../bin/uploaderd app.go
+	go build -o ../../bin/pushd main.go
 

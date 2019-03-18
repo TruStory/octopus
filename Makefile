@@ -1,5 +1,9 @@
 PACKAGES=$(shell go list ./...)
 
+build:
+	make -C services/push build
+	make -C services/uploader build
+
 check:
 	golangci-lint run
 

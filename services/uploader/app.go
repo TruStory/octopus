@@ -62,6 +62,11 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String(conf.Region), Credentials: credentials.NewStaticCredentials(conf.AWSKey, conf.AWSSecret, "")})
 
+	if err != nil {
+		errorHandler(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	svc := s3.New(sess)
 
 	req, _ := svc.PutObjectRequest(&s3.PutObjectInput{Bucket: aws.String(conf.BucketName), Key: aws.String(conf.ImageFolder + url.Name)})

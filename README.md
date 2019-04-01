@@ -1,36 +1,23 @@
-# TruStory Uploader Service
+# 🐙
+## TruStory Go Services
 
-## Environment setup
+This is a Go monorepo for all non-TruChain related services for TruStory. It is based on, but not a fork of: https://github.com/flowerinthenight/golang-monorepo. It allows for multiple services to co-exist in a single repo while only building services that are updated. Pull in features from [golang-monorepo](https://github.com/flowerinthenight/golang-monorepo) as needed.
 
-```
-Install Go
-```
+## Services
 
-## CORS
+* [AWS S3 Uploader](./services/uploader/README.md)
+* [Push Notification Service](./services/push/README.md)
 
-In order to speed deployment and configuration, the url generating service
-is open to the world using CORS and `Access-Control-Allow-Origin: *`.
+## Installing
 
-## Run
+Requires Go 1.11+ since it uses Go modules for dependency management.
 
-Create `config.toml` and fill in required data
-
-```
-AWSKey=[your key]
-AWSSecret=[your secret]
-Port="4000"
-BucketName="trustory"
-Region="us-west-1"
-ImageFolder="images/"
+```sh
+go mod vendor
 ```
 
+### Linting
+
+```sh
+make check
 ```
-go build -o uploader app.go
-./uploader
-```
-
-## Service
-
-Uploader is run as a systemd service that is located under `/etc/systemd/system/uploader.service` or `/lib/systemd/system/uploader.service`.
-
-To start the service: `sudo systemctl uploader.service start`

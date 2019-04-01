@@ -1,20 +1,12 @@
 PACKAGES=$(shell go list ./...)
 
-MODULES = models
-
-CHAIN_DIR = ./.uploader
-
-define \n
-
-
-endef
-
-update_deps:
-	dep ensure -v
+build:
+	make -C services/push build
+	make -C services/uploader build
 
 check:
-	gometalinter ./...
+	golangci-lint run
 
 install_tools_macos:
-	brew install dep && brew upgrade dep
-	brew tap alecthomas/homebrew-tap && brew install gometalinter
+	brew install golangci/tap/golangci-lint
+

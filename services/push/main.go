@@ -1,57 +1,170 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/appleboy/gorush/gorush"
 
 	"github.com/sirupsen/logrus"
 
 	truchain "github.com/TruStory/truchain/types"
 	db "github.com/TruStory/truchain/x/db"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/sideshow/apns2/certificate"
 
-	"github.com/sideshow/apns2"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
 	"github.com/tendermint/tendermint/rpc/client"
 	"github.com/tendermint/tendermint/types"
 )
 
-// Notification represents a notification to be sent to the end service.
-type Notification struct {
+// ChainEvent represents a parsed event comming from the chain.
+type ChainEvent struct {
 	From *sdk.AccAddress
 	To   sdk.AccAddress
 	Msg  string
 }
 
-type service struct {
-	db         *db.Client
-	apnsClient *apns2.Client
-	apnsTopic  string
-	log        logrus.FieldLogger
+// NotificationData represents the data relevant to the app.
+type NotificationData struct {
+	// StoryID
+	ID             int64               `json:"id"`
+	NotificationID int64               `json:"notificationId"`
+	Timestamp      time.Time           `json:"timestamp"`
+	Read           bool                `json:"read"`
+	Type           db.NotificationType `json:"type"`
+	// UserID is the sender
+	UserID *string `json:"userId,omitempty"`
+	Image  *string `json:"image,omitempty"`
 }
 
-func (s *service) notificationSender(notifications <-chan *Notification, stop <-chan struct{}) {
+// ToGorushData translate to gorush data format.
+func (d NotificationData) ToGorushData() gorush.D {
+	data := make(map[string]interface{})
+	// embbed everything inside a trustory key
+	data["trustory"] = d
+	return data
+}
+
+// Notification represents the notification data sent to services.
+type Notification struct {
+	Title            string
+	Body             string
+	Platform         string
+	NotificationData NotificationData
+}
+
+// GorushResponse represents a json payload response.
+type GorushResponse struct {
+	Success string                `json:"success"`
+	Counts  int                   `json:"counts"`
+	Logs    []gorush.LogPushEntry `json:"logs"`
+}
+
+type service struct {
+	db        *db.Client
+	apnsTopic string
+	log       logrus.FieldLogger
+	// gorush
+	httpClient        *http.Client
+	gorushHTTPAddress string
+}
+
+func intPtr(i int) *int {
+	return &i
+}
+func strPtr(s string) *string {
+	return &s
+}
+func (s *service) sendNotification(notification Notification, tokens []string) (*GorushResponse, error) {
+	var p int
+	if notification.Platform == "ios" {
+		p = 1
+	}
+	// TODO: Enable when android is supported
+	// if notification.Platform == "android" {
+	// 	p = 2
+	// }
+	if p == 0 {
+		return nil, fmt.Errorf("platform not supported")
+	}
+	pushNotification := gorush.PushNotification{
+		Platform: p,
+		Tokens:   tokens,
+		Badge:    intPtr(1),
+		Topic:    s.apnsTopic,
+		Sound:    "default",
+		Alert: gorush.Alert{
+			Title: notification.Title,
+			Body:  notification.Body,
+		},
+		Data: notification.NotificationData.ToGorushData(),
+	}
+	n := &gorush.RequestPush{
+		Notifications: []gorush.PushNotification{pushNotification},
+	}
+	b := new(bytes.Buffer)
+	err := json.NewEncoder(b).Encode(n)
+	if err != nil {
+		return nil, err
+	}
+	req, _ := http.NewRequest(http.MethodPost, s.gorushHTTPAddress, b)
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	gorushResp := &GorushResponse{}
+	err = json.NewDecoder(resp.Body).Decode(gorushResp)
+	if err != nil {
+		return nil, err
+	}
+	return gorushResp, err
+}
+
+func (s *service) notificationSender(chainEvents <-chan *ChainEvent, stop <-chan struct{}) {
 	for {
 		select {
-		case notification := <-notifications:
-			apnsNotficiation := &apns2.Notification{}
-			msg := notification.Msg
-			if notification.From != nil {
-				profile, err := s.db.TwitterProfileByAddress(notification.From.String())
+		case chainEvent := <-chainEvents:
+			msg := chainEvent.Msg
+			title := "Story Update"
+			receiverProfile, err := s.db.TwitterProfileByAddress(chainEvent.To.String())
+			if err != nil {
+				s.log.WithError(err).Errorf("could not retrieve twitter profile for address %s", chainEvent.To.String())
+				continue
+			}
+			notificationEvent := &db.NotificationEvent{
+				Address:          chainEvent.To.String(),
+				TwitterProfileID: receiverProfile.ID,
+				Read:             false,
+				Timestamp:        time.Now(),
+				Message:          msg,
+				Type:             db.NotificationStoryAction,
+			}
+			var senderImage, senderAddress *string
+			if chainEvent.From != nil {
+				profile, err := s.db.TwitterProfileByAddress(chainEvent.From.String())
 				if err != nil {
-					s.log.WithError(err).Errorf("could not retrieve twitter profile for address %s", notification.From.String())
+					s.log.WithError(err).Errorf("could not retrieve twitter profile for address %s", chainEvent.From.String())
 					continue
 				}
-				msg = fmt.Sprintf(notification.Msg, profile.FullName)
+				notificationEvent.SenderProfileID = profile.ID
+				title = profile.FullName
+				senderImage = strPtr(profile.AvatarURI)
+				senderAddress = strPtr(profile.Address)
 			}
-			payload := fmt.Sprintf(`{"aps":{"alert":"%s"}}`, msg)
-			receiverAddress := notification.To.String()
+			_, err = s.db.Model(notificationEvent).Returning("*").Insert()
+			if err != nil {
+				s.log.WithError(err).Error("error saving event in database")
+			}
+			receiverAddress := chainEvent.To.String()
 			deviceTokens, err := s.db.DeviceTokensByAddress(receiverAddress)
 			if err != nil {
 				s.log.WithError(err).Error("error retrieving tokens from db")
@@ -61,30 +174,44 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 				s.log.Infof("account address %s doesn't not have push notification tokens \n", receiverAddress)
 				continue
 			}
+			tokens := make(map[string][]string)
 			for _, deviceToken := range deviceTokens {
-				apnsNotficiation.Payload = []byte(payload)
-				apnsNotficiation.Topic = s.apnsTopic
-				apnsNotficiation.DeviceToken = deviceToken.Token
-				res, err := s.apnsClient.Push(apnsNotficiation)
+				currentTokens := tokens[deviceToken.Platform]
+				tokens[deviceToken.Platform] = append(currentTokens, deviceToken.Token)
+			}
+			notification := Notification{
+				Title: title,
+				Body:  msg,
+				NotificationData: NotificationData{
+					ID:        notificationEvent.ID,
+					Timestamp: notificationEvent.Timestamp,
+					UserID:    senderAddress,
+					Image:     senderImage,
+					Read:      notificationEvent.Read,
+					Type:      notificationEvent.Type,
+				},
+			}
+			for p, t := range tokens {
+				notification.Platform = p
+				r, err := s.sendNotification(notification, t)
 				if err != nil {
-					s.log.WithError(err).Error("error sending notification")
+					s.log.WithError(err).Error("error sending notifications")
 					continue
 				}
-				s.log.Infof("notification sent to %s: status code: %d response-id: %s reason : %s\n",
-					notification.To.String(),
-					res.StatusCode, res.ApnsID,
-					res.Reason)
+				if r != nil {
+					s.log.Infof("notifications sent - status : %s count : %d", r.Success, r.Counts)
+				}
+
 			}
 
 		case <-stop:
 			s.log.Info("stopping notification sender")
 			return
-
 		}
 	}
 }
 
-func (s *service) processTransactionEvent(pushEvent types.EventDataTx, notifications chan<- *Notification) {
+func (s *service) processTransactionEvent(pushEvent types.EventDataTx, events chan<- *ChainEvent) {
 	pushData := &truchain.StakeNotificationResult{}
 	err := json.Unmarshal(pushEvent.Result.Data, pushData)
 	if err != nil {
@@ -97,21 +224,23 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, notificat
 		var alert string
 		switch action {
 		case "back_story":
-			alert = "%s backed your story"
+			alert = "Backed your story"
 		case "create_challenge":
-			alert = "%s challenged your story"
+			alert = "Challenged your story"
 		case "like_backing_argument":
-			alert = "%s supported your backing argument"
+			alert = "Supported your backing argument"
 		case "like_challenge_argument":
-			alert = "%s supported your challenge argument"
+			alert = "Supported your challenge argument"
 		}
 		if alert != "" {
-			notifications <- &Notification{From: &pushData.From, To: pushData.To, Msg: alert}
+			stake := pushData.Amount.Amount.Quo(sdk.NewInt(truchain.Shanev))
+			alert = fmt.Sprintf("%s with %s TruStake", alert, stake)
+			events <- &ChainEvent{From: &pushData.From, To: pushData.To, Msg: alert}
 		}
 	}
 }
 
-func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, notifications chan<- *Notification) {
+func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, events chan<- *ChainEvent) {
 	for _, tag := range newBlockEvent.ResultEndBlock.Tags {
 		if string(tag.Key) == "tru.event.completedStories" {
 			completed := &truchain.CompletedStoriesNotificationResult{}
@@ -121,12 +250,12 @@ func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, no
 				continue
 			}
 			for _, story := range completed.Stories {
-				notifications <- &Notification{To: story.Creator, Msg: "A claim you made has completed"}
+				events <- &ChainEvent{To: story.Creator, Msg: "A claim you made has completed"}
 				for _, backer := range story.Backers {
-					notifications <- &Notification{To: backer, Msg: "A claim you backed has completed"}
+					events <- &ChainEvent{To: backer, Msg: "A claim you backed has completed"}
 				}
 				for _, challenger := range story.Challengers {
-					notifications <- &Notification{To: challenger, Msg: "A claim you challenged has completed"}
+					events <- &ChainEvent{To: challenger, Msg: "A claim you challenged has completed"}
 				}
 			}
 		}
@@ -141,15 +270,6 @@ func getEnv(env, defaultValue string) string {
 	return defaultValue
 }
 
-// MustEnv will panic if the variable is not set.
-func MustEnv(env string) string {
-	val := os.Getenv(env)
-	if val == "" {
-		panic(fmt.Sprintf("should provide variable %s", env))
-	}
-	return val
-}
-
 func setupSignals() (stopCh <-chan struct{}) {
 	stop := make(chan struct{})
 	c := make(chan os.Signal, 1)
@@ -161,6 +281,21 @@ func setupSignals() (stopCh <-chan struct{}) {
 	return stop
 }
 
+func (s *service) logChainStatus(c *client.HTTP) {
+	if c == nil {
+		return
+	}
+	status, err := c.Status()
+	if err != nil {
+		s.log.WithError(err).Error("error connecting to chain")
+		return
+	}
+	if status != nil {
+		nodeInfo := status.NodeInfo
+		s.log.Infof("connected to [%s] address: %s", nodeInfo.Moniker, nodeInfo.NetAddress().String())
+	}
+
+}
 func (s *service) run(stop <-chan struct{}) {
 
 	remote := getEnv("REMOTE_ENDPOINT", "tcp://0.0.0.0:26657")
@@ -185,18 +320,18 @@ func (s *service) run(stop <-chan struct{}) {
 	if err != nil {
 		s.log.WithError(err).Fatal("could not connect to remote endpoint")
 	}
-
+	s.logChainStatus(client)
 	s.log.Infof("subscribing to query event %s", tmQuery.String())
-	notificationsChan := make(chan *Notification)
-	go s.notificationSender(notificationsChan, stop)
+	chainEventsCh := make(chan *ChainEvent)
+	go s.notificationSender(chainEventsCh, stop)
 	for {
 		select {
 		case event := <-txsCh:
 			switch v := event.(type) {
 			case types.EventDataTx:
-				s.processTransactionEvent(v, notificationsChan)
+				s.processTransactionEvent(v, chainEventsCh)
 			case types.EventDataNewBlock:
-				s.processNewBlockEvent(v, notificationsChan)
+				s.processNewBlockEvent(v, chainEventsCh)
 			}
 		case <-stop:
 			// program is exiting
@@ -204,15 +339,7 @@ func (s *service) run(stop <-chan struct{}) {
 			s.log.Info("service stopped")
 			return
 		case <-time.After(15 * time.Second):
-			status, err := client.Status()
-			if err != nil {
-				s.log.WithError(err).Error("error connecting to chain")
-				continue
-			}
-			if status != nil {
-				nodeInfo := status.NodeInfo
-				s.log.Infof("connected to chain id: %s version: %s address: %s", nodeInfo.ID(), nodeInfo.Version, nodeInfo.ListenAddr)
-			}
+			s.logChainStatus(client)
 
 		}
 	}
@@ -223,30 +350,23 @@ func main() {
 	log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 	})
+	gorushHTTPAddress := getEnv("GORUSH_ADDRESS", "http://localhost:9000/api/push")
+	topic := getEnv("NOTIFICATION_TOPIC", "io.trustory.app.devnet")
 
 	dbClient := db.NewDBClient()
-	certLocation := MustEnv("CERT_LOCATION")
-	certPassword := MustEnv("CERT_PASSWORD")
-	prodEnabled := os.Getenv("APNS_PROD") == "true"
-	topic := getEnv("NOTIFICATION_TOPIC", "io.trustory.alpha2")
 
-	cert, err := certificate.FromP12File(certLocation, certPassword)
-	if err != nil {
-		log.WithError(err).Fatal("error reading certificate from p12 file")
-	}
-
-	apnsClient := apns2.NewClient(cert).Development()
-	if prodEnabled {
-		apnsClient.Production()
-	}
 	log.Info("pushd connected to db and starting")
 
 	quit := setupSignals()
 	srvc := &service{
-		apnsClient: apnsClient,
-		apnsTopic:  topic,
-		db:         dbClient,
-		log:        log,
+		apnsTopic: topic,
+		db:        dbClient,
+		log:       log,
+		httpClient: &http.Client{
+			Timeout: time.Second * 5,
+		},
+		gorushHTTPAddress: gorushHTTPAddress,
 	}
+
 	srvc.run(quit)
 }

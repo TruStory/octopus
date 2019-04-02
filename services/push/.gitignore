@@ -1,0 +1,5 @@
+bin/
+pushd.env
+gorush.env
+certs/
+!certs/.gitkeep

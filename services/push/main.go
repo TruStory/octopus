@@ -230,9 +230,9 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, events ch
 		case "create_challenge":
 			alert = "Challenged your story"
 		case "like_backing_argument":
-			alert = "Supported your backing argument"
+			alert = "Endorsed your backing argument"
 		case "like_challenge_argument":
-			alert = "Supported your challenge argument"
+			alert = "Endorsed your challenge argument"
 		}
 		if alert != "" {
 			stake := pushData.Amount.Amount.Quo(sdk.NewInt(truchain.Shanev))

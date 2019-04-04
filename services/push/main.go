@@ -341,7 +341,7 @@ func (s *service) run(stop <-chan struct{}) {
 			_ = client.Stop()
 			s.log.Info("service stopped")
 			return
-		case <-time.After(15 * time.Second):
+		case <-time.After(30 * time.Second):
 			s.logChainStatus(client)
 
 		}

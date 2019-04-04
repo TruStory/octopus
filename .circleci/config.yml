@@ -58,12 +58,23 @@ jobs: # basic units of work in a run
             pwd
             ls -l ./bin/
       - run:
-          name: Deploy over ssh
+          name: Deploy
           command: |
-            mkdir ~/.ssh
-            ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
-            scp bin/pushd "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd"
-            ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                mkdir ~/.ssh
+                ssh-keyscan $VENICE4_HOST >> ~/.ssh/known_hosts
+                scp bin/pushd "$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/pushd"
+                ssh $VENICE4_USER@$VENICE4_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
+                echo "deploying to venice4"
+            elif [ "${CIRCLE_BRANCH}" == "develop" ]
+            then
+               
+                mkdir ~/.ssh
+                ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
+                scp bin/pushd "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd"
+                ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
+                echo "deployed to devnet"
+            fi
 workflows:
   version: 2
   build-workflow:

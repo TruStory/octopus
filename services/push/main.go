@@ -26,9 +26,10 @@ import (
 
 // ChainEvent represents a parsed event comming from the chain.
 type ChainEvent struct {
-	From *sdk.AccAddress
-	To   sdk.AccAddress
-	Msg  string
+	From    *sdk.AccAddress
+	To      sdk.AccAddress
+	Msg     string
+	StoryID int64
 }
 
 // NotificationData represents the data relevant to the app.
@@ -183,12 +184,13 @@ func (s *service) notificationSender(chainEvents <-chan *ChainEvent, stop <-chan
 				Title: title,
 				Body:  msg,
 				NotificationData: NotificationData{
-					ID:        notificationEvent.ID,
-					Timestamp: notificationEvent.Timestamp,
-					UserID:    senderAddress,
-					Image:     senderImage,
-					Read:      notificationEvent.Read,
-					Type:      notificationEvent.Type,
+					ID:             chainEvent.StoryID,
+					NotificationID: notificationEvent.ID,
+					Timestamp:      notificationEvent.Timestamp,
+					UserID:         senderAddress,
+					Image:          senderImage,
+					Read:           notificationEvent.Read,
+					Type:           notificationEvent.Type,
 				},
 			}
 			for p, t := range tokens {
@@ -234,8 +236,9 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, events ch
 		}
 		if alert != "" {
 			stake := pushData.Amount.Amount.Quo(sdk.NewInt(truchain.Shanev))
+
 			alert = fmt.Sprintf("%s with %s TruStake", alert, stake)
-			events <- &ChainEvent{From: &pushData.From, To: pushData.To, Msg: alert}
+			events <- &ChainEvent{From: &pushData.From, To: pushData.To, Msg: alert, StoryID: pushData.StoryID}
 		}
 	}
 }
@@ -250,12 +253,12 @@ func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, ev
 				continue
 			}
 			for _, story := range completed.Stories {
-				events <- &ChainEvent{To: story.Creator, Msg: "A claim you made has completed"}
+				events <- &ChainEvent{To: story.Creator, Msg: "A claim you made has completed", StoryID: story.ID}
 				for _, backer := range story.Backers {
-					events <- &ChainEvent{To: backer, Msg: "A claim you backed has completed"}
+					events <- &ChainEvent{To: backer, Msg: "A claim you backed has completed", StoryID: story.ID}
 				}
 				for _, challenger := range story.Challengers {
-					events <- &ChainEvent{To: challenger, Msg: "A claim you challenged has completed"}
+					events <- &ChainEvent{To: challenger, Msg: "A claim you challenged has completed", StoryID: story.ID}
 				}
 			}
 		}

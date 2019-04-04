@@ -1,78 +1,90 @@
-version: 2 # use CircleCI 2.0
+version: 2.1
+
+executors:
+  go:
+    docker:
+      - image: circleci/golang:1.12
+    working_directory: /tmp/octopus
+
 jobs: # basic units of work in a run
   build: # runs not using Workflows must have a `build` job as entry point
-    docker: # run the steps with Docker
-      # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
-      - image: circleci/golang:1.12
-      # CircleCI PostgreSQL images available at: https://hub.docker.com/r/circleci/postgres/
-      # - image: circleci/postgres:9.6-alpine
-      #   environment: # environment variables for primary container
-      #     POSTGRES_USER: circleci-demo-go
-      #     POSTGRES_DB: circle_test
+    executor: go
 
     parallelism: 2
 
-    # environment: # environment variables for the build itself
-    #   TEST_RESULTS: /tmp/test-results # path to where test results will be saved
-
     steps: # steps that comprise the `build` job
       - checkout # check out source code to working directory
-      # - run: mkdir -p $TEST_RESULTS # create the test results directory
 
       - restore_cache: # restores saved cache if no changes are detected since last run
           keys:
             - go-mod-v3-{{ checksum "go.sum" }}
 
-      # - run: 
-      #     name: Get dependencies
-      #     command: |
-      #       go get -v
-
-      #  Wait for Postgres to be ready before proceeding
-      # - run:
-      #     name: Waiting for Postgres to be ready
-      #     command: dockerize -wait tcp://localhost:5432 -timeout 1m
-
-      # - run:
-      #     name: Run unit tests
-      #     environment: # environment variables for the database url and path to migration files
-      #       CONTACTS_DB_URL: "postgres://circleci-demo-go@localhost:5432/circle_test?sslmode=disable"
-      #       CONTACTS_DB_MIGRATIONS: /home/circleci/project/db/migrations
-
-      #     # store the results of our tests in the $TEST_RESULTS directory
-      #     command: |
-      #       PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-      #       gotestsum --junitfile ${TEST_RESULTS}/gotestsum-report.xml -- $PACKAGE_NAMES
+      - run:
+          name: Install linter
+          command: |
+            GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
 
       - run: make # pull and build dependencies for the project
+
+      - run:
+          name: List built binaries
+          command: |
+            pwd
+            ls -l ./bin/
 
       - save_cache:
           key: go-mod-v3-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
-
-      # - run:
-      #     name: Start service
-      #     environment:
-      #       CONTACTS_DB_URL: "postgres://circleci-demo-go@localhost:5432/circle_test?sslmode=disable"
-      #       CONTACTS_DB_MIGRATIONS: /home/circleci/project/db/migrations
-      #     command: ./workdir/contacts
-      #     background: true # keep service running and proceed to next step
-
-      # - run:
-      #     name: Validate service is working
-      #     command: |
-      #       sleep 5
-      #       curl --retry 10 --retry-delay 1 -X POST --header "Content-Type: application/json" -d '{"email":"test@example.com","name":"Test User"}' http://localhost:8080/contacts
-
-      # - store_artifacts: # upload test summary for display in Artifacts
-      #     path: /tmp/test-results
-      #     destination: raw-test-output
-
-      # - store_test_results: # upload test results for display in Test Summary
-      #     path: /tmp/test-results
+          # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
+      - persist_to_workspace:
+          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
+          # taken to be the root directory of the workspace.
+          root: bin
+          # Must be relative path from root
+          paths:
+            - pushd
+  deploy:
+    executor: go
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e"
+      - attach_workspace:
+          at: /tmp/octopus/bin
+      - run:
+          name: List built binaries
+          command: |
+            pwd
+            ls -l ./bin/
+      - run:
+          name: Deploy
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                mkdir ~/.ssh
+                ssh-keyscan $VENICE4_HOST >> ~/.ssh/known_hosts
+                scp bin/pushd "$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/pushd"
+                ssh $VENICE4_USER@$VENICE4_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
+                echo "deploying to venice4"
+            elif [ "${CIRCLE_BRANCH}" == "develop" ]
+            then
+               
+                mkdir ~/.ssh
+                ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
+                scp bin/pushd "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd"
+                ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
+                echo "deployed to devnet"
+            fi
 workflows:
   version: 2
   build-workflow:
     jobs:
       - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
+                - develop

@@ -1,0 +1,15 @@
+version: "3"
+services:
+  pushd:
+    build: .
+    env_file:
+      - pushd.env
+  gorush:
+    image: "appleboy/gorush"
+    env_file:
+      - gorush.env
+    ports:
+      - "9000:8088"
+    volumes:
+      - ./certs/:/certs/
+    restart: always

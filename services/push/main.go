@@ -148,6 +148,7 @@ func (s *service) notificationSender(chainEvents <-chan *ChainEvent, stop <-chan
 				Timestamp:        time.Now(),
 				Message:          msg,
 				Type:             db.NotificationStoryAction,
+				StoryID:          chainEvent.StoryID,
 			}
 			var senderImage, senderAddress *string
 			if chainEvent.From != nil {

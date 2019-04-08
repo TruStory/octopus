@@ -8,13 +8,21 @@ This is a Go monorepo for all non-TruChain related services for TruStory. It is 
 * [AWS S3 Uploader](./services/uploader/README.md)
 * [Push Notification Service](./services/push/README.md)
 
-## Installing
+### Setup
 
-Requires Go 1.11+ since it uses Go modules for dependency management.
+Since most of these repos use TruChain as a dependency, your Git config has to be setup to work with a private repo. For that you need to add the following to your `.gitconfig`:
 
-```sh
-go mod vendor
 ```
+[url "git@github.com:"]
+    insteadOf = https://github.com/
+```
+
+This can be run on the command-line with: 
+```
+git config --global url."git@github.com:".insteadOf "https://github.com/"
+```
+
+This forces Git to use `ssh` instead of `https` when pulling repos with `go mod`.
 
 ### Linting
 

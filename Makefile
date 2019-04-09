@@ -18,3 +18,14 @@ build:
 install_tools_macos:
 	brew install golangci/tap/golangci-lint
 
+db_init:
+	@go run ./services/db/migrations/*.go init
+
+db_version:
+	@go run ./services/db/migrations/*.go version
+
+db_migrate:
+	@go run ./services/db/migrations/*.go
+
+db_reset:
+	@go run ./services/db/migrations/*.go reset

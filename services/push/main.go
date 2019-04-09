@@ -239,6 +239,9 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, events ch
 			stake := pushData.Amount.Amount.Quo(sdk.NewInt(truchain.Shanev))
 
 			alert = fmt.Sprintf("%s with %s TruStake", alert, stake)
+			if pushData.From.String() == pushData.To.String() {
+				continue
+			}
 			events <- &ChainEvent{From: &pushData.From, To: pushData.To, Msg: alert, StoryID: pushData.StoryID}
 		}
 	}
@@ -256,9 +259,15 @@ func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, ev
 			for _, story := range completed.Stories {
 				events <- &ChainEvent{To: story.Creator, Msg: "A claim you made has completed", StoryID: story.ID}
 				for _, backer := range story.Backers {
+					if story.Creator.String() == backer.String() {
+						continue
+					}
 					events <- &ChainEvent{To: backer, Msg: "A claim you backed has completed", StoryID: story.ID}
 				}
 				for _, challenger := range story.Challengers {
+					if story.Creator.String() == challenger.String() {
+						continue
+					}
 					events <- &ChainEvent{To: challenger, Msg: "A claim you challenged has completed", StoryID: story.ID}
 				}
 			}

@@ -39,6 +39,15 @@ PG_DB_NAME=trudb
 REMOTE_ENDPOINT=tcp://127.0.0.1:26657
 ```
 
+##### _NOTE: The `PG_*` vars need to be exported:_
+
+```
+export PG_ADDR=localhost:5432
+export PG_USER=postgres
+export PG_USER_PW=postgres
+export PG_DB_NAME=trudb
+```
+
 ### Running
 
 Via Go: `make run`

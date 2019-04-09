@@ -34,12 +34,12 @@ type ChainEvent struct {
 
 // NotificationData represents the data relevant to the app.
 type NotificationData struct {
+	ID int64 `json:"id"`
 	// StoryID
-	ID             int64               `json:"id"`
-	NotificationID int64               `json:"notificationId"`
-	Timestamp      time.Time           `json:"timestamp"`
-	Read           bool                `json:"read"`
-	Type           db.NotificationType `json:"type"`
+	TypeID    int64               `json:"typeId"`
+	Timestamp time.Time           `json:"timestamp"`
+	Read      bool                `json:"read"`
+	Type      db.NotificationType `json:"type"`
 	// UserID is the sender
 	UserID *string `json:"userId,omitempty"`
 	Image  *string `json:"image,omitempty"`
@@ -148,7 +148,7 @@ func (s *service) notificationSender(chainEvents <-chan *ChainEvent, stop <-chan
 				Timestamp:        time.Now(),
 				Message:          msg,
 				Type:             db.NotificationStoryAction,
-				StoryID:          chainEvent.StoryID,
+				TypeID:           chainEvent.StoryID,
 			}
 			var senderImage, senderAddress *string
 			if chainEvent.From != nil {
@@ -185,13 +185,13 @@ func (s *service) notificationSender(chainEvents <-chan *ChainEvent, stop <-chan
 				Title: title,
 				Body:  msg,
 				NotificationData: NotificationData{
-					ID:             chainEvent.StoryID,
-					NotificationID: notificationEvent.ID,
-					Timestamp:      notificationEvent.Timestamp,
-					UserID:         senderAddress,
-					Image:          senderImage,
-					Read:           notificationEvent.Read,
-					Type:           notificationEvent.Type,
+					ID:        notificationEvent.ID,
+					TypeID:    chainEvent.StoryID,
+					Timestamp: notificationEvent.Timestamp,
+					UserID:    senderAddress,
+					Image:     senderImage,
+					Read:      notificationEvent.Read,
+					Type:      notificationEvent.Type,
 				},
 			}
 			for p, t := range tokens {

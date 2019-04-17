@@ -18,7 +18,6 @@ import (
 
 	truchain "github.com/TruStory/truchain/types"
 	db "github.com/TruStory/truchain/x/db"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/tendermint/tendermint/libs/pubsub/query"
 	"github.com/tendermint/tendermint/rpc/client"
@@ -234,10 +233,8 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, events ch
 			alert = "Endorsed your challenge argument"
 		}
 		if alert != "" {
-			stake := pushData.Amount.Amount.Quo(sdk.NewInt(truchain.Shanev))
 			from := pushData.From.String()
 			to := pushData.To.String()
-			alert = fmt.Sprintf("%s with %s TruStake", alert, stake)
 			if from != to {
 				events <- &ChainEvent{From: strPtr(from), To: to, Msg: alert, StoryID: pushData.StoryID}
 			}
@@ -246,7 +243,6 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, events ch
 				if err != nil {
 					s.log.WithError(err).Error("unable to get story participants")
 				}
-				participantsAlert = fmt.Sprintf("%s with %s TruStake", participantsAlert, stake)
 				for _, p := range participants {
 					events <- &ChainEvent{From: strPtr(from), To: p, Msg: participantsAlert, StoryID: pushData.StoryID}
 				}

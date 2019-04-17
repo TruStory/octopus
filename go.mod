@@ -23,6 +23,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/jmhodges/levigo v1.0.0 // indirect
+	github.com/machinebox/graphql v0.2.2
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
 	github.com/rs/cors v1.6.0 // indirect

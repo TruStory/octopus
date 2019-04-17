@@ -9,7 +9,7 @@ import (
 func init() {
 	migrations.MustRegisterTx(func(db migrations.DB) error {
 		fmt.Println("adding timestamp columns to device_tokens...")
-		_, err := db.Exec(`ALTER TABLE device_tokens ADD COLUMN created_at timestamp, ADD COLUMN updated_at timestamp, ADD COLUMN deleted_at timestamp`)
+		_, err := db.Exec(`ALTER TABLE device_tokens ADD COLUMN created_at timestamp DEFAULT NOW(), ADD COLUMN updated_at timestamp DEFAULT NOW(), ADD COLUMN deleted_at timestamp`)
 		return err
 	}, func(db migrations.DB) error {
 		fmt.Println("removing timestamp columns from device_tokens...")

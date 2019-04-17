@@ -183,7 +183,7 @@ func (s *service) getStoryParticipants(storyID int64, creator, staker string) ([
 	if err := s.graphqlClient.Run(ctx, req, &res); err != nil {
 		return nil, err
 	}
-	mappedParticipants := make(map[string]bool, 0)
+	mappedParticipants := make(map[string]bool)
 	for _, b := range res.Story.Backings {
 		if b.Creator.Address == creator || b.Creator.Address == staker {
 			continue

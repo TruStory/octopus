@@ -105,6 +105,7 @@ workflows:
   build-workflow:
     jobs:
       - build
+      - test_migrations
       - deploy:
           requires:
             - build

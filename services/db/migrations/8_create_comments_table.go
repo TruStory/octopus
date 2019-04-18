@@ -15,7 +15,9 @@ func init() {
 			argument_id bigint NOT NULL,
 			body text NOT NULL,
 			creator VARCHAR (45) NOT NULL,
-			created_at TIMESTAMP NOT NULL
+			created_at timestamp DEFAULT NOW(),
+			updated_at timestamp DEFAULT NOW(),
+			deleted_at timestamp
 		)`)
 		return err
 	}, func(db migrations.DB) error {

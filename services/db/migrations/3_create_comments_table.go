@@ -13,6 +13,7 @@ func init() {
 			id SERIAL PRIMARY KEY,
 			parent_id INTEGER,
 			argument_id bigint NOT NULL,
+			body text NOT NULL,
 			creator VARCHAR (45) NOT NULL,
 			created_at TIMESTAMP NOT NULL
 		)`)

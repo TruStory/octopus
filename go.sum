@@ -22,6 +22,10 @@ github.com/TruStory/truchain v0.0.0-20190408231517-4b114ab0fbe2 h1:cyYEw+zhSUNli
 github.com/TruStory/truchain v0.0.0-20190408231517-4b114ab0fbe2/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
 github.com/TruStory/truchain v0.0.0-20190409002819-2116867b6044 h1:TvgFIazuMLyyydJZVKu+20s3J92psrCoYO98JMmSSUc=
 github.com/TruStory/truchain v0.0.0-20190409002819-2116867b6044/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
+github.com/TruStory/truchain v0.0.0-20190418170640-20c6db207182 h1:dha8Jko7Y380seSjMqVvDlcHvkSbZOa7zrZMAipTf6Y=
+github.com/TruStory/truchain v0.0.0-20190418170640-20c6db207182/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
+github.com/TruStory/truchain v0.0.0-20190418181802-884a053ce714 h1:R2aPhbg0Ec1VovnayG593VT6ht8Z8xanAK25jS/zmsE=
+github.com/TruStory/truchain v0.0.0-20190418181802-884a053ce714/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
 github.com/VividCortex/gohistogram v1.0.0 h1:6+hBz+qvs0JOrrNhhmR7lFxo5sINxBCGXrdtl/UvroE=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=

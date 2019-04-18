@@ -10,14 +10,14 @@ func init() {
 	migrations.MustRegisterTx(func(db migrations.DB) error {
 		fmt.Println("creating comments table...")
 		_, err := db.Exec(`CREATE TABLE comments(
-			id SERIAL PRIMARY KEY,
-			parent_id INTEGER,
-			argument_id bigint NOT NULL,
-			body text NOT NULL,
+			id BIGSERIAL PRIMARY KEY,
+			parent_id BIGINT,
+			argument_id BIGINT NOT NULL,
+			body TEXT NOT NULL,
 			creator VARCHAR (45) NOT NULL,
-			created_at timestamp DEFAULT NOW(),
-			updated_at timestamp DEFAULT NOW(),
-			deleted_at timestamp
+			created_at TIMESTAMP DEFAULT NOW(),
+			updated_at TIMESTAMP DEFAULT NOW(),
+			deleted_at TIMESTAMP
 		)`)
 		return err
 	}, func(db migrations.DB) error {

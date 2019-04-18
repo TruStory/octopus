@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/go-pg/migrations"
 	"github.com/go-pg/pg"
+	"github.com/joho/godotenv"
 )
 
 const usageText = `This program runs command on the db. Supported commands are:
@@ -21,6 +23,11 @@ Usage:
 `
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Error loading .env file", err)
+	}
+
 	flag.Usage = usage
 	flag.Parse()
 

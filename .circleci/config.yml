@@ -48,7 +48,7 @@ jobs: # basic units of work in a run
     docker:
       - image: circleci/golang:1.12
         environment:
-          PG_ADDR: localhost
+          PG_ADDR: localhost:5432
           PG_USER: postgres
           PG_USER_PW: postgres
           PG_DB_NAME: trudb

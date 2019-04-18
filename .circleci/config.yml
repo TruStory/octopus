@@ -44,6 +44,31 @@ jobs: # basic units of work in a run
           # Must be relative path from root
           paths:
             - pushd
+  test_migrations:
+    docker:
+      - image: circleci/golang:1.12
+        environment:
+          PG_ADDR: localhost
+          PG_USER: postgres
+          PG_USER_PW: postgres
+          PG_DB_NAME: trudb
+      - image: postgres:11.1
+        environment:
+          POSTGRES_DB: trudb
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+    steps:
+      - checkout
+      - run:
+          name: Test Migrations
+          command: |
+            make db_init
+            make db_version
+            make db_migrate
+            make db_reset
+            make db_version
+            make db_migrate
+            make db_version
   deploy:
     executor: go
     steps:
@@ -83,6 +108,7 @@ workflows:
       - deploy:
           requires:
             - build
+            - test_migrations
           filters:
             branches:
               only:

@@ -26,7 +26,11 @@ func (s *service) run() {
 	s.router.Handle("/story/{id:[0-9]+}/render-spotlight", renderSpotlightHandler(s))
 	s.router.Handle("/story/{id:[0-9]+}/spotlight", spotlightHandler(s))
 	http.Handle("/", s.router)
-	http.ListenAndServe(":"+s.port, nil)
+	err := http.ListenAndServe(":"+s.port, nil)
+	if err != nil {
+		log.Fatal(err)
+		panic(err)
+	}
 }
 
 func main() {
@@ -36,7 +40,7 @@ func main() {
 	}
 
 	spotlight := &service{
-		port:          mustEnv("PORT"),
+		port:          getEnv("PORT", "54448"),
 		router:        mux.NewRouter(),
 		storyTemplate: template.Must(template.ParseFiles("story.html")),
 		graphqlClient: graphql.NewClient(mustEnv("SPOTLIGHT_GRAPHQL_ENDPOINT")),
@@ -50,10 +54,15 @@ func renderSpotlightHandler(s *service) http.Handler {
 		vars := mux.Vars(r)
 		storyID, err := strconv.ParseInt(vars["id"], 10, 64)
 		if err != nil {
+			log.Fatal(err)
 			panic(err)
 		}
 		data := getStory(s, storyID)
-		s.storyTemplate.Execute(w, data)
+		err = s.storyTemplate.Execute(w, data)
+		if err != nil {
+			log.Fatal(err)
+			panic(err)
+		}
 	}
 
 	return http.HandlerFunc(fn)
@@ -68,6 +77,7 @@ func spotlightHandler(s *service) http.Handler {
 		imageName := fmt.Sprintf("./storage/story-%s.png", storyID)
 		_, err := ifs.Generate(renderURL, imageName)
 		if err != nil {
+			log.Fatal(err)
 			panic(err)
 		}
 		http.ServeFile(w, r, imageName)
@@ -83,6 +93,7 @@ func getStory(s *service, storyID int64) StoryByIDResponse {
 	var graphqlRes StoryByIDResponse
 	ctx := context.Background()
 	if err := s.graphqlClient.Run(ctx, graphqlReq, &graphqlRes); err != nil {
+		log.Fatal(err)
 		panic(err)
 	}
 

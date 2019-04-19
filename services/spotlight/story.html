@@ -73,15 +73,15 @@
     <section id="story">
         <div id="creator" class="clearfix">
             <div id="avatar">
-                <img src="{{.Creator.AvatarURL}}">
+                <img src="{{.Story.Creator.TwitterProfile.AvatarURI}}">
             </div>
             <div id="name">
-                <p>{{.Creator.FullName}}</p>
+                <p>{{.Story.Creator.TwitterProfile.FullName}}</p>
             </div>
         </div>
 
         <div id="body">
-            <p>{{.Body}}</p>
+            <p>{{.Story.Body}}</p>
         </div>
     </section>
 

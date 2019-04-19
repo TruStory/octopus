@@ -1,7 +1,7 @@
 PACKAGES=$(shell go list ./...)
 
 build:
-	go build -o ../../bin/spotlightd main.go
+	go build -o ../../bin/spotlightd *.go
 
 run:
-	go run main.go
+	go run *.go

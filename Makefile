@@ -32,3 +32,6 @@ db_migrate_down:
 
 db_reset:
 	@go run ./services/db/migrations/*.go reset
+
+spotlight_run:
+	@go run ./services/spotlight/*.go

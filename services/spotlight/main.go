@@ -64,9 +64,6 @@ func spotlightHandler(s *service) http.Handler {
 		vars := mux.Vars(r)
 		storyID := vars["id"]
 		ifs := make(wkhtmltox.ImageFlagSet)
-		ifs.SetFormat("png")
-		ifs.SetHeight(1200)
-		ifs.SetWidth(630)
 		renderURL := fmt.Sprintf("http://localhost:%s/story/%s/render-spotlight", s.port, storyID)
 		imageName := fmt.Sprintf("./storage/story-%s.png", storyID)
 		_, err := ifs.Generate(renderURL, imageName)

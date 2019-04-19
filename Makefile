@@ -14,6 +14,7 @@ check_lint:
 build:
 	make -C services/push build-linux
 	make -C services/uploader build
+	make -C services/spotlight build
 
 install_tools_macos:
 	brew install golangci/tap/golangci-lint
@@ -32,6 +33,3 @@ db_migrate_down:
 
 db_reset:
 	@go run ./services/db/migrations/*.go reset
-
-spotlight_run:
-	@go run ./services/spotlight/*.go

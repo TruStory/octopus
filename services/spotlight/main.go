@@ -11,7 +11,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/itskingori/go-wkhtml/wkhtmltox"
-	"github.com/joho/godotenv"
 	"github.com/machinebox/graphql"
 )
 
@@ -34,11 +33,6 @@ func (s *service) run() {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Error loading .env file", err)
-	}
-
 	spotlight := &service{
 		port:          getEnv("PORT", "54448"),
 		router:        mux.NewRouter(),

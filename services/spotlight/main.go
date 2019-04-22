@@ -50,16 +50,19 @@ func renderSpotlightHandler(s *service) http.Handler {
 		if err != nil {
 			log.Fatal(err)
 			http.Error(w, "Invalid story ID passed.", http.StatusBadRequest)
+			return
 		}
 		data, err := getStory(s, storyID)
 		if err != nil {
 			log.Fatal(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		err = s.storyTemplate.Execute(w, data)
 		if err != nil {
 			log.Fatal(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
 
@@ -77,6 +80,7 @@ func spotlightHandler(s *service) http.Handler {
 		if err != nil {
 			log.Fatal(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		http.ServeFile(w, r, imageName)
 	}

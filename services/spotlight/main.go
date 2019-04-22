@@ -49,13 +49,17 @@ func renderSpotlightHandler(s *service) http.Handler {
 		storyID, err := strconv.ParseInt(vars["id"], 10, 64)
 		if err != nil {
 			log.Fatal(err)
-			panic(err)
+			http.Error(w, "Invalid story ID passed.", http.StatusBadRequest)
 		}
-		data := getStory(s, storyID)
+		data, err := getStory(s, storyID)
+		if err != nil {
+			log.Fatal(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		err = s.storyTemplate.Execute(w, data)
 		if err != nil {
 			log.Fatal(err)
-			panic(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}
 
@@ -72,7 +76,7 @@ func spotlightHandler(s *service) http.Handler {
 		_, err := ifs.Generate(renderURL, imageName)
 		if err != nil {
 			log.Fatal(err)
-			panic(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		http.ServeFile(w, r, imageName)
 	}
@@ -80,7 +84,7 @@ func spotlightHandler(s *service) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func getStory(s *service, storyID int64) StoryByIDResponse {
+func getStory(s *service, storyID int64) (StoryByIDResponse, error) {
 	graphqlReq := graphql.NewRequest(StoryByIDQuery)
 
 	graphqlReq.Var("storyId", storyID)
@@ -88,10 +92,10 @@ func getStory(s *service, storyID int64) StoryByIDResponse {
 	ctx := context.Background()
 	if err := s.graphqlClient.Run(ctx, graphqlReq, &graphqlRes); err != nil {
 		log.Fatal(err)
-		panic(err)
+		return graphqlRes, err
 	}
 
-	return graphqlRes
+	return graphqlRes, nil
 }
 
 func getEnv(env, defaultValue string) string {

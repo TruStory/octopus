@@ -7,7 +7,7 @@ require (
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32 // indirect
-	github.com/cosmos/cosmos-sdk v0.33.0
+	github.com/cosmos/cosmos-sdk v0.33.0 // indirect
 	github.com/ethereum/go-ethereum v1.8.23 // indirect
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/go-kit/kit v0.8.0 // indirect
@@ -21,10 +21,12 @@ require (
 	github.com/gorilla/mux v1.7.0
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/itskingori/go-wkhtml v0.0.0-20180226001954-aa8c15cb0496
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/joho/godotenv v1.3.0
-	github.com/machinebox/graphql v0.2.2 // indirect
+	github.com/machinebox/graphql v0.2.2
+	github.com/matryer/is v1.2.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
 	github.com/rs/cors v1.6.0 // indirect
@@ -38,7 +40,7 @@ require (
 	github.com/tendermint/tendermint v0.30.2
 	golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a // indirect
 	golang.org/x/net v0.0.0-20190313082753-5c2c250b6a70 // indirect
-	google.golang.org/grpc v1.19.0
+	google.golang.org/grpc v1.19.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )

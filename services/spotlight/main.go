@@ -73,17 +73,6 @@ func renderSpotlightHandler(s *service) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return true, err
-}
-
 func spotlightHandler(s *service) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)

@@ -14,7 +14,7 @@ check_lint:
 build:
 	make -C services/push build-linux
 	make -C services/uploader build
-	make -C services/spotlight build
+	make -C services/spotlight build-linux
 
 install_tools_macos:
 	brew install golangci/tap/golangci-lint

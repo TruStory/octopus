@@ -44,6 +44,7 @@ jobs: # basic units of work in a run
           # Must be relative path from root
           paths:
             - pushd
+            - spotlightd
   test_migrations:
     docker:
       - image: circleci/golang:1.12

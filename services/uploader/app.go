@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -30,10 +31,18 @@ type Config struct {
 	ImageFolder string
 }
 
+func getConfig() string {
+	cfg := "config.toml"
+	if os.Getenv("CONFIG_PATH") != "" {
+		cfg = os.Getenv("CONFIG_PATH")
+	}
+	return cfg
+}
+
 // Define HTTP request routes
 func main() {
 	var conf Config
-	if _, err := toml.DecodeFile("config.toml", &conf); err != nil {
+	if _, err := toml.DecodeFile(getConfig(), &conf); err != nil {
 		log.Fatal(err)
 		return
 	}
@@ -49,7 +58,7 @@ func main() {
 func getURL(w http.ResponseWriter, r *http.Request) {
 	var url URL
 	var conf Config
-	if _, err := toml.DecodeFile("config.toml", &conf); err != nil {
+	if _, err := toml.DecodeFile(getConfig(), &conf); err != nil {
 		errorHandler(w, http.StatusBadRequest, err.Error())
 		return
 	}

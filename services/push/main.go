@@ -197,11 +197,11 @@ func (s *service) getStoryParticipants(storyID int64, creator, staker string) ([
 		mappedParticipants[c.Creator.Address] = true
 
 	}
+	if res.Story.Creator.Address != creator && res.Story.Creator.Address != staker {
+		mappedParticipants[res.Story.Creator.Address] = true
+	}
 	for p := range mappedParticipants {
 		participants = append(participants, p)
-	}
-	if res.Story.Creator.Address != creator && res.Story.Creator.Address != staker {
-		participants = append(participants, res.Story.Creator.Address)
 	}
 	return participants, nil
 }

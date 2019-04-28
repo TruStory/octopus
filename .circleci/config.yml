@@ -101,6 +101,28 @@ jobs: # basic units of work in a run
                 ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
                 echo "deployed to devnet"
             fi
+  migrate:
+    executor: go
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e"
+      - attach_workspace:
+          at: /tmp/octopus/bin
+      - run:
+          name: List built binaries
+          command: |
+            pwd
+            ls -l ./bin/
+      - run:
+          name: Migrate DB
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "develop" ]; then
+                mkdir ~/.ssh
+                ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
+                ssh $DEVNET_USER@$DEVNET_HOST "cd $OCTOPUS_LOCATION && make db_migrate"
+                echo "Migrated DB"
+            fi
 workflows:
   version: 2
   build-workflow:
@@ -116,3 +138,4 @@ workflows:
               only:
                 - master
                 - develop
+      - migrate

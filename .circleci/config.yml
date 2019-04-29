@@ -1,110 +1,169 @@
-version: 2
-jobs:
-  build:
+version: 2.1
+
+executors:
+  go:
     docker:
-    - image: circleci/golang:1.12
+      - image: circleci/golang:1.12
     working_directory: /tmp/octopus
+
+jobs: # basic units of work in a run
+  build: # runs not using Workflows must have a `build` job as entry point
+    executor: go
+
     parallelism: 2
-    steps:
-    - checkout
-    - restore_cache:
-        keys:
-        - go-mod-v3-{{ checksum "go.sum" }}
-    - run:
-        name: Install linter
-        command: |
-          GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
-    - run:
-        command: make
-    - run:
-        name: List built binaries
-        command: |
-          pwd
-          ls -l ./bin/
-    - save_cache:
-        key: go-mod-v3-{{ checksum "go.sum" }}
-        paths:
-        - /go/pkg/mod
-    - persist_to_workspace:
-        root: bin
-        paths:
-        - pushd
-        - spotlightd
+
+    steps: # steps that comprise the `build` job
+      - checkout # check out source code to working directory
+
+      - restore_cache: # restores saved cache if no changes are detected since last run
+          keys:
+            - go-mod-v3-{{ checksum "go.sum" }}
+
+      - run:
+          name: Install linter
+          command: |
+            GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
+
+      - run: make # pull and build dependencies for the project
+
+      - run:
+          name: List built binaries
+          command: |
+            pwd
+            ls -l ./bin/
+
+      - save_cache:
+          key: go-mod-v3-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+          # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
+      - persist_to_workspace:
+          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
+          # taken to be the root directory of the workspace.
+          root: bin
+          # Must be relative path from root
+          paths:
+            - pushd
+            - spotlightd
   test_migrations:
     docker:
-    - image: circleci/golang:1.12
-      environment:
-        PG_ADDR: localhost:5432
-        PG_USER: postgres
-        PG_USER_PW: postgres
-        PG_DB_NAME: trudb
-    - image: postgres:11.1
-      environment:
-        POSTGRES_DB: trudb
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: postgres
+      - image: circleci/golang:1.12
+        environment:
+          PG_ADDR: localhost:5432
+          PG_USER: postgres
+          PG_USER_PW: postgres
+          PG_DB_NAME: trudb
+      - image: postgres:11.1
+        environment:
+          POSTGRES_DB: trudb
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
     steps:
-    - checkout
-    - run:
-        name: Test Migrations
-        command: |
-          make db_init
-          make db_version
-          make db_migrate
-          make db_reset
-          make db_version
-          make db_migrate
-          make db_version
+      - checkout
+      - run:
+          name: Test Migrations
+          command: |
+            make db_init
+            make db_version
+            make db_migrate
+            make db_reset
+            make db_version
+            make db_migrate
+            make db_version
   deploy:
-    docker:
-    - image: circleci/golang:1.12
-    working_directory: /tmp/octopus
+    executor: go
     steps:
-    - add_ssh_keys:
-        fingerprints:
-        - 73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e
-    - attach_workspace:
-        at: /tmp/octopus/bin
-    - run:
-        name: List built binaries
-        command: |
-          pwd
-          ls -l ./bin/
-    - run:
-        name: Deploy
-        command: "if [ \"${CIRCLE_BRANCH}\" == \"master\" ]; then\n    mkdir ~/.ssh\n\
-          \    ssh-keyscan $VENICE4_HOST >> ~/.ssh/known_hosts\n    scp bin/pushd\
-          \ \"$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/pushd\"\n    ssh $VENICE4_USER@$VENICE4_HOST\
-          \ \"cd $SERVICE_LOCATION && docker-compose up --build -d pushd\"\n    echo\
-          \ \"deploying to venice4\"\nelif [ \"${CIRCLE_BRANCH}\" == \"develop\" ]\n\
-          then\n   \n    mkdir ~/.ssh\n    ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts\n\
-          \    scp bin/pushd \"$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd\"\n\
-          \    ssh $DEVNET_USER@$DEVNET_HOST \"cd $SERVICE_LOCATION && docker-compose\
-          \ up --build -d pushd\"\n    echo \"deployed to devnet\"\nfi\n"
+      - add_ssh_keys:
+          fingerprints:
+            - "73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e"
+      - attach_workspace:
+          at: /tmp/octopus/bin
+      - run:
+          name: List built binaries
+          command: |
+            pwd
+            ls -l ./bin/
+      - run:
+          name: Deploy
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                mkdir ~/.ssh
+                ssh-keyscan $VENICE4_HOST >> ~/.ssh/known_hosts
+                scp bin/pushd "$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/pushd"
+                ssh $VENICE4_USER@$VENICE4_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
+                echo "deploying to venice4"
+            elif [ "${CIRCLE_BRANCH}" == "develop" ]
+            then
+               
+                mkdir ~/.ssh
+                ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
+                scp bin/pushd "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd"
+                ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
+                echo "deployed to devnet"
+            fi
   db_dump:
     docker:
-      - image:  jbergknoff/postgresql-client
-    # working_directory: /tmp/octopus/demo
+      - image: jbergknoff/postgresql-client
+    working_directory: /tmp/octopus
     steps:
+      - run: apk add --update --no-cache ca-certificates
       - run:
-          name: Prepare DB
+          name: Create password file
           command: |
-            echo "trudb-test.c7hztfkcupe9.us-west-1.rds.amazonaws.com:5432:trudb:truadmin:trustory123" > ~/.pgpass
+            echo "${PG_ADDR_PROD}:${PG_DB_NAME_PROD}:${PG_USER_PROD}:${PG_USER_PW_PROD}" > ~/.pgpass
             chmod 600 ~/.pgpass
-      - run: pg_dump -U truadmin -h trudb-test.c7hztfkcupe9.us-west-1.rds.amazonaws.com -p 5432 trudb > test.db
-      - run: cat test.db
+      - run: 
+          name: Dump DB
+          command: |
+            mkdir -p db
+            pg_dump -U ${PG_USER_PROD} -h ${PG_HOSTNAME_PROD} -p 5432 ${PG_DB_NAME_PROD} > db/dump.sql
+      - persist_to_workspace:
+          root: db
+          paths:
+          - dump.sql
+  s3_upload:
+    docker:
+      - image: circleci/python:2.7-jessie    
+    working_directory: /tmp/octopus
+    steps:
+      - attach_workspace:
+          at: /tmp/octopus/db
+      - run:
+          name: List backups
+          command: |
+            pwd
+            ls -l ./db/
+      - run:
+          name: Install awscli
+          command: sudo pip install awscli
+      - run:
+          name: Upload to S3
+          command: aws s3 cp ./db/dump.sql s3://io-trustory-backups/db/$(date +%y%m%d)-dump.sql
 workflows:
   version: 2
   build-workflow:
     jobs:
-    - build
-    - test_migrations
-    - deploy:
-        filters:
-          branches:
-            only:
-            - master
-            - develop
-        requires:
-        - build
-        - test_migrations
+      - build
+      - test_migrations
+      - deploy:
+          requires:
+            - build
+            - test_migrations
+          filters:
+            branches:
+              only:
+                - master
+                - develop
+  nightly-backup:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - db_dump
+      - s3_upload:
+          requires:
+            - db_dump

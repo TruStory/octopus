@@ -124,6 +124,44 @@ jobs: # basic units of work in a run
               ssh $DEVNET_USER@$DEVNET_HOST "cd $OCTOPUS_LOCATION && /usr/local/go/bin/go run ./services/db/migrations/*.go"
               echo "Migrated DB on Devnet"
             fi
+  db_dump:
+    docker:
+      - image: jbergknoff/postgresql-client
+    working_directory: /tmp/octopus
+    steps:
+      - run: apk add --update --no-cache ca-certificates
+      - run:
+          name: Create password file
+          command: |
+            echo "${PG_ADDR_PROD}:${PG_DB_NAME_PROD}:${PG_USER_PROD}:${PG_USER_PW_PROD}" > ~/.pgpass
+            chmod 600 ~/.pgpass
+      - run: 
+          name: Dump DB
+          command: |
+            mkdir -p db
+            pg_dump -U ${PG_USER_PROD} -h ${PG_HOSTNAME_PROD} -p 5432 ${PG_DB_NAME_PROD} | gzip -9 > db/dump.sql.gz
+      - persist_to_workspace:
+          root: db
+          paths:
+          - dump.sql.gz
+  s3_upload:
+    docker:
+      - image: circleci/python:2.7-jessie    
+    working_directory: /tmp/octopus
+    steps:
+      - attach_workspace:
+          at: /tmp/octopus/db
+      - run:
+          name: List backups
+          command: |
+            pwd
+            ls -l ./db/
+      - run:
+          name: Install awscli
+          command: sudo pip install awscli
+      - run:
+          name: Upload to S3
+          command: aws s3 cp ./db/dump.sql.gz s3://io-trustory-backups/db/$(date +%y%m%d)-dump.sql.gz
 workflows:
   version: 2
   build-workflow:
@@ -147,3 +185,16 @@ workflows:
               only:
                 - master
                 - develop
+  nightly-backup:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - db_dump
+      - s3_upload:
+          requires:
+            - db_dump

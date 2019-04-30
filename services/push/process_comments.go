@@ -27,7 +27,7 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 				To:     n.ArgumentCreator,
 				TypeID: n.StoryID,
 				Type:   db.NotificationStoryAction,
-				Msg:    fmt.Sprintf("%s", c.Body),
+				Msg:    c.Body,
 			}
 		}
 
@@ -40,7 +40,7 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 				To:     p,
 				TypeID: n.StoryID,
 				Type:   db.NotificationStoryAction,
-				Msg:    fmt.Sprintf("%s", c.Body),
+				Msg:    c.Body,
 			}
 		}
 

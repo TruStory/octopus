@@ -230,7 +230,6 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, notificat
 			participantsAlert = "Challenged a story you participated in"
 		case "like_backing_argument":
 			hideSender = true
-			participantsAlert = "Someone endorsed an argument in a story you participated in"
 			alert = fmt.Sprintf(
 				"Someone endorsed your backing argument. You earned %s %s Cred",
 				pushData.Cred.Amount.Quo(sdk.NewInt(truchain.Shanev)),
@@ -238,7 +237,6 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, notificat
 			)
 		case "like_challenge_argument":
 			hideSender = true
-			participantsAlert = "Someone endorsed an argument in a story you participated in"
 			alert = fmt.Sprintf(
 				"Someone endorsed your challenge argument. You earned %s %s Cred",
 				pushData.Cred.Amount.Quo(sdk.NewInt(truchain.Shanev)),

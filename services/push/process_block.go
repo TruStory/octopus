@@ -69,7 +69,7 @@ func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, no
 					earns, ok := usersEarns[backer.Address.String()]
 
 					if !ok {
-						fmt.Println("backin earner not found for ", backer.Address.String())
+						s.log.WithField("address", backer.Address.String()).Info("earns not found")
 					}
 
 					msg := getResultMessage(story.StakeDistributionResults.Type, true, backer, earns)
@@ -87,7 +87,7 @@ func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, no
 
 					earns, ok := usersEarns[challenger.Address.String()]
 					if !ok {
-						fmt.Println("challenge earner not found for ", challenger.Address.String())
+						s.log.WithField("address", challenger.Address.String()).Info("earns not found")
 					}
 
 					msg := getResultMessage(story.StakeDistributionResults.Type, false, challenger, earns)

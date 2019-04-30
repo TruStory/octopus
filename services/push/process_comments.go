@@ -51,13 +51,13 @@ func (s *service) startHTTP(stop <-chan struct{}, notifications chan<- *CommentN
 	mux := http.NewServeMux()
 	mux.HandleFunc("/sendCommentNotification", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			fmt.Printf("onnly POST method allowed received [%s]\n", r.Method)
+			fmt.Printf("only POST method allowed received [%s]\n", r.Method)
 			return
 		}
 		n := &CommentNotificationRequest{}
 		err := json.NewDecoder(r.Body).Decode(n)
 		if err != nil {
-			fmt.Println("error decoding request", err)
+			s.log.WithError(err).Error("error decoding request")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

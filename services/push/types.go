@@ -7,12 +7,13 @@ import (
 	"github.com/appleboy/gorush/gorush"
 )
 
-// ChainEvent represents a parsed event comming from the chain.
-type ChainEvent struct {
-	From    *string
-	To      string
-	Msg     string
-	StoryID int64
+// Notification represents a parsed event comming from the chain.
+type Notification struct {
+	From   *string
+	To     string
+	Msg    string
+	TypeID int64
+	Type   db.NotificationType
 }
 
 // NotificationData represents the data relevant to the app.
@@ -36,8 +37,8 @@ func (d NotificationData) ToGorushData() gorush.D {
 	return data
 }
 
-// Notification represents the notification data sent to services.
-type Notification struct {
+// PushNotification represents the notification data sent to services.
+type PushNotification struct {
 	Title            string
 	Body             string
 	Platform         string
@@ -49,6 +50,17 @@ type GorushResponse struct {
 	Success string                `json:"success"`
 	Counts  int                   `json:"counts"`
 	Logs    []gorush.LogPushEntry `json:"logs"`
+}
+
+// CommentNotificationRequest is the payload sent to pushd for sending notifications.
+type CommentNotificationRequest struct {
+	// ID is the comment id.
+	ID              int64     `json:"id"`
+	ArgumentCreator string    `json:"argument_creator"`
+	ArgumentID      int64     `json:"argumentId"`
+	StoryID         int64     `json:"storyId"`
+	Creator         string    `json:"creator"`
+	Timestamp       time.Time `json:"timestamp"`
 }
 
 // GraphQL responses

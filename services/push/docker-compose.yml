@@ -4,6 +4,8 @@ services:
     build: .
     env_file:
       - pushd.env
+      ports:
+      - "9001:9001"
   gorush:
     image: "appleboy/gorush"
     env_file:

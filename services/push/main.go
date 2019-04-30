@@ -14,11 +14,12 @@ import (
 	"github.com/appleboy/gorush/gorush"
 	"github.com/machinebox/graphql"
 
-	"github.com/sirupsen/logrus"
-
 	truchain "github.com/TruStory/truchain/types"
 	db "github.com/TruStory/truchain/x/db"
+	"github.com/sirupsen/logrus"
+	"strings"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
 	"github.com/tendermint/tendermint/rpc/client"
 	"github.com/tendermint/tendermint/types"
@@ -41,7 +42,7 @@ func intPtr(i int) *int {
 func strPtr(s string) *string {
 	return &s
 }
-func (s *service) sendNotification(notification Notification, tokens []string) (*GorushResponse, error) {
+func (s *service) sendNotification(notification PushNotification, tokens []string) (*GorushResponse, error) {
 	var p int
 	if notification.Platform == "ios" {
 		p = 1
@@ -88,35 +89,35 @@ func (s *service) sendNotification(notification Notification, tokens []string) (
 	return gorushResp, err
 }
 
-func (s *service) notificationSender(chainEvents <-chan *ChainEvent, stop <-chan struct{}) {
+func (s *service) notificationSender(notifications <-chan *Notification, stop <-chan struct{}) {
 	for {
 		select {
-		case chainEvent := <-chainEvents:
-			msg := chainEvent.Msg
+		case notification := <-notifications:
+			msg := notification.Msg
 			title := "Story Update"
-			receiverProfile, err := s.db.TwitterProfileByAddress(chainEvent.To)
+			receiverProfile, err := s.db.TwitterProfileByAddress(notification.To)
 			if err != nil {
-				s.log.WithError(err).Errorf("could not retrieve twitter profile for address %s", chainEvent.To)
+				s.log.WithError(err).Errorf("could not retrieve twitter profile for address %s", notification.To)
 				continue
 			}
 			notificationEvent := &db.NotificationEvent{
-				Address:          chainEvent.To,
+				Address:          notification.To,
 				TwitterProfileID: receiverProfile.ID,
 				Read:             false,
 				Timestamp:        time.Now(),
 				Message:          msg,
-				Type:             db.NotificationStoryAction,
-				TypeID:           chainEvent.StoryID,
+				Type:             notification.Type,
+				TypeID:           notification.TypeID,
 			}
 			var senderImage, senderAddress *string
-			if chainEvent.From != nil {
-				profile, err := s.db.TwitterProfileByAddress(*chainEvent.From)
+			if notification.From != nil {
+				profile, err := s.db.TwitterProfileByAddress(*notification.From)
 				if err != nil {
-					s.log.WithError(err).Errorf("could not retrieve twitter profile for address %s", *chainEvent.From)
+					s.log.WithError(err).Errorf("could not retrieve twitter profile for address %s", *notification.From)
 					continue
 				}
 				notificationEvent.SenderProfileID = profile.ID
-				title = profile.FullName
+				title = profile.Username
 				senderImage = strPtr(profile.AvatarURI)
 				senderAddress = strPtr(profile.Address)
 			}
@@ -124,7 +125,7 @@ func (s *service) notificationSender(chainEvents <-chan *ChainEvent, stop <-chan
 			if err != nil {
 				s.log.WithError(err).Error("error saving event in database")
 			}
-			receiverAddress := chainEvent.To
+			receiverAddress := notification.To
 			deviceTokens, err := s.db.DeviceTokensByAddress(receiverAddress)
 			if err != nil {
 				s.log.WithError(err).Error("error retrieving tokens from db")
@@ -139,12 +140,12 @@ func (s *service) notificationSender(chainEvents <-chan *ChainEvent, stop <-chan
 				currentTokens := tokens[deviceToken.Platform]
 				tokens[deviceToken.Platform] = append(currentTokens, deviceToken.Token)
 			}
-			notification := Notification{
+			pushNotification := PushNotification{
 				Title: title,
 				Body:  msg,
 				NotificationData: NotificationData{
 					ID:        notificationEvent.ID,
-					TypeID:    chainEvent.StoryID,
+					TypeID:    notification.TypeID,
 					Timestamp: notificationEvent.Timestamp,
 					UserID:    senderAddress,
 					Image:     senderImage,
@@ -153,8 +154,8 @@ func (s *service) notificationSender(chainEvents <-chan *ChainEvent, stop <-chan
 				},
 			}
 			for p, t := range tokens {
-				notification.Platform = p
-				r, err := s.sendNotification(notification, t)
+				pushNotification.Platform = p
+				r, err := s.sendNotification(pushNotification, t)
 				if err != nil {
 					s.log.WithError(err).Error("error sending notifications")
 					continue
@@ -162,9 +163,7 @@ func (s *service) notificationSender(chainEvents <-chan *ChainEvent, stop <-chan
 				if r != nil {
 					s.log.Infof("notifications sent - status : %s count : %d", r.Success, r.Counts)
 				}
-
 			}
-
 		case <-stop:
 			s.log.Info("stopping notification sender")
 			return
@@ -206,7 +205,7 @@ func (s *service) getStoryParticipants(storyID int64, creator, staker string) ([
 	return participants, nil
 }
 
-func (s *service) processTransactionEvent(pushEvent types.EventDataTx, events chan<- *ChainEvent) {
+func (s *service) processTransactionEvent(pushEvent types.EventDataTx, notifications chan<- *Notification) {
 	pushData := &truchain.StakeNotificationResult{}
 	err := json.Unmarshal(pushEvent.Result.Data, pushData)
 	if err != nil {
@@ -217,62 +216,61 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, events ch
 	for _, tag := range pushEvent.Result.Tags {
 		action := string(tag.Value)
 		var alert string
+		var enableParticipants bool
 		var participantsAlert string
+		var hideSender bool
 		switch action {
 		case "back_story":
+			enableParticipants = true
 			alert = "Backed your story"
 			participantsAlert = "Backed a story you participated in"
 		case "create_challenge":
+			enableParticipants = true
 			alert = "Challenged your story"
 			participantsAlert = "Challenged a story you participated in"
 		case "like_backing_argument":
-			participantsAlert = "Endorsed a backing argument on a story you participated in"
-			alert = "Endorsed your backing argument"
+			hideSender = true
+			alert = fmt.Sprintf(
+				"Someone endorsed your backing argument. You earned %s %s Cred",
+				pushData.Cred.Amount.Quo(sdk.NewInt(truchain.Shanev)),
+				strings.Title(pushData.Cred.Denom),
+			)
 		case "like_challenge_argument":
-			participantsAlert = "Endorsed a challenge argument on a story you participated in"
-			alert = "Endorsed your challenge argument"
+			hideSender = true
+			alert = fmt.Sprintf(
+				"Someone endorsed your challenge argument. You earned %s %s Cred",
+				pushData.Cred.Amount.Quo(sdk.NewInt(truchain.Shanev)),
+				strings.Title(pushData.Cred.Denom),
+			)
 		}
 		if alert != "" {
-			from := pushData.From.String()
+			from := strPtr(pushData.From.String())
 			to := pushData.To.String()
-			if from != to {
-				events <- &ChainEvent{From: strPtr(from), To: to, Msg: alert, StoryID: pushData.StoryID}
+			if hideSender {
+				from = nil
 			}
-			if participantsAlert != "" {
-				participants, err := s.getStoryParticipants(pushData.StoryID, to, from)
+			if pushData.From.String() != to {
+				notifications <- &Notification{
+					From:   from,
+					To:     to,
+					Msg:    alert,
+					TypeID: pushData.StoryID,
+					Type:   db.NotificationStoryAction,
+				}
+			}
+			if participantsAlert != "" && enableParticipants {
+				participants, err := s.getStoryParticipants(pushData.StoryID, to, pushData.From.String())
 				if err != nil {
 					s.log.WithError(err).Error("unable to get story participants")
 				}
 				for _, p := range participants {
-					events <- &ChainEvent{From: strPtr(from), To: p, Msg: participantsAlert, StoryID: pushData.StoryID}
-				}
-			}
-		}
-	}
-}
-
-func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, events chan<- *ChainEvent) {
-	for _, tag := range newBlockEvent.ResultEndBlock.Tags {
-		if string(tag.Key) == "tru.event.completedStories" {
-			completed := &truchain.CompletedStoriesNotificationResult{}
-			err := json.Unmarshal(tag.Value, completed)
-			if err != nil {
-				s.log.WithError(err).Error("error decoding completed stories")
-				continue
-			}
-			for _, story := range completed.Stories {
-				events <- &ChainEvent{To: story.Creator.String(), Msg: "A claim you made has completed", StoryID: story.ID}
-				for _, backer := range story.Backers {
-					if story.Creator.String() == backer.String() {
-						continue
+					notifications <- &Notification{
+						From:   from,
+						To:     p,
+						Msg:    participantsAlert,
+						TypeID: pushData.StoryID,
+						Type:   db.NotificationStoryAction,
 					}
-					events <- &ChainEvent{To: backer.String(), Msg: "A claim you backed has completed", StoryID: story.ID}
-				}
-				for _, challenger := range story.Challengers {
-					if story.Creator.String() == challenger.String() {
-						continue
-					}
-					events <- &ChainEvent{To: challenger.String(), Msg: "A claim you challenged has completed", StoryID: story.ID}
 				}
 			}
 		}
@@ -321,6 +319,7 @@ func (s *service) logChainStatus(c *client.HTTP) {
 	}
 
 }
+
 func (s *service) run(stop <-chan struct{}) {
 
 	remote := getEnv("REMOTE_ENDPOINT", "tcp://0.0.0.0:26657")
@@ -347,16 +346,19 @@ func (s *service) run(stop <-chan struct{}) {
 	}
 	s.logChainStatus(client)
 	s.log.Infof("subscribing to query event %s", tmQuery.String())
-	chainEventsCh := make(chan *ChainEvent)
-	go s.notificationSender(chainEventsCh, stop)
+	notificationsCh := make(chan *Notification)
+	cNotificationsCh := make(chan *CommentNotificationRequest)
+	go s.startHTTP(stop, cNotificationsCh)
+	go s.processCommentsNotifications(cNotificationsCh, notificationsCh)
+	go s.notificationSender(notificationsCh, stop)
 	for {
 		select {
 		case event := <-txsCh:
 			switch v := event.(type) {
 			case types.EventDataTx:
-				s.processTransactionEvent(v, chainEventsCh)
+				s.processTransactionEvent(v, notificationsCh)
 			case types.EventDataNewBlock:
-				s.processNewBlockEvent(v, chainEventsCh)
+				s.processNewBlockEvent(v, notificationsCh)
 			}
 		case <-stop:
 			// program is exiting

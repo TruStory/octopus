@@ -161,13 +161,25 @@ jobs: # basic units of work in a run
           command: sudo pip install awscli
       - run:
           name: Upload to S3
-          command: aws s3 cp ./db/dump.sql.gz s3://io-trustory-backups/db/$(date +%y%m%d)-dump.sql.gz
+          command: aws s3 cp ./db/dump.sql.gz s3://io-trustory-backups/db/$(date +%y%m%d%H)-dump.sql.gz
 workflows:
   version: 2
   build-workflow:
     jobs:
       - build
       - test_migrations
+      - db_dump:
+          filters:
+            branches:
+              only:
+                - master
+      - s3_upload:
+          requires:
+            - db_dump
+          filters:
+            branches:
+              only:
+                - master
       - deploy:
           requires:
             - build

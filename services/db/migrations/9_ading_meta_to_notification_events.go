@@ -23,6 +23,5 @@ func init() {
 		}
 		_, err = db.Exec(`UPDATE notification_events SET read = NULL WHERE read is FALSE `)
 		return err
-		return err
 	})
 }

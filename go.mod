@@ -2,7 +2,7 @@ module github.com/TruStory/octopus
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/TruStory/truchain v0.0.0-20190430185932-45b6f1352499
+	github.com/TruStory/truchain v0.0.0-20190501005554-d7bb97f720a9
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
@@ -10,7 +10,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.33.0
 	github.com/ethereum/go-ethereum v1.8.23 // indirect
 	github.com/fortytw2/leaktest v1.3.0 // indirect
-	github.com/gernest/mention v2.0.0+incompatible // indirect
+	github.com/gernest/mention v2.0.0+incompatible
 	github.com/go-kit/kit v0.8.0 // indirect
 	github.com/go-logfmt/logfmt v0.4.0 // indirect
 	github.com/go-pg/migrations v6.7.3+incompatible

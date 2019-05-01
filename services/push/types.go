@@ -14,6 +14,7 @@ type Notification struct {
 	Msg    string
 	TypeID int64
 	Type   db.NotificationType
+	Meta   db.NotificationMeta
 }
 
 // NotificationData represents the data relevant to the app.
@@ -25,8 +26,9 @@ type NotificationData struct {
 	Read      bool                `json:"read"`
 	Type      db.NotificationType `json:"type"`
 	// UserID is the sender
-	UserID *string `json:"userId,omitempty"`
-	Image  *string `json:"image,omitempty"`
+	UserID *string             `json:"userId,omitempty"`
+	Image  *string             `json:"image,omitempty"`
+	Meta   db.NotificationMeta `json:"meta"`
 }
 
 // ToGorushData translate to gorush data format.

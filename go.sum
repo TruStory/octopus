@@ -24,6 +24,16 @@ github.com/TruStory/truchain v0.0.0-20190430002044-deb41ab04cca h1:4eoI32zklYLeb
 github.com/TruStory/truchain v0.0.0-20190430002044-deb41ab04cca/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
 github.com/TruStory/truchain v0.0.0-20190430185932-45b6f1352499 h1:JiHGaAYDX6O3mMPIaoeUuB4LSeUZB8oAJVqfutDFfys=
 github.com/TruStory/truchain v0.0.0-20190430185932-45b6f1352499/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
+github.com/TruStory/truchain v0.0.0-20190430231305-47f6c6c78036 h1:+0mQdWwFOV3dtgpnTJRXX2i4wV0UBoLzCZADE7PsCRI=
+github.com/TruStory/truchain v0.0.0-20190430231305-47f6c6c78036/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
+github.com/TruStory/truchain v0.0.0-20190430233614-a223e381ce4b h1:yqxkYZde87037RaE8PdwaaoqTDaetpJ6BDzcm+nm24g=
+github.com/TruStory/truchain v0.0.0-20190430233614-a223e381ce4b/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
+github.com/TruStory/truchain v0.0.0-20190430235046-a05e0b114788 h1:FnKtGPgilvIh+5uk4h9I5ijkSDCPfFj1cvjQC+ITzr8=
+github.com/TruStory/truchain v0.0.0-20190430235046-a05e0b114788/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
+github.com/TruStory/truchain v0.0.0-20190501004618-f58ca2e534de h1:6sRsgxEUUMD16k65Ox3PlhIdPdbm4Z8/njEjC0AkulQ=
+github.com/TruStory/truchain v0.0.0-20190501004618-f58ca2e534de/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
+github.com/TruStory/truchain v0.0.0-20190501005554-d7bb97f720a9 h1:SXQ9kQLTY9uJ5LFMbV7kdrT3fVq5yByweuYo4xYpP64=
+github.com/TruStory/truchain v0.0.0-20190501005554-d7bb97f720a9/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
 github.com/VividCortex/gohistogram v1.0.0 h1:6+hBz+qvs0JOrrNhhmR7lFxo5sINxBCGXrdtl/UvroE=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=

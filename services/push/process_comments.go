@@ -26,7 +26,7 @@ func unique(values []string) []string {
 func (s *service) parseCommentNotification(body string) (string, []string) {
 	parsedBody := body
 	usernameByAddress := map[string]string{}
-	addresses := mention.GetTagsAsUniqueStrings('@', body)
+	addresses := mention.GetTagsAsUniqueStrings('@', body, ' ', '\n', '\r')
 	for _, address := range addresses {
 		twitterProfile, err := s.db.TwitterProfileByAddress(address)
 		if err != nil {
@@ -65,8 +65,9 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 				Type:   db.NotificationCommentAction,
 				Msg:    parsedComment,
 				Meta: db.NotificationMeta{
-					StoryID:   int64Ptr(n.StoryID),
-					CommentID: int64Ptr(n.ID),
+					ArgumentID: int64Ptr(c.ArgumentID),
+					StoryID:    int64Ptr(n.StoryID),
+					CommentID:  int64Ptr(n.ID),
 				},
 			}
 		}
@@ -82,8 +83,9 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 				Type:   db.NotificationCommentAction,
 				Msg:    parsedComment,
 				Meta: db.NotificationMeta{
-					StoryID:   int64Ptr(n.StoryID),
-					CommentID: int64Ptr(n.ID),
+					ArgumentID: int64Ptr(c.ArgumentID),
+					StoryID:    int64Ptr(n.StoryID),
+					CommentID:  int64Ptr(n.ID),
 				},
 			}
 		}

@@ -160,6 +160,7 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 					Image:     senderImage,
 					Read:      notificationEvent.Read,
 					Type:      notificationEvent.Type,
+					Meta:      notificationEvent.Meta,
 				},
 			}
 			for p, t := range tokens {

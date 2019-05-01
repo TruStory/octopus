@@ -5,8 +5,41 @@ import (
 	"fmt"
 	"net/http"
 
+	"strings"
+
 	db "github.com/TruStory/truchain/x/db"
+	"github.com/gernest/mention"
 )
+
+func unique(values []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+	for _, entry := range values {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
+func (s *service) parseCommentNotification(body string) (string, []string) {
+	parsedBody := body
+	usernameByAddress := map[string]string{}
+	addresses := mention.GetTagsAsUniqueStrings('@', body)
+	for _, address := range addresses {
+		twitterProfile, err := s.db.TwitterProfileByAddress(address)
+		if err != nil {
+			s.log.WithError(err).Errorf("could not find profile for address %s", address)
+			continue
+		}
+		usernameByAddress[address] = twitterProfile.Username
+	}
+	for address, username := range usernameByAddress {
+		parsedBody = strings.ReplaceAll(parsedBody, address, username)
+	}
+	return parsedBody, addresses
+}
 
 func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNotificationRequest, notifications chan<- *Notification) {
 	for n := range cNotifications {
@@ -21,13 +54,20 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			continue
 		}
 
+		parsedComment, addresses := s.parseCommentNotification(c.Body)
+		participants = append(participants, addresses...)
+		participants = unique(participants)
 		if c.Creator != n.ArgumentCreator {
 			notifications <- &Notification{
 				From:   strPtr(c.Creator),
 				To:     n.ArgumentCreator,
-				TypeID: n.StoryID,
-				Type:   db.NotificationStoryAction,
-				Msg:    c.Body,
+				TypeID: c.ArgumentID,
+				Type:   db.NotificationCommentAction,
+				Msg:    parsedComment,
+				Meta: db.NotificationMeta{
+					StoryID:   int64Ptr(n.StoryID),
+					CommentID: int64Ptr(n.ID),
+				},
 			}
 		}
 
@@ -38,9 +78,13 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			notifications <- &Notification{
 				From:   strPtr(c.Creator),
 				To:     p,
-				TypeID: n.StoryID,
-				Type:   db.NotificationStoryAction,
-				Msg:    c.Body,
+				TypeID: n.ArgumentID,
+				Type:   db.NotificationCommentAction,
+				Msg:    parsedComment,
+				Meta: db.NotificationMeta{
+					StoryID:   int64Ptr(n.StoryID),
+					CommentID: int64Ptr(n.ID),
+				},
 			}
 		}
 

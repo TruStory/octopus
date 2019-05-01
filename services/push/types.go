@@ -14,6 +14,7 @@ type Notification struct {
 	Msg    string
 	TypeID int64
 	Type   db.NotificationType
+	Meta   db.NotificationMeta
 }
 
 // NotificationData represents the data relevant to the app.

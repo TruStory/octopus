@@ -14,10 +14,11 @@ import (
 	"github.com/appleboy/gorush/gorush"
 	"github.com/machinebox/graphql"
 
+	"strings"
+
 	truchain "github.com/TruStory/truchain/types"
 	db "github.com/TruStory/truchain/x/db"
 	"github.com/sirupsen/logrus"
-	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
@@ -39,6 +40,11 @@ type service struct {
 func intPtr(i int) *int {
 	return &i
 }
+
+func int64Ptr(i int64) *int64 {
+	return &i
+}
+
 func strPtr(s string) *string {
 	return &s
 }
@@ -109,6 +115,9 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 				Type:             notification.Type,
 				TypeID:           notification.TypeID,
 			}
+
+			notificationEvent.Meta = notification.Meta
+
 			var senderImage, senderAddress *string
 			if notification.From != nil {
 				profile, err := s.db.TwitterProfileByAddress(*notification.From)

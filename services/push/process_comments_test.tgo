@@ -1,0 +1,13 @@
+package main_test
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/gernest/mention"
+)
+
+func TestProcess(t *testing.T) {
+	a := "@cosmos1xqc5gw2jxcmyssfn23znz3jetqcryse59y34sz @cosmos1xqc5gw2jxuc4ysjsx5cyxvp5g92rznj6gvs244"
+	fmt.Println(mention.GetTagsAsUniqueStrings('@', a))
+}

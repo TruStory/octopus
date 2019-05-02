@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"fmt"
+
 	truchain "github.com/TruStory/truchain/types"
 	db "github.com/TruStory/truchain/x/db"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,40 +14,36 @@ import (
 func getTrustakeValue(c sdk.Coin) sdk.Int {
 	return sdk.NewDecFromInt(c.Amount).QuoInt(sdk.NewInt(truchain.Shanev)).RoundInt()
 }
+func getWinnerMsg(stake, reward, interest sdk.Coin) string {
+	s, r, i := getTrustakeValue(stake), getTrustakeValue(reward), getTrustakeValue(interest)
+	// case when you were the only staker
+	if reward.IsZero() {
+		return fmt.Sprintf("You were refunded %s TruStake and earned %s interest", s, i)
+	}
+	return fmt.Sprintf("You won %s TruStake and earned %s interest", r, i)
+}
+func getLoserMsg(stake, interest sdk.Coin) string {
+	s, i := getTrustakeValue(stake), getTrustakeValue(interest)
+	return fmt.Sprintf("You lost %s TruStake but earned %s interest", s, i)
+}
 
 func getResultMessage(t truchain.StakeDistributionResultsType, isBacker bool, staker truchain.Staker, earns UserEarns) string {
-	var resultMsg = ""
 	switch t {
 	case truchain.DistributionMajorityNotReached:
-
-		resultMsg = fmt.Sprintf("It's a tie but you earned %s interest", getTrustakeValue(earns.Interest))
+		return fmt.Sprintf("It's a tie but you earned %s interest", getTrustakeValue(earns.Interest))
 	case truchain.DistributionBackersWin:
 		if isBacker {
-			resultMsg = fmt.Sprintf("You won %s TruStake and earned %s interest",
-				getTrustakeValue(earns.Reward),
-				getTrustakeValue(earns.Interest))
-			return resultMsg
+			return getWinnerMsg(staker.Amount, earns.Reward, earns.Interest)
 		}
-		resultMsg = fmt.Sprintf("You lost %s TruStake but earned %s interest",
-			getTrustakeValue(staker.Amount),
-			getTrustakeValue(earns.Interest),
-		)
-
+		return getLoserMsg(staker.Amount, earns.Interest)
 	case truchain.DistributionChallengersWin:
 		if isBacker {
-			resultMsg = fmt.Sprintf("You lost %s TruStake but earned %s interest",
-				getTrustakeValue(staker.Amount),
-				getTrustakeValue(earns.Interest),
-			)
-			return resultMsg
+			return getLoserMsg(staker.Amount, earns.Interest)
 		}
-
-		resultMsg = fmt.Sprintf("You won %s TruStake and earned %s interest",
-			getTrustakeValue(earns.Reward),
-			getTrustakeValue(earns.Interest))
+		return getWinnerMsg(staker.Amount, earns.Reward, earns.Interest)
 
 	}
-	return resultMsg
+	return ""
 }
 
 func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, notifications chan<- *Notification) {
@@ -62,6 +59,9 @@ func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, no
 				var creatorStaked bool
 
 				usersEarns := processStorySummary(story)
+				meta := db.NotificationMeta{
+					StoryID: &story.ID,
+				}
 				for _, backer := range story.Backers {
 					if story.Creator.String() == backer.Address.String() {
 						creatorStaked = true
@@ -78,6 +78,7 @@ func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, no
 						Msg:    fmt.Sprintf("A claim you backed has completed. %s", msg),
 						TypeID: story.ID,
 						Type:   db.NotificationStoryAction,
+						Meta:   meta,
 					}
 				}
 				for _, challenger := range story.Challengers {
@@ -96,8 +97,10 @@ func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, no
 						Msg:    fmt.Sprintf("A claim you challenged has completed. %s", msg),
 						TypeID: story.ID,
 						Type:   db.NotificationStoryAction,
+						Meta:   meta,
 					}
 				}
+				// if creator also staked he will receive the summary otherwise just a regular notification.
 				if creatorStaked {
 					continue
 				}
@@ -106,6 +109,7 @@ func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, no
 					Msg:    "A claim you made has completed",
 					TypeID: story.ID,
 					Type:   db.NotificationStoryAction,
+					Meta:   meta,
 				}
 			}
 		}

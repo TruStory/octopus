@@ -41,10 +41,6 @@ func intPtr(i int) *int {
 	return &i
 }
 
-func int64Ptr(i int64) *int64 {
-	return &i
-}
-
 func strPtr(s string) *string {
 	return &s
 }
@@ -256,6 +252,9 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, notificat
 		if alert != "" {
 			from := strPtr(pushData.From.String())
 			to := pushData.To.String()
+			meta := db.NotificationMeta{
+				StoryID: &pushData.StoryID,
+			}
 			if hideSender {
 				from = nil
 			}
@@ -266,6 +265,7 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, notificat
 					Msg:    alert,
 					TypeID: pushData.StoryID,
 					Type:   db.NotificationStoryAction,
+					Meta:   meta,
 				}
 			}
 			if participantsAlert != "" && enableParticipants {
@@ -280,6 +280,7 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, notificat
 						Msg:    participantsAlert,
 						TypeID: pushData.StoryID,
 						Type:   db.NotificationStoryAction,
+						Meta:   meta,
 					}
 				}
 			}

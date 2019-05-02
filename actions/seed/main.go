@@ -168,7 +168,11 @@ func mockUser(m *Mockery) MockedRegisterResponse {
 	response := m.apiCall("POST", "/mock_register", nil)
 
 	var mockedUser MockedRegisterResponse
-	json.Unmarshal(response, &mockedUser)
+	err := json.Unmarshal(response, &mockedUser)
+	if err != nil {
+		panic(err)
+	}
+
 	return mockedUser
 }
 
@@ -195,14 +199,6 @@ func processHTTPRequest(m *Mockery, request *http.Request) ([]byte, error) {
 	}
 
 	return body, nil
-}
-
-func getEnv(env, defaultValue string) string {
-	val := os.Getenv(env)
-	if val != "" {
-		return val
-	}
-	return defaultValue
 }
 
 func mustEnv(env string) string {

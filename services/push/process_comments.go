@@ -9,6 +9,7 @@ import (
 
 	db "github.com/TruStory/truchain/x/db"
 	"github.com/gernest/mention"
+	stripmd "github.com/writeas/go-strip-markdown"
 )
 
 func unique(values []string) []string {
@@ -55,20 +56,22 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 		}
 
 		parsedComment, addresses := s.parseCommentNotification(c.Body)
+		parsedComment = stripmd.Strip(parsedComment)
 		participants = append(participants, addresses...)
 		participants = unique(participants)
+		meta := db.NotificationMeta{
+			ArgumentID: &c.ArgumentID,
+			StoryID:    &n.StoryID,
+			CommentID:  &n.ID,
+		}
 		if c.Creator != n.ArgumentCreator {
 			notifications <- &Notification{
-				From:   strPtr(c.Creator),
+				From:   &c.Creator,
 				To:     n.ArgumentCreator,
 				TypeID: c.ArgumentID,
 				Type:   db.NotificationCommentAction,
 				Msg:    parsedComment,
-				Meta: db.NotificationMeta{
-					ArgumentID: int64Ptr(c.ArgumentID),
-					StoryID:    int64Ptr(n.StoryID),
-					CommentID:  int64Ptr(n.ID),
-				},
+				Meta:   meta,
 			}
 		}
 
@@ -77,16 +80,12 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 				continue
 			}
 			notifications <- &Notification{
-				From:   strPtr(c.Creator),
+				From:   &c.Creator,
 				To:     p,
 				TypeID: n.ArgumentID,
 				Type:   db.NotificationCommentAction,
 				Msg:    parsedComment,
-				Meta: db.NotificationMeta{
-					ArgumentID: int64Ptr(c.ArgumentID),
-					StoryID:    int64Ptr(n.StoryID),
-					CommentID:  int64Ptr(n.ID),
-				},
+				Meta:   meta,
 			}
 		}
 

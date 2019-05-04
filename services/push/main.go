@@ -13,7 +13,6 @@ import (
 
 	"github.com/appleboy/gorush/gorush"
 	"github.com/machinebox/graphql"
-	stripmd "github.com/writeas/go-strip-markdown"
 
 	db "github.com/TruStory/truchain/x/db"
 	"github.com/sirupsen/logrus"
@@ -308,8 +307,6 @@ func main() {
 	log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 	})
-	a := stripmd.Strip("[@userc](http://localhost/profile/cosmos1xqc5gw2jxuc4ysjsx5cyxvp5g92rznj6gvs244) adsf [@usera](http://localhost/profile/cosmos1xqc5gw2jxcmrskzw2s6yk4682pd9zs26cez9u2) [@userb](http://localhost/profile/cosmos1xqc5gw2jxcmyssfn23znz3jetqcryse59y34sz) dfasdfasdf")
-	fmt.Println(a)
 	gorushHTTPAddress := getEnv("GORUSH_ADDRESS", "http://localhost:9000/api/push")
 	topic := getEnv("NOTIFICATION_TOPIC", "io.trustory.app.devnet")
 	graphqlEndpoint := mustEnv("PUSHD_GRAPHQL_ENDPOINT")

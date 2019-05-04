@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.18.1
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32 // indirect
 	github.com/corpix/uarand v0.1.0 // indirect
-	github.com/cosmos/cosmos-sdk v0.33.0 // indirect
+	github.com/cosmos/cosmos-sdk v0.33.0
 	github.com/ethereum/go-ethereum v1.8.23 // indirect
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/gernest/mention v2.0.0+incompatible

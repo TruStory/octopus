@@ -24,7 +24,7 @@ func getWinnerMsg(stake, reward, interest sdk.Coin) string {
 		}
 		return fmt.Sprintf("%s and earned %s interest", msg, i)
 	}
-	msg := fmt.Sprintf("You won %s TrusTake", r)
+	msg := fmt.Sprintf("You won %s TruStake", r)
 	if i.IsZero() {
 		return msg
 	}
@@ -32,7 +32,7 @@ func getWinnerMsg(stake, reward, interest sdk.Coin) string {
 }
 func getLoserMsg(stake, interest sdk.Coin) string {
 	s, i := getTrustakeValue(stake), getTrustakeValue(interest)
-	msg := fmt.Sprintf("You lost %s TrusTake", s)
+	msg := fmt.Sprintf("You lost %s TruStake", s)
 	if i.IsZero() {
 		return msg
 	}
@@ -44,9 +44,12 @@ func getResultMessage(t truchain.StakeDistributionResultsType, isBacker bool, st
 	case truchain.DistributionMajorityNotReached:
 		i := getTrustakeValue(earns.Interest)
 		if i.IsZero() {
-			return "It's a tie"
+			return fmt.Sprintf("It's a tie! You were refunded %s TruStake", getTrustakeValue(staker.Amount))
 		}
-		return fmt.Sprintf("It's a tie but you earned %s interest", getTrustakeValue(earns.Interest))
+		return fmt.Sprintf("It's a tie! You were refunded %s TruStake but earned %s TruStake in interest",
+			getTrustakeValue(staker.Amount),
+			getTrustakeValue(earns.Interest),
+		)
 	case truchain.DistributionBackersWin:
 		if isBacker {
 			return getWinnerMsg(staker.Amount, earns.Reward, earns.Interest)

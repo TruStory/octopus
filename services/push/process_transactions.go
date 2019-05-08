@@ -32,10 +32,12 @@ func (s *service) processTransactionEvent(pushEvent types.EventDataTx, notificat
 			enableParticipants = true
 			alert = "Backed your story"
 			participantsAlert = "Backed a story you participated in"
+			s.checkArgumentMentions(pushData.From.String(), pushData.MsgResult.ID, true)
 		case "create_challenge":
 			enableParticipants = true
 			alert = "Challenged your story"
 			participantsAlert = "Challenged a story you participated in"
+			s.checkArgumentMentions(pushData.From.String(), pushData.MsgResult.ID, false)
 		case "like_backing_argument":
 			hideSender = true
 			alert = fmt.Sprintf(

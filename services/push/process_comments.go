@@ -24,7 +24,7 @@ func unique(values []string) []string {
 	return list
 }
 
-func (s *service) parseCommentNotification(body string) (string, []string) {
+func (s *service) parseCosmosMentions(body string) (string, []string) {
 	parsedBody := body
 	usernameByAddress := map[string]string{}
 	addresses := mention.GetTagsAsUniqueStrings('@', body, ' ', '\n', '\r')
@@ -55,7 +55,7 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			continue
 		}
 
-		parsedComment, addresses := s.parseCommentNotification(c.Body)
+		parsedComment, addresses := s.parseCosmosMentions(c.Body)
 		parsedComment = stripmd.Strip(parsedComment)
 		participants = append(participants, addresses...)
 		participants = unique(participants)
@@ -72,9 +72,12 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 				Type:   db.NotificationCommentAction,
 				Msg:    parsedComment,
 				Meta:   meta,
+				Trim:   true,
 			}
 		}
 
+		mentionType := db.MentionComment
+		meta.MentionType = &mentionType
 		for _, p := range participants {
 			if p == c.Creator || p == n.ArgumentCreator {
 				continue
@@ -83,9 +86,11 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 				From:   &c.Creator,
 				To:     p,
 				TypeID: n.ArgumentID,
-				Type:   db.NotificationCommentAction,
+				Type:   db.NotificationMentionAction,
 				Msg:    parsedComment,
 				Meta:   meta,
+				Action: "Mentioned you in a comment",
+				Trim:   true,
 			}
 		}
 

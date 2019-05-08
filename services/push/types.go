@@ -15,6 +15,8 @@ type Notification struct {
 	TypeID int64
 	Type   db.NotificationType
 	Meta   db.NotificationMeta
+	Action string
+	Trim   bool
 }
 
 // NotificationData represents the data relevant to the app.
@@ -42,6 +44,7 @@ func (d NotificationData) ToGorushData() gorush.D {
 // PushNotification represents the notification data sent to services.
 type PushNotification struct {
 	Title            string
+	Subtitle         string
 	Body             string
 	Platform         string
 	NotificationData NotificationData
@@ -108,4 +111,29 @@ const StoryParticipantsQuery = `
 	}
   }
   
+`
+
+// StakeArgument represents the argument.
+type StakeArgument struct {
+	ID      int64  `json:"id"`
+	Body    string `json:"body"`
+	StoryID int64  `json:"storyId"`
+}
+
+// StakeArgumentResponse is the response from the graphql endpoint.
+type StakeArgumentResponse struct {
+	StakeArgument struct {
+		Argument StakeArgument `json:"argument"`
+	} `json:"stakeArgument"`
+}
+
+// StakeArgumentQuery is the GraphQL query to get the argument tied to a stake (backing/challenge)
+const StakeArgumentQuery = ` 
+	query StakeArgument($stakeId: ID!, $backing: Boolean!) {
+		stakeArgument(stakeId: $stakeId, backing: $backing) {
+			argument {
+				body
+			}
+		}
+	}
 `

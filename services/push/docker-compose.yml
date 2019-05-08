@@ -1,17 +1,17 @@
-version: "3"
+version: '3'
 services:
   pushd:
     build: .
     env_file:
       - pushd.env
-      ports:
-      - "9001:9001"
+    ports:
+      - '9001:9001'
   gorush:
-    image: "appleboy/gorush"
+    image: 'appleboy/gorush'
     env_file:
       - gorush.env
     ports:
-      - "9000:8088"
+      - '9000:8088'
     volumes:
       - ./certs/:/certs/
     restart: always

@@ -113,8 +113,8 @@ const StoryParticipantsQuery = `
   
 `
 
-// StakeArgument represents the argument.
-type StakeArgument struct {
+// Argument represents the argument.
+type Argument struct {
 	ID      int64  `json:"id"`
 	Body    string `json:"body"`
 	StoryID int64  `json:"storyId"`
@@ -122,21 +122,21 @@ type StakeArgument struct {
 
 // BackingResponse is the response from the graphql endpoint.
 type BackingResponse struct {
-	StakeArgument struct {
-		Argument StakeArgument `json:"argument"`
+	BackingArgument struct {
+		Argument Argument `json:"argument"`
 	} `json:"backing"`
 }
 
 // ChallengeResponse is the response from the graphql endpoint.
 type ChallengeResponse struct {
-	StakeArgument struct {
-		Argument StakeArgument `json:"argument"`
+	ChallengeArgument struct {
+		Argument Argument `json:"argument"`
 	} `json:"challenge"`
 }
 
-// StakeArgumentQuery is the GraphQL query to get the argument tied to a stake (backing/challenge)
-const StakeArgumentQuery = ` 
-	query StakeArgument($id: ID!) {
+// ArgumentByStakeIDQuery is the GraphQL query to get the argument tied to a stake (backing/challenge)
+const ArgumentByStakeIDQuery = ` 
+	query ArgumentByStakeID($id: ID!) {
 		%s(iD: $id) {
 			argument(raw: true) {
 				id

@@ -57,30 +57,30 @@ func (s *service) mentionChecker(notifications chan<- *Notification, stop <-chan
 	}
 }
 
-func (s *service) getChallengeArgument(req *graphql.Request) (*StakeArgument, error) {
+func (s *service) getChallengeArgument(req *graphql.Request) (*Argument, error) {
 	res := ChallengeResponse{}
 	ctx := context.Background()
 	if err := s.graphqlClient.Run(ctx, req, &res); err != nil {
 		return nil, err
 	}
-	return &res.StakeArgument.Argument, nil
+	return &res.ChallengeArgument.Argument, nil
 }
 
-func (s *service) getBackingArgument(req *graphql.Request) (*StakeArgument, error) {
+func (s *service) getBackingArgument(req *graphql.Request) (*Argument, error) {
 	res := BackingResponse{}
 	ctx := context.Background()
 	if err := s.graphqlClient.Run(ctx, req, &res); err != nil {
 		return nil, err
 	}
-	return &res.StakeArgument.Argument, nil
+	return &res.BackingArgument.Argument, nil
 }
 
-func (s *service) getArgument(stakeID int64, backing bool) (*StakeArgument, error) {
+func (s *service) getArgument(stakeID int64, backing bool) (*Argument, error) {
 	queryType := "challenge"
 	if backing {
 		queryType = "backing"
 	}
-	query := fmt.Sprintf(StakeArgumentQuery, queryType)
+	query := fmt.Sprintf(ArgumentByStakeIDQuery, queryType)
 	req := graphql.NewRequest(query)
 	req.Var("id", stakeID)
 	if backing {

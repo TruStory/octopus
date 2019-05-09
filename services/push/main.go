@@ -22,16 +22,10 @@ import (
 	"github.com/tendermint/tendermint/types"
 )
 
-type service struct {
-	db        *db.Client
-	apnsTopic string
-	log       logrus.FieldLogger
-	// gorush
-	httpClient        *http.Client
-	gorushHTTPAddress string
-	// graphql
-	graphqlClient *graphql.Client
-}
+const (
+	// BodyMaxLength for notification
+	BodyMaxLength = 185
+)
 
 func intPtr(i int) *int {
 	return &i
@@ -59,8 +53,9 @@ func (s *service) sendNotification(notification PushNotification, tokens []strin
 		Topic:    s.apnsTopic,
 		Sound:    "default",
 		Alert: gorush.Alert{
-			Title: notification.Title,
-			Body:  notification.Body,
+			Title:    notification.Title,
+			Subtitle: notification.Subtitle,
+			Body:     notification.Body,
 		},
 		Data: notification.NotificationData.ToGorushData(),
 	}
@@ -97,6 +92,13 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 			if err != nil {
 				s.log.WithError(err).Errorf("could not retrieve twitter profile for address %s", notification.To)
 				continue
+			}
+			if receiverProfile == nil {
+				s.log.Warnf("profile doesn't exist for  %s", notification.To)
+				continue
+			}
+			if notification.Trim && len(msg) > BodyMaxLength {
+				msg = fmt.Sprintf("%s...", msg[:BodyMaxLength-3])
 			}
 			notificationEvent := &db.NotificationEvent{
 				Address:          notification.To,
@@ -154,6 +156,10 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 					Type:      notificationEvent.Type,
 					Meta:      notificationEvent.Meta,
 				},
+			}
+
+			if notification.Action != "" {
+				pushNotification.Subtitle = notification.Action
 			}
 			for p, t := range tokens {
 				pushNotification.Platform = p
@@ -281,6 +287,7 @@ func (s *service) run(stop <-chan struct{}) {
 	go s.startHTTP(stop, cNotificationsCh)
 	go s.processCommentsNotifications(cNotificationsCh, notificationsCh)
 	go s.notificationSender(notificationsCh, stop)
+	go s.mentionChecker(notificationsCh, stop)
 	for {
 		select {
 		case event := <-txsCh:
@@ -323,8 +330,9 @@ func main() {
 		httpClient: &http.Client{
 			Timeout: time.Second * 5,
 		},
-		gorushHTTPAddress: gorushHTTPAddress,
-		graphqlClient:     graphqlClient,
+		gorushHTTPAddress:  gorushHTTPAddress,
+		graphqlClient:      graphqlClient,
+		argumentMentionsCh: make(chan argumentMention),
 	}
 
 	srvc.run(quit)

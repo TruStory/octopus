@@ -2,7 +2,7 @@ module github.com/TruStory/octopus
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/TruStory/truchain v0.0.0-20190501005554-d7bb97f720a9
+	github.com/TruStory/truchain v0.0.0-20190508180906-faf6309ddbf3
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
@@ -29,7 +29,7 @@ require (
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/kelseyhightower/envconfig v1.3.0 // indirect
-	github.com/machinebox/graphql v0.2.2
+	github.com/machinebox/graphql v0.2.3-0.20181106130121-3a9253180225
 	github.com/matryer/is v1.2.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect

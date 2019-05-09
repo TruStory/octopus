@@ -38,6 +38,12 @@ github.com/TruStory/truchain v0.0.0-20190501004618-f58ca2e534de h1:6sRsgxEUUMD16
 github.com/TruStory/truchain v0.0.0-20190501004618-f58ca2e534de/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
 github.com/TruStory/truchain v0.0.0-20190501005554-d7bb97f720a9 h1:SXQ9kQLTY9uJ5LFMbV7kdrT3fVq5yByweuYo4xYpP64=
 github.com/TruStory/truchain v0.0.0-20190501005554-d7bb97f720a9/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
+github.com/TruStory/truchain v0.0.0-20190508172654-f236204070fe h1:2e9zZ9/xgcJFqe53aMsZ+mvvZPbh5TqGGWPhY+HoDDU=
+github.com/TruStory/truchain v0.0.0-20190508172654-f236204070fe/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
+github.com/TruStory/truchain v0.0.0-20190508173212-95d819ceee01 h1:l/W9Auv2DS9NkPJfLFcpaW7ZqGeyhI1xKAt64E0FBKk=
+github.com/TruStory/truchain v0.0.0-20190508173212-95d819ceee01/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
+github.com/TruStory/truchain v0.0.0-20190508180906-faf6309ddbf3 h1:G+8Pe/hcq3eULvLO8wqJ8ZD8fH8lvOP7iFbHfcYpU5k=
+github.com/TruStory/truchain v0.0.0-20190508180906-faf6309ddbf3/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
 github.com/VividCortex/gohistogram v1.0.0 h1:6+hBz+qvs0JOrrNhhmR7lFxo5sINxBCGXrdtl/UvroE=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
@@ -192,6 +198,8 @@ github.com/labstack/gommon v0.2.8 h1:JvRqmeZcfrHC5u6uVleB4NxxNbzx6gpbJiQknDbKQu0
 github.com/labstack/gommon v0.2.8/go.mod h1:/tj9csK2iPSBvn+3NLM9e52usepMtrd5ilFYA+wQNJ4=
 github.com/machinebox/graphql v0.2.2 h1:dWKpJligYKhYKO5A2gvNhkJdQMNZeChZYyBbrZkBZfo=
 github.com/machinebox/graphql v0.2.2/go.mod h1:F+kbVMHuwrQ5tYgU9JXlnskM8nOaFxCAEolaQybkjWA=
+github.com/machinebox/graphql v0.2.3-0.20181106130121-3a9253180225 h1:guHWmqIKr4G+gQ4uYU5vcZjsUhhklRA2uOcGVfcfqis=
+github.com/machinebox/graphql v0.2.3-0.20181106130121-3a9253180225/go.mod h1:F+kbVMHuwrQ5tYgU9JXlnskM8nOaFxCAEolaQybkjWA=
 github.com/magiconair/properties v0.0.0-20170902060319-8d7837e64d3c h1:BDr2SMw3gKp9Xyvp33plTgRPEkE6NralNG0JLuBgkiQ=
 github.com/magiconair/properties v0.0.0-20170902060319-8d7837e64d3c/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/mailru/easyjson v0.0.0-20190312143242-1de009706dbe h1:W/GaMY0y69G4cFlmsC6B9sbuo2fP8OFP1ABjt4kPz+w=

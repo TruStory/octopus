@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	db "github.com/TruStory/truchain/x/db"
 	"github.com/machinebox/graphql"
@@ -56,15 +57,34 @@ func (s *service) mentionChecker(notifications chan<- *Notification, stop <-chan
 	}
 }
 
-func (s *service) getArgument(stakeID int64, backing bool) (*StakeArgument, error) {
-	req := graphql.NewRequest(StakeArgumentQuery)
-	req.Var("stakeId", stakeID)
-	req.Var("backing", backing)
-	var res StakeArgumentResponse
+func (s *service) getChallengeArgument(req *graphql.Request) (*StakeArgument, error) {
+	res := ChallengeResponse{}
 	ctx := context.Background()
 	if err := s.graphqlClient.Run(ctx, req, &res); err != nil {
 		return nil, err
 	}
-
 	return &res.StakeArgument.Argument, nil
+}
+
+func (s *service) getBackingArgument(req *graphql.Request) (*StakeArgument, error) {
+	res := BackingResponse{}
+	ctx := context.Background()
+	if err := s.graphqlClient.Run(ctx, req, &res); err != nil {
+		return nil, err
+	}
+	return &res.StakeArgument.Argument, nil
+}
+
+func (s *service) getArgument(stakeID int64, backing bool) (*StakeArgument, error) {
+	queryType := "challenge"
+	if backing {
+		queryType = "backing"
+	}
+	query := fmt.Sprintf(StakeArgumentQuery, queryType)
+	req := graphql.NewRequest(query)
+	req.Var("id", stakeID)
+	if backing {
+		return s.getBackingArgument(req)
+	}
+	return s.getChallengeArgument(req)
 }

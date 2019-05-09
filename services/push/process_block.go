@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 
 	"fmt"
 
@@ -11,29 +12,51 @@ import (
 	"github.com/tendermint/tendermint/types"
 )
 
-func getTrustakeValue(c sdk.Coin) sdk.Int {
-	return sdk.NewDecFromInt(c.Amount).QuoInt(sdk.NewInt(truchain.Shanev)).RoundInt()
+// Copied from truchain/truapi until truapi is moved into Octopus
+func humanReadable(coin sdk.Coin) string {
+	shanevs := sdk.NewDecFromIntWithPrec(coin.Amount, 9).String()
+	parts := strings.Split(shanevs, ".")
+	number := parts[0]
+	decimal := parts[1]
+	// If greater than 1.0 => show two decimal digits, truncate trailing zeros
+	displayDecimalPlaces := 2
+	if number == "0" {
+		// If less than 1.0 => show four decimal digits, truncate trailing zeros
+		displayDecimalPlaces = 4
+	}
+	decimal = strings.TrimRight(decimal, "0")
+	numberOfDecimalPlaces := len(decimal)
+	if numberOfDecimalPlaces > displayDecimalPlaces {
+		numberOfDecimalPlaces = displayDecimalPlaces
+	}
+	decimal = decimal[0:numberOfDecimalPlaces]
+	decimal = strings.TrimRight(decimal, "0")
+	if decimal == "" {
+		return number
+	}
+	return fmt.Sprintf("%s%s%s", number, ".", decimal)
 }
+
 func getWinnerMsg(stake, reward, interest sdk.Coin) string {
-	s, r, i := getTrustakeValue(stake), getTrustakeValue(reward), getTrustakeValue(interest)
+	s, r, i := humanReadable(stake), humanReadable(reward), humanReadable(interest)
 	// case when you were the only staker
 	if reward.IsZero() {
 		msg := fmt.Sprintf("You were refunded %s TruStake", s)
-		if i.IsZero() {
+		if i == "0" {
 			return msg
 		}
 		return fmt.Sprintf("%s and earned %s interest", msg, i)
 	}
 	msg := fmt.Sprintf("You won %s TruStake", r)
-	if i.IsZero() {
+	if i == "0" {
 		return msg
 	}
 	return fmt.Sprintf("%s but earned %s TruStake in interest", msg, i)
 }
 func getLoserMsg(stake, interest sdk.Coin) string {
-	s, i := getTrustakeValue(stake), getTrustakeValue(interest)
+	s, i := humanReadable(stake), humanReadable(interest)
 	msg := fmt.Sprintf("You lost %s TruStake", s)
-	if i.IsZero() {
+	if i == "0" {
 		return msg
 	}
 	return fmt.Sprintf("%s but earned %s TruStake in interest", msg, i)
@@ -42,13 +65,13 @@ func getLoserMsg(stake, interest sdk.Coin) string {
 func getResultMessage(t truchain.StakeDistributionResultsType, isBacker bool, staker truchain.Staker, earns UserEarns) string {
 	switch t {
 	case truchain.DistributionMajorityNotReached:
-		i := getTrustakeValue(earns.Interest)
-		if i.IsZero() {
-			return fmt.Sprintf("It's a tie! You were refunded %s TruStake", getTrustakeValue(staker.Amount))
+		i := humanReadable(earns.Interest)
+		if i == "0" {
+			return fmt.Sprintf("It's a tie! You were refunded %s TruStake", humanReadable(staker.Amount))
 		}
 		return fmt.Sprintf("It's a tie! You were refunded %s TruStake but earned %s TruStake in interest",
-			getTrustakeValue(staker.Amount),
-			getTrustakeValue(earns.Interest),
+			humanReadable(staker.Amount),
+			humanReadable(earns.Interest),
 		)
 	case truchain.DistributionBackersWin:
 		if isBacker {

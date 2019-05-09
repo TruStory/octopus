@@ -31,7 +31,7 @@ func (s *service) mentionChecker(notifications chan<- *Notification, stop <-chan
 			}
 			parsedBody, addresses := s.parseCosmosMentions(argument.Body)
 			parsedBody = stripmd.Strip(parsedBody)
-			mentionType := db.MentionComment
+			mentionType := db.MentionArgument
 			addresses = unique(addresses)
 			for _, address := range addresses {
 				notifications <- &Notification{

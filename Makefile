@@ -12,6 +12,7 @@ check_lint:
 	@golangci-lint run --verbose
 
 build:
+	make -C services/apid build-linux
 	make -C services/push build-linux
 	make -C services/uploader build-linux
 	make -C services/spotlight build-linux

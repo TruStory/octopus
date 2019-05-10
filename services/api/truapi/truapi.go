@@ -12,17 +12,17 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/TruStory/octopus/services/api/chttp"
+	"github.com/TruStory/octopus/services/api/db"
+	"github.com/TruStory/octopus/services/api/graphql"
+	"github.com/TruStory/octopus/services/api/truapi/cookies"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/argument"
 	"github.com/TruStory/truchain/x/backing"
 	"github.com/TruStory/truchain/x/category"
 	"github.com/TruStory/truchain/x/challenge"
-	"github.com/TruStory/truchain/x/chttp"
-	"github.com/TruStory/truchain/x/db"
-	"github.com/TruStory/truchain/x/graphql"
 	"github.com/TruStory/truchain/x/params"
 	"github.com/TruStory/truchain/x/story"
-	"github.com/TruStory/truchain/x/truapi/cookies"
 	trubank "github.com/TruStory/truchain/x/trubank"
 	"github.com/TruStory/truchain/x/users"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -30,6 +30,7 @@ import (
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
 	"github.com/gorilla/handlers"
+	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 )
 
 // ContextKey represents a string key for request context.
@@ -52,9 +53,9 @@ type TruAPI struct {
 }
 
 // NewTruAPI returns a `TruAPI` instance populated with the existing app and a new GraphQL client
-func NewTruAPI(aa *chttp.App) *TruAPI {
+func NewTruAPI(cliCtx cliContext.CLIContext) *TruAPI {
 	ta := TruAPI{
-		API:                     chttp.NewAPI(aa, supported),
+		API:                     chttp.NewAPI(cliCtx, supported),
 		GraphQLClient:           graphql.NewGraphQLClient(),
 		DBClient:                db.NewDBClient(),
 		commentsNotificationsCh: make(chan CommentNotificationRequest),
@@ -66,7 +67,6 @@ func NewTruAPI(aa *chttp.App) *TruAPI {
 	return &ta
 }
 
-// RunNotificationSender runs notification sender.
 func (ta *TruAPI) RunNotificationSender() error {
 	endpoint := os.Getenv("PUSHD_ENDPOINT_URL")
 	if endpoint == "" {

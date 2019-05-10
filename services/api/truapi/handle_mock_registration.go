@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/TruStory/truchain/x/chttp"
+	"github.com/TruStory/octopus/services/api/chttp"
 	"github.com/dghubble/go-twitter/twitter"
 )
 

@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/TruStory/truchain/x/db"
+	"github.com/TruStory/octopus/services/api/db"
 	"github.com/gorilla/securecookie"
 )
 

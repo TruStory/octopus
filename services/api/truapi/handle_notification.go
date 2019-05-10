@@ -6,9 +6,9 @@ import (
 
 	"github.com/go-pg/pg"
 
-	"github.com/TruStory/truchain/x/chttp"
-	"github.com/TruStory/truchain/x/db"
-	"github.com/TruStory/truchain/x/truapi/cookies"
+	"github.com/TruStory/octopus/services/api/chttp"
+	"github.com/TruStory/octopus/services/api/db"
+	"github.com/TruStory/octopus/services/api/truapi/cookies"
 )
 
 // UpdateNotificationEventRequest represents the JSON request

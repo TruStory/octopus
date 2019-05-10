@@ -7,7 +7,7 @@ import (
 
 	"strings"
 
-	db "github.com/TruStory/truchain/x/db"
+	db "github.com/TruStory/octopus/services/api/db"
 	"github.com/gernest/mention"
 	stripmd "github.com/writeas/go-strip-markdown"
 )

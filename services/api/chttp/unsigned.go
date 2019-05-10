@@ -1,7 +1,7 @@
 package chttp
 
 import (
-	"github.com/TruStory/truchain/x/db"
+	"github.com/TruStory/octopus/services/api/db"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	tmcrypto "github.com/tendermint/tendermint/crypto"

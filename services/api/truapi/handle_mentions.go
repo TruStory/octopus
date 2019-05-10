@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/TruStory/truchain/x/truapi/render"
+	"github.com/TruStory/octopus/services/api/truapi/render"
 )
 
 // TranslateMentionsRequest represents the JSON request for translating mentions.

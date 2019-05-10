@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/TruStory/truchain/x/chttp"
+	"github.com/TruStory/octopus/services/api/chttp"
 )
 
 // PingRequest is an empty JSON request

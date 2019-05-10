@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/TruStory/truchain/x/chttp"
-	"github.com/TruStory/truchain/x/db"
+	"github.com/TruStory/octopus/services/api/chttp"
+	"github.com/TruStory/octopus/services/api/db"
 )
 
 // AddCommentRequest represents the JSON request for adding a comment

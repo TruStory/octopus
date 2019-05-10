@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/TruStory/truchain/x/chttp"
-	"github.com/TruStory/truchain/x/truapi/cookies"
+	"github.com/TruStory/octopus/services/api/chttp"
+	"github.com/TruStory/octopus/services/api/truapi/cookies"
 )
 
 // UserResponse is a JSON response body representing the result of User

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/TruStory/truchain/x/chttp"
+	"github.com/TruStory/octopus/services/api/chttp"
 )
 
 // UsernameSearchResponse is a JSON response body representing the result of username search

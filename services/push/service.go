@@ -5,7 +5,7 @@ import (
 
 	"github.com/machinebox/graphql"
 
-	db "github.com/TruStory/truchain/x/db"
+	db "github.com/TruStory/octopus/services/api/db"
 	"github.com/sirupsen/logrus"
 )
 

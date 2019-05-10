@@ -19,15 +19,14 @@ func (ta *TruAPI) credArguments(
 	ctx context.Context, q app.QueryTrasanctionsByCreatorAndCategoryParams) []CredArgument {
 	credArguments := make([]CredArgument, 0)
 	transactions := make([]trubank.Transaction, 0)
-	res := ta.RunQuery(
-		path.Join(trubank.QueryPath, trubank.QueryLikeTransactionsByCreator), q)
 
-	if res.Code != 0 {
+	res, err := ta.RunQuery(path.Join(trubank.QueryPath, trubank.QueryLikeTransactionsByCreator), q)
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return credArguments
 	}
 
-	err := json.Unmarshal(res.Value, &transactions)
+	err = json.Unmarshal(res, &transactions)
 	if err != nil {
 		panic(err)
 	}
@@ -61,24 +60,24 @@ func (ta *TruAPI) credArguments(
 		switch tx.TransactionType {
 		case trubank.BackingLike:
 			var backing backing.Backing
-			res := ta.RunQuery(queryBacking, app.QueryByIDParams{ID: tx.ReferenceID})
-			if res.Code != 0 {
+			res, err := ta.RunQuery(queryBacking, app.QueryByIDParams{ID: tx.ReferenceID})
+			if err != nil {
 				fmt.Println("error getting backing", res)
 				continue
 			}
-			err := json.Unmarshal(res.Value, &backing)
+			err = json.Unmarshal(res, &backing)
 			if err != nil {
 				panic(err)
 			}
 			vote = *backing.Vote
 		case trubank.ChallengeLike:
 			var challenge challenge.Challenge
-			res := ta.RunQuery(queryChallenge, app.QueryByIDParams{ID: tx.ReferenceID})
-			if res.Code != 0 {
+			res, err := ta.RunQuery(queryChallenge, app.QueryByIDParams{ID: tx.ReferenceID})
+			if err != nil {
 				fmt.Println("error getting challenge", res)
 				continue
 			}
-			err := json.Unmarshal(res.Value, &challenge)
+			err = json.Unmarshal(res, &challenge)
 			if err != nil {
 				panic(err)
 			}

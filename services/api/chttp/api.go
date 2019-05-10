@@ -2,10 +2,14 @@ package chttp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"time"
+	"math/rand"
 
+	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/gorilla/mux"
@@ -14,12 +18,13 @@ import (
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
+	"github.com/oklog/ulid"
 )
 
 // MsgTypes is a map of `Msg` type names to empty instances
 type MsgTypes map[string]interface{}
 
-// App is implemented by a Cosmos app to provide chain functionality to the API
+// App is implemented by a Cosmos app client to provide chain functionality to the API
 type App interface {
 	RegisterKey(tcmn.HexBytes, string) (sdk.AccAddress, uint64, sdk.Coins, error)
 	RunQuery(string, interface{}) abci.ResponseQuery
@@ -28,14 +33,14 @@ type App interface {
 
 // API presents the functionality of a Cosmos app over HTTP
 type API struct {
-	App       *App
+	cliCtx    cliContext.CLIContext
 	Supported MsgTypes
 	router    *mux.Router
 }
 
-// NewAPI creates an `API` struct from an `App` and a `MsgTypes` schema
-func NewAPI(app *App, supported MsgTypes) *API {
-	a := API{App: app, Supported: supported, router: mux.NewRouter()}
+// NewAPI creates an `API` struct from a client context and a `MsgTypes` schema
+func NewAPI(cliCtx cliContext.CLIContext, supported MsgTypes) *API {
+	a := API{cliCtx: cliCtx, Supported: supported, router: mux.NewRouter()}
 	return &a
 }
 
@@ -115,14 +120,143 @@ func (a *API) listenAndServeTLS() error {
 
 }
 
-// RunQuery dispatches a query (path + params) to the Cosmos app
-func (a *API) RunQuery(path string, params interface{}) abci.ResponseQuery {
-	return (*(a.App)).RunQuery(path, params)
+// RegisterKey generates a new address/account for a public key
+// Implements chttp.App
+// func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (sdk.AccAddress, uint64, sdk.Coins, error) {
+// 	var addr []byte
+
+// 	if string(algo[0]) == "*" {
+// 		addr = []byte("cosmostestingaddress")
+// 		algo = algo[1:]
+// 	} else {
+// 		addr = generateAddress()
+// 	}
+
+// 	tx, err := app.signedRegistrationTx(addr, k, algo)
+
+// 	if err != nil {
+// 		fmt.Println("TX Parse error: ", err, tx)
+// 		return sdk.AccAddress{}, 0, sdk.Coins{}, err
+// 	}
+
+// 	res, err := app.DeliverPresigned(tx)
+
+// 	if !res.CheckTx.IsOK() {
+// 		fmt.Println("TX Broadcast CheckTx error: ", res.CheckTx.Log)
+// 		return sdk.AccAddress{}, 0, sdk.Coins{}, errors.New(res.CheckTx.Log)
+// 	}
+
+// 	if !res.DeliverTx.IsOK() {
+// 		fmt.Println("TX Broadcast DeliverTx error: ", res.DeliverTx.Log)
+// 		return sdk.AccAddress{}, 0, sdk.Coins{}, errors.New(res.DeliverTx.Log)
+// 	}
+
+// 	if err != nil {
+// 		fmt.Println("TX Broadcast error: ", err, res)
+// 		return sdk.AccAddress{}, 0, sdk.Coins{}, err
+// 	}
+
+// 	accaddr := sdk.AccAddress(addr)
+// 	stored := app.accountKeeper.GetAccount(*(app.blockCtx), accaddr)
+
+// 	if stored == nil {
+// 		return sdk.AccAddress{}, 0, sdk.Coins{}, errors.New("Unable to locate account " + string(addr))
+// 	}
+
+// 	coins := stored.GetCoins()
+
+// 	return accaddr, stored.GetAccountNumber(), coins, nil
+// }
+
+// GenerateAddress returns the first 20 characters of a ULID (https://github.com/oklog/ulid)
+func generateAddress() []byte {
+	t := time.Now()
+	entropy := ulid.Monotonic(rand.New(rand.NewSource(t.UnixNano())), 0)
+	ulidaddr := ulid.MustNew(ulid.Timestamp(t), entropy)
+	addr := []byte(ulidaddr.String())[:20]
+
+	return addr
 }
 
-// DeliverPresigned dispatches a pre-signed query to the Cosmos app
-func (a *API) DeliverPresigned(tx auth.StdTx) (*trpctypes.ResultBroadcastTxCommit, error) {
-	return (*(a.App)).DeliverPresigned(tx)
+// func (app *TruChain) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (auth.StdTx, error) {
+// 	msg := users.RegisterKeyMsg{
+// 		Address:    addr,
+// 		PubKey:     k,
+// 		PubKeyAlgo: algo,
+// 		Coins:      app.initialCoins(),
+// 	}
+// 	chainID := app.blockHeader.ChainID
+// 	registrarAcc := app.accountKeeper.GetAccount(*(app.blockCtx), []byte(types.RegistrarAccAddress))
+// 	registrarNum := registrarAcc.GetAccountNumber()
+// 	registrarSequence := registrarAcc.GetSequence()
+// 	registrationMemo := "reg"
+
+// 	// Sign tx as registrar
+// 	bytesToSign := auth.StdSignBytes(chainID, registrarNum, registrarSequence, types.RegistrationFee, []sdk.Msg{msg}, registrationMemo)
+// 	sigBytes, err := app.registrarKey.Sign(bytesToSign)
+
+// 	if err != nil {
+// 		return auth.StdTx{}, err
+// 	}
+
+// 	// Construct and submit signed tx
+// 	tx := auth.StdTx{
+// 		Msgs: []sdk.Msg{msg},
+// 		Fee:  types.RegistrationFee,
+// 		Signatures: []auth.StdSignature{auth.StdSignature{
+// 			PubKey:    app.registrarKey.PubKey(),
+// 			Signature: sigBytes,
+// 		}},
+// 		Memo: registrationMemo,
+// 	}
+
+// 	return tx, nil
+// }
+
+// func (app *TruChain) initialCoins() sdk.Coins {
+// 	coins := sdk.Coins{}
+// 	categories, err := app.categoryKeeper.GetAllCategories(*(app.blockCtx))
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	for _, cat := range categories {
+// 		coin := sdk.NewCoin(cat.Denom(), types.InitialCredAmount)
+// 		coins = append(coins, coin)
+// 	}
+
+// 	coins = append(coins, types.InitialTruStake)
+
+// 	// coins need to be sorted by denom to be valid
+// 	coins.Sort()
+
+// 	// yes we should panic if coins aren't valid
+// 	// as it undermines the whole chain
+// 	if !coins.IsValid() {
+// 		panic("Initial coins are not valid.")
+// 	}
+
+// 	return coins
+// }
+
+// RunQuery dispatches a query (path + params) to the Tendermint node
+func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
+	paramBytes, err := json.Marshal(params)
+	if err != nil {
+		return nil, err
+	}
+	res, err := a.cliCtx.QueryWithData("/custom/"+path, paramBytes)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}
+
+// DeliverPresigned dispatches a pre-signed transaction to the Tendermint node
+func (a *API) DeliverPresigned(tx auth.StdTx) (sdk.TxResponse, error) {
+	txBytes := a.cliCtx.Codec.MustMarshalBinaryLengthPrefixed(tx)
+	return a.cliCtx.BroadcastTx(txBytes)
 }
 
 func redirectHandler(w http.ResponseWriter, r *http.Request) {

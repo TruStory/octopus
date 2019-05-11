@@ -96,6 +96,10 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/codegangsta/cli v1.20.0/go.mod h1:/qJNoX69yVSKu5o4jLyXAENLRyk1uhi7zkbQ3slBdOA=
 github.com/corpix/uarand v0.1.0 h1:HgE/0ismPNM4n3z2VeZxzwpMJiN4uSZ+SMpxxvoyffY=
 github.com/corpix/uarand v0.1.0/go.mod h1:SFKZvkcRoLqVRFZ4u25xPmp6m9ktANfbpXZ7SJ0/FNU=
+github.com/cosmos/cosmos-sdk v0.28.2-0.20190130000638-3864d5b1bd9d h1:iKv+9PdAXiKwrtgspAChkqa5X+1DzL9kwbYuIqvNNcY=
+github.com/cosmos/cosmos-sdk v0.28.2-0.20190130000638-3864d5b1bd9d/go.mod h1:JrX/JpJunJQXBI5PEX2zELHMFzQr/159jDjIhesOh2c=
+github.com/cosmos/cosmos-sdk v0.32.0 h1:l4HtecbD+0XyQqDh7J+b8wy9mkRoz9VUK5nBOxLMrpA=
+github.com/cosmos/cosmos-sdk v0.32.0/go.mod h1:JrX/JpJunJQXBI5PEX2zELHMFzQr/159jDjIhesOh2c=
 github.com/cosmos/cosmos-sdk v0.33.0 h1:GcWGjCjIZQ2wvRfBm8Nix4bMAmFxSC8o/J4bslM3KSY=
 github.com/cosmos/cosmos-sdk v0.33.0/go.mod h1:JrX/JpJunJQXBI5PEX2zELHMFzQr/159jDjIhesOh2c=
 github.com/cosmos/cosmos-sdk v0.34.4 h1:UlYAt0AA0ePAuGvEYe1poW07rdVvxV0/HFY6vUKgkHM=

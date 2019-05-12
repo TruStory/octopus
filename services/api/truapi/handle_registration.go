@@ -2,6 +2,7 @@ package truapi
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -146,14 +147,14 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 		}
 
 		// Register with cosmos only if it wasn't registered before.
-		// if currentTwitterProfile.ID == 0 {
-		// 	pubKeyBytes, _ := hex.DecodeString(keyPair.PublicKey)
-		// 	newAddr, _, _, err := (*(ta.App)).RegisterKey(pubKeyBytes, "secp256k1")
-		// 	if err != nil {
-		// 		return "", err
-		// 	}
-		// 	addr = newAddr.String()
-		// }
+		if currentTwitterProfile.ID == 0 {
+			pubKeyBytes, _ := hex.DecodeString(keyPair.PublicKey)
+			newAddr, _, _, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
+			if err != nil {
+				return "", err
+			}
+			addr = newAddr.String()
+		}
 	}
 
 	return addr, nil

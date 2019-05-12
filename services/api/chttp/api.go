@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -135,52 +136,50 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // RegisterKey generates a new address/account for a public key
-// func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (sdk.AccAddress, uint64, sdk.Coins, error) {
-// 	var addr []byte
+func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (
+	accAddr sdk.AccAddress, accNum uint64, coins sdk.Coins, err error) {
 
-// 	if string(algo[0]) == "*" {
-// 		addr = []byte("cosmostestingaddress")
-// 		algo = algo[1:]
-// 	} else {
-// 		addr = generateAddress()
-// 	}
+	var addr []byte
+	if string(algo[0]) == "*" {
+		addr = []byte("cosmostestingaddress")
+		algo = algo[1:]
+	} else {
+		addr = generateAddress()
+	}
 
-// 	tx, err := app.signedRegistrationTx(addr, k, algo)
+	tx, err := a.signedRegistrationTx(addr, k, algo)
+	if err != nil {
+		fmt.Println("TX Parse error: ", err, tx)
+		return
+	}
 
-// 	if err != nil {
-// 		fmt.Println("TX Parse error: ", err, tx)
-// 		return sdk.AccAddress{}, 0, sdk.Coins{}, err
-// 	}
+	res, err := a.DeliverPresigned(tx)
+	if err != nil {
+		fmt.Println("TX Broadcast error: ", err, res)
+		return
+	}
 
-// 	res, err := app.DeliverPresigned(tx)
+	addresses := users.QueryUsersByAddressesParams{
+		Addresses: []string{sdk.AccAddress(addr).String()},
+	}
+	result, err := a.RunQuery(users.QueryPath, addresses)
+	if err != nil {
+		return
+	}
 
-// 	if !res.CheckTx.IsOK() {
-// 		fmt.Println("TX Broadcast CheckTx error: ", res.CheckTx.Log)
-// 		return sdk.AccAddress{}, 0, sdk.Coins{}, errors.New(res.CheckTx.Log)
-// 	}
+	var u []users.User
+	err = amino.UnmarshalJSON(result, u)
+	if err != nil {
+		panic(err)
+	}
+	if len(u) == 0 {
+		err = errors.New("Unable to locate account " + string(addr))
+		return
+	}
+	stored := u[0]
 
-// 	if !res.DeliverTx.IsOK() {
-// 		fmt.Println("TX Broadcast DeliverTx error: ", res.DeliverTx.Log)
-// 		return sdk.AccAddress{}, 0, sdk.Coins{}, errors.New(res.DeliverTx.Log)
-// 	}
-
-// 	if err != nil {
-// 		fmt.Println("TX Broadcast error: ", err, res)
-// 		return sdk.AccAddress{}, 0, sdk.Coins{}, err
-// 	}
-
-// 	accaddr := sdk.AccAddress(addr)
-// 	stored := app.accountKeeper.GetAccount(*(app.blockCtx), accaddr)
-
-// 	if stored == nil {
-// 		return sdk.AccAddress{}, 0, sdk.Coins{}, errors.New("Unable to locate account " + string(addr))
-// 	}
-
-// 	coins := stored.GetCoins()
-
-// 	return accaddr, stored.GetAccountNumber(), coins, nil
-// 	panic("adsf")
-// }
+	return sdk.AccAddress(addr), stored.AccountNumber, stored.Coins, nil
+}
 
 // GenerateAddress returns the first 20 characters of a ULID (https://github.com/oklog/ulid)
 func generateAddress() []byte {

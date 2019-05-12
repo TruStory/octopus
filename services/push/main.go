@@ -14,7 +14,7 @@ import (
 	"github.com/appleboy/gorush/gorush"
 	"github.com/machinebox/graphql"
 
-	db "github.com/TruStory/octopus/services/api/db"
+	db "github.com/TruStory/octopus/services/truapi/db"
 	"github.com/sirupsen/logrus"
 
 	"github.com/tendermint/tendermint/libs/pubsub/query"
@@ -314,7 +314,7 @@ func main() {
 	log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 	})
-	gorushHTTPAddress := getEnv("GORUSH_ADDRESS", "http://localhost:9000/api/push")
+	gorushHTTPAddress := getEnv("GORUSH_ADDRESS", "http://localhost:9000/truapi/push")
 	topic := getEnv("NOTIFICATION_TOPIC", "io.trustory.app.devnet")
 	graphqlEndpoint := mustEnv("PUSHD_GRAPHQL_ENDPOINT")
 

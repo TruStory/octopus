@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/TruStory/octopus/services/api/db"
-	"github.com/TruStory/octopus/services/api/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 
-	"github.com/TruStory/octopus/services/api/chttp"
+	"github.com/TruStory/octopus/services/truapi/chttp"
 )
 
 // ReactionRequest represents the http request for a reaction

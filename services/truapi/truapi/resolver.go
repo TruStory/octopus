@@ -7,8 +7,8 @@ import (
 	"path"
 	"sort"
 
-	"github.com/TruStory/octopus/services/api/db"
-	"github.com/TruStory/octopus/services/api/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/argument"
 	"github.com/TruStory/truchain/x/backing"
@@ -21,7 +21,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/kelseyhightower/envconfig"
 	amino "github.com/tendermint/go-amino"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // FeedFilter is parameter for filtering the story feed
@@ -42,16 +41,14 @@ type QueryByCategoryIDAndFeedFilter struct {
 }
 
 func (ta *TruAPI) allCategoriesResolver(ctx context.Context, q struct{}) []category.Category {
-	res := ta.RunQuery("categories/all", struct{}{})
-
-	if res.Code != 0 {
+	res, err := ta.RunQuery("categories/all", struct{}{})
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return []category.Category{}
 	}
 
 	cs := new([]category.Category)
-	err := json.Unmarshal(res.Value, cs)
-
+	err = json.Unmarshal(res, cs)
 	if err != nil {
 		panic(err)
 	}
@@ -65,20 +62,20 @@ func (ta *TruAPI) allCategoriesResolver(ctx context.Context, q struct{}) []categ
 }
 
 func (ta *TruAPI) storiesResolver(ctx context.Context, q QueryByCategoryIDAndFeedFilter) []story.Story {
-	var res abci.ResponseQuery
+	var res []byte
+	var err error
 	if q.CategoryID == -1 {
-		res = ta.RunQuery("stories/all", struct{}{})
+		res, err = ta.RunQuery("stories/all", struct{}{})
 	} else {
-		res = ta.RunQuery("stories/category", story.QueryCategoryStoriesParams{CategoryID: q.CategoryID})
+		res, err = ta.RunQuery("stories/category", story.QueryCategoryStoriesParams{CategoryID: q.CategoryID})
 	}
-
-	if res.Code != 0 {
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return []story.Story{}
 	}
 
 	stories := new([]story.Story)
-	err := json.Unmarshal(res.Value, stories)
+	err = json.Unmarshal(res, stories)
 	if err != nil {
 		panic(err)
 	}
@@ -99,18 +96,17 @@ func (ta *TruAPI) storiesResolver(ctx context.Context, q QueryByCategoryIDAndFee
 }
 
 func (ta *TruAPI) argumentResolver(_ context.Context, q app.QueryArgumentByID) argument.Argument {
-	res := ta.RunQuery(
+	res, err := ta.RunQuery(
 		path.Join(argument.QueryPath, argument.QueryArgumentByID),
 		app.QueryByIDParams{ID: q.ID},
 	)
-
-	if res.Code != 0 {
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return argument.Argument{}
 	}
 
 	argument := new(argument.Argument)
-	err := json.Unmarshal(res.Value, argument)
+	err = json.Unmarshal(res, argument)
 	if err != nil {
 		panic(err)
 	}
@@ -130,15 +126,14 @@ func (ta *TruAPI) argumentResolver(_ context.Context, q app.QueryArgumentByID) a
 
 func (ta *TruAPI) likesObjectResolver(_ context.Context, q app.QueryByIDParams) []argument.Like {
 	query := path.Join(argument.QueryPath, argument.QueryLikesByArgumentID)
-	res := ta.RunQuery(query, app.QueryByIDParams{ID: q.ID})
-
-	if res.Code != 0 {
+	res, err := ta.RunQuery(query, app.QueryByIDParams{ID: q.ID})
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return []argument.Like{}
 	}
 
 	likes := new([]argument.Like)
-	err := json.Unmarshal(res.Value, likes)
+	err = json.Unmarshal(res, likes)
 	if err != nil {
 		panic(err)
 	}
@@ -148,31 +143,29 @@ func (ta *TruAPI) likesObjectResolver(_ context.Context, q app.QueryByIDParams) 
 
 func (ta *TruAPI) backingResolver(
 	_ context.Context, q app.QueryByIDParams) backing.Backing {
-	res := ta.RunQuery("backings/id", app.QueryByIDParams{ID: q.ID})
-	if res.Code != 0 {
+	res, err := ta.RunQuery("backings/id", app.QueryByIDParams{ID: q.ID})
+	if err != nil {
 		fmt.Println("error getting backing", res)
 		return backing.Backing{}
 	}
 	backing := backing.Backing{}
-	err := json.Unmarshal(res.Value, &backing)
+	err = json.Unmarshal(res, &backing)
 	if err != nil {
 		panic(err)
 	}
+
 	return backing
 }
 
-func (ta *TruAPI) backingsResolver(
-	_ context.Context, q app.QueryByIDParams) []backing.Backing {
-
-	res := ta.RunQuery("backings/storyID", q)
-
-	if res.Code != 0 {
+func (ta *TruAPI) backingsResolver(_ context.Context, q app.QueryByIDParams) []backing.Backing {
+	res, err := ta.RunQuery("backings/storyID", q)
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return []backing.Backing{}
 	}
 
 	backings := new([]backing.Backing)
-	err := json.Unmarshal(res.Value, backings)
+	err = json.Unmarshal(res, backings)
 	if err != nil {
 		panic(err)
 	}
@@ -181,15 +174,14 @@ func (ta *TruAPI) backingsResolver(
 }
 
 func (ta *TruAPI) backingPoolResolver(_ context.Context, q story.Story) sdk.Coin {
-	res := ta.RunQuery(path.Join(backing.QueryPath, backing.QueryBackingAmountByStoryID), app.QueryByIDParams{ID: q.ID})
-
-	if res.Code != 0 {
+	res, err := ta.RunQuery(path.Join(backing.QueryPath, backing.QueryBackingAmountByStoryID), app.QueryByIDParams{ID: q.ID})
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return sdk.Coin{}
 	}
 
 	amount := new(sdk.Coin)
-	err := amino.UnmarshalJSON(res.Value, amount)
+	err = amino.UnmarshalJSON(res, amount)
 	if err != nil {
 		panic(err)
 	}
@@ -198,15 +190,14 @@ func (ta *TruAPI) backingPoolResolver(_ context.Context, q story.Story) sdk.Coin
 }
 
 func (ta *TruAPI) challengePoolResolver(_ context.Context, q story.Story) sdk.Coin {
-	res := ta.RunQuery(path.Join(challenge.QueryPath, challenge.QueryChallengeAmountByStoryID), app.QueryByIDParams{ID: q.ID})
-
-	if res.Code != 0 {
+	res, err := ta.RunQuery(path.Join(challenge.QueryPath, challenge.QueryChallengeAmountByStoryID), app.QueryByIDParams{ID: q.ID})
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return sdk.Coin{}
 	}
 
 	amount := new(sdk.Coin)
-	err := amino.UnmarshalJSON(res.Value, amount)
+	err = amino.UnmarshalJSON(res, amount)
 	if err != nil {
 		panic(err)
 	}
@@ -215,16 +206,14 @@ func (ta *TruAPI) challengePoolResolver(_ context.Context, q story.Story) sdk.Co
 }
 
 func (ta *TruAPI) categoryResolver(ctx context.Context, q category.QueryCategoryByIDParams) category.Category {
-	res := ta.RunQuery("categories/id", q)
-
-	if res.Code != 0 {
+	res, err := ta.RunQuery("categories/id", q)
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return category.Category{}
 	}
 
 	c := new(category.Category)
-	err := json.Unmarshal(res.Value, c)
-
+	err = json.Unmarshal(res, c)
 	if err != nil {
 		panic(err)
 	}
@@ -232,35 +221,30 @@ func (ta *TruAPI) categoryResolver(ctx context.Context, q category.QueryCategory
 	return *c
 }
 
-func (ta *TruAPI) challengeResolver(
-	_ context.Context, q app.QueryByIDParams) challenge.Challenge {
-	res := ta.RunQuery("challenges/id", q)
-
-	if res.Code != 0 {
+func (ta *TruAPI) challengeResolver(_ context.Context, q app.QueryByIDParams) challenge.Challenge {
+	res, err := ta.RunQuery("challenges/id", q)
+	if err != nil {
 		fmt.Println("error getting challenge", res)
 		return challenge.Challenge{}
 	}
 	challenge := challenge.Challenge{}
-	err := json.Unmarshal(res.Value, &challenge)
+	err = json.Unmarshal(res, &challenge)
 	if err != nil {
 		panic(err)
 	}
+
 	return challenge
 }
 
-func (ta *TruAPI) challengesResolver(
-	_ context.Context, q app.QueryByIDParams) []challenge.Challenge {
-
-	res := ta.RunQuery(
-		path.Join(challenge.QueryPath, challenge.QueryByStoryID), q)
-
-	if res.Code != 0 {
+func (ta *TruAPI) challengesResolver(_ context.Context, q app.QueryByIDParams) []challenge.Challenge {
+	res, err := ta.RunQuery(path.Join(challenge.QueryPath, challenge.QueryByStoryID), q)
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return []challenge.Challenge{}
 	}
 
 	challenges := new([]challenge.Challenge)
-	err := json.Unmarshal(res.Value, challenges)
+	err = json.Unmarshal(res, challenges)
 	if err != nil {
 		panic(err)
 	}
@@ -269,15 +253,14 @@ func (ta *TruAPI) challengesResolver(
 }
 
 func (ta *TruAPI) paramsResolver(_ context.Context) params.Params {
-	res := ta.RunQuery("params", nil)
-
-	if res.Code != 0 {
+	res, err := ta.RunQuery("params", nil)
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return params.Params{}
 	}
 
 	p := new(params.Params)
-	err := json.Unmarshal(res.Value, p)
+	err = json.Unmarshal(res, p)
 	if err != nil {
 		panic(err)
 	}
@@ -290,16 +273,14 @@ func (ta *TruAPI) storyCategoryResolver(ctx context.Context, q story.Story) cate
 }
 
 func (ta *TruAPI) storyResolver(_ context.Context, q story.QueryStoryByIDParams) story.Story {
-	res := ta.RunQuery("stories/id", q)
-
-	if res.Code != 0 {
+	res, err := ta.RunQuery("stories/id", q)
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return story.Story{}
 	}
 
 	s := new(story.Story)
-	err := json.Unmarshal(res.Value, s)
-
+	err = json.Unmarshal(res, s)
 	if err != nil {
 		panic(err)
 	}
@@ -307,9 +288,7 @@ func (ta *TruAPI) storyResolver(_ context.Context, q story.QueryStoryByIDParams)
 	return *s
 }
 
-func (ta *TruAPI) twitterProfileResolver(
-	ctx context.Context, q users.User) db.TwitterProfile {
-
+func (ta *TruAPI) twitterProfileResolver(ctx context.Context, q users.User) db.TwitterProfile {
 	addr := q.Address
 	twitterProfile, err := ta.DBClient.TwitterProfileByAddress(addr)
 	if twitterProfile == nil {
@@ -325,17 +304,14 @@ func (ta *TruAPI) twitterProfileResolver(
 }
 
 func (ta *TruAPI) usersResolver(ctx context.Context, q users.QueryUsersByAddressesParams) []users.User {
-	res := ta.RunQuery("users/addresses", q)
-
-	if res.Code != 0 {
+	res, err := ta.RunQuery("users/addresses", q)
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return []users.User{}
 	}
 
 	u := new([]users.User)
-
-	err := amino.UnmarshalJSON(res.Value, u)
-
+	err = amino.UnmarshalJSON(res, u)
 	if err != nil {
 		panic(err)
 	}
@@ -343,19 +319,15 @@ func (ta *TruAPI) usersResolver(ctx context.Context, q users.QueryUsersByAddress
 	return *u
 }
 
-func (ta *TruAPI) transactionsResolver(
-	_ context.Context, q app.QueryByCreatorParams) []trubank.Transaction {
-
-	res := ta.RunQuery(
-		path.Join(trubank.QueryPath, trubank.QueryTransactionsByCreator), q)
-
-	if res.Code != 0 {
+func (ta *TruAPI) transactionsResolver(_ context.Context, q app.QueryByCreatorParams) []trubank.Transaction {
+	res, err := ta.RunQuery(path.Join(trubank.QueryPath, trubank.QueryTransactionsByCreator), q)
+	if err != nil {
 		fmt.Println("Resolver err: ", res)
 		return []trubank.Transaction{}
 	}
 
 	transactions := new([]trubank.Transaction)
-	err := json.Unmarshal(res.Value, transactions)
+	err = json.Unmarshal(res, transactions)
 	if err != nil {
 		panic(err)
 	}

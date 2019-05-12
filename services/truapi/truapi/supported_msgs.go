@@ -3,7 +3,7 @@ package truapi
 import (
 	"github.com/TruStory/truchain/x/backing"
 	"github.com/TruStory/truchain/x/challenge"
-	"github.com/TruStory/octopus/services/api/chttp"
+	"github.com/TruStory/octopus/services/truapi/chttp"
 	"github.com/TruStory/truchain/x/story"
 )
 

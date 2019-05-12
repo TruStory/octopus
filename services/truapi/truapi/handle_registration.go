@@ -12,9 +12,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/TruStory/octopus/services/api/chttp"
-	"github.com/TruStory/octopus/services/api/db"
-	"github.com/TruStory/octopus/services/api/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/chttp"
+	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
@@ -149,7 +149,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 		// Register with cosmos only if it wasn't registered before.
 		if currentTwitterProfile.ID == 0 {
 			pubKeyBytes, _ := hex.DecodeString(keyPair.PublicKey)
-			newAddr, _, _, err := (*(ta.App)).RegisterKey(pubKeyBytes, "secp256k1")
+			newAddr, _, _, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
 			if err != nil {
 				return "", err
 			}

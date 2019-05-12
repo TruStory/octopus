@@ -2,23 +2,33 @@ package chttp
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
-	"math/rand"
 
+	chain "github.com/TruStory/truchain/types"
+	"github.com/TruStory/truchain/x/users"
 	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/gorilla/mux"
+	"github.com/oklog/ulid"
+	"github.com/spf13/viper"
+	amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"github.com/tendermint/tmlibs/cli"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
-	"github.com/oklog/ulid"
 )
 
 // MsgTypes is a map of `Msg` type names to empty instances
@@ -116,57 +126,60 @@ func (a *API) listenAndServeTLS() error {
 			return nil
 		}
 	})
-	return g.Wait()
 
+	return g.Wait()
+}
+
+func redirectHandler(w http.ResponseWriter, r *http.Request) {
+	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.Path)
+	http.Redirect(w, r, url, http.StatusMovedPermanently)
 }
 
 // RegisterKey generates a new address/account for a public key
-// Implements chttp.App
-// func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (sdk.AccAddress, uint64, sdk.Coins, error) {
-// 	var addr []byte
+func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (
+	accAddr sdk.AccAddress, accNum uint64, coins sdk.Coins, err error) {
 
-// 	if string(algo[0]) == "*" {
-// 		addr = []byte("cosmostestingaddress")
-// 		algo = algo[1:]
-// 	} else {
-// 		addr = generateAddress()
-// 	}
+	var addr []byte
+	if string(algo[0]) == "*" {
+		addr = []byte("cosmostestingaddress")
+		algo = algo[1:]
+	} else {
+		addr = generateAddress()
+	}
 
-// 	tx, err := app.signedRegistrationTx(addr, k, algo)
+	tx, err := a.signedRegistrationTx(addr, k, algo)
+	if err != nil {
+		fmt.Println("TX Parse error: ", err, tx)
+		return
+	}
 
-// 	if err != nil {
-// 		fmt.Println("TX Parse error: ", err, tx)
-// 		return sdk.AccAddress{}, 0, sdk.Coins{}, err
-// 	}
+	res, err := a.DeliverPresigned(tx)
+	if err != nil {
+		fmt.Println("TX Broadcast error: ", err, res)
+		return
+	}
 
-// 	res, err := app.DeliverPresigned(tx)
+	addresses := users.QueryUsersByAddressesParams{
+		Addresses: []string{sdk.AccAddress(addr).String()},
+	}
+	result, err := a.RunQuery(users.QueryPath, addresses)
+	if err != nil {
+		return
+	}
 
-// 	if !res.CheckTx.IsOK() {
-// 		fmt.Println("TX Broadcast CheckTx error: ", res.CheckTx.Log)
-// 		return sdk.AccAddress{}, 0, sdk.Coins{}, errors.New(res.CheckTx.Log)
-// 	}
+	var u []users.User
+	err = amino.UnmarshalJSON(result, u)
+	if err != nil {
+		panic(err)
+	}
+	if len(u) == 0 {
+		err = errors.New("Unable to locate account " + string(addr))
+		return
+	}
+	stored := u[0]
 
-// 	if !res.DeliverTx.IsOK() {
-// 		fmt.Println("TX Broadcast DeliverTx error: ", res.DeliverTx.Log)
-// 		return sdk.AccAddress{}, 0, sdk.Coins{}, errors.New(res.DeliverTx.Log)
-// 	}
-
-// 	if err != nil {
-// 		fmt.Println("TX Broadcast error: ", err, res)
-// 		return sdk.AccAddress{}, 0, sdk.Coins{}, err
-// 	}
-
-// 	accaddr := sdk.AccAddress(addr)
-// 	stored := app.accountKeeper.GetAccount(*(app.blockCtx), accaddr)
-
-// 	if stored == nil {
-// 		return sdk.AccAddress{}, 0, sdk.Coins{}, errors.New("Unable to locate account " + string(addr))
-// 	}
-
-// 	coins := stored.GetCoins()
-
-// 	return accaddr, stored.GetAccountNumber(), coins, nil
-// }
+	return sdk.AccAddress(addr), stored.AccountNumber, stored.Coins, nil
+}
 
 // GenerateAddress returns the first 20 characters of a ULID (https://github.com/oklog/ulid)
 func generateAddress() []byte {
@@ -178,66 +191,80 @@ func generateAddress() []byte {
 	return addr
 }
 
-// func (app *TruChain) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (auth.StdTx, error) {
-// 	msg := users.RegisterKeyMsg{
-// 		Address:    addr,
-// 		PubKey:     k,
-// 		PubKeyAlgo: algo,
-// 		Coins:      app.initialCoins(),
-// 	}
-// 	chainID := app.blockHeader.ChainID
-// 	registrarAcc := app.accountKeeper.GetAccount(*(app.blockCtx), []byte(types.RegistrarAccAddress))
-// 	registrarNum := registrarAcc.GetAccountNumber()
-// 	registrarSequence := registrarAcc.GetSequence()
-// 	registrationMemo := "reg"
+func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (auth.StdTx, error) {
+	// query registrar account
+	// TODO: query using Cosmos auth module (GET account/, {sdk.AccAddress})
+	addresses := users.QueryUsersByAddressesParams{
+		Addresses: []string{chain.RegistrarAccAddress},
+	}
+	res, err := a.RunQuery(users.QueryPath, addresses)
+	if err != nil {
+		return auth.StdTx{}, err
+	}
 
-// 	// Sign tx as registrar
-// 	bytesToSign := auth.StdSignBytes(chainID, registrarNum, registrarSequence, types.RegistrationFee, []sdk.Msg{msg}, registrationMemo)
-// 	sigBytes, err := app.registrarKey.Sign(bytesToSign)
+	var u []users.User
+	err = amino.UnmarshalJSON(res, u)
+	if err != nil {
+		panic(err)
+	}
+	registrarAcc := u[0]
 
-// 	if err != nil {
-// 		return auth.StdTx{}, err
-// 	}
+	registrarNum := registrarAcc.AccountNumber
+	registrarSequence := registrarAcc.Sequence
+	registrationMemo := "reg"
+	chainID := "chain-id"
+	msg := users.RegisterKeyMsg{
+		Address:    addr,
+		PubKey:     k,
+		PubKeyAlgo: algo,
+		Coins:      nil,
+	}
 
-// 	// Construct and submit signed tx
-// 	tx := auth.StdTx{
-// 		Msgs: []sdk.Msg{msg},
-// 		Fee:  types.RegistrationFee,
-// 		Signatures: []auth.StdSignature{auth.StdSignature{
-// 			PubKey:    app.registrarKey.PubKey(),
-// 			Signature: sigBytes,
-// 		}},
-// 		Memo: registrationMemo,
-// 	}
+	// Sign tx as registrar
+	bytesToSign := auth.StdSignBytes(chainID, registrarNum, registrarSequence, chain.RegistrationFee, []sdk.Msg{msg}, registrationMemo)
+	registrarKey := loadRegistrarKey()
+	sigBytes, err := registrarKey.Sign(bytesToSign)
+	if err != nil {
+		return auth.StdTx{}, err
+	}
 
-// 	return tx, nil
-// }
+	// Construct and submit signed tx
+	tx := auth.StdTx{
+		Msgs: []sdk.Msg{msg},
+		Fee:  chain.RegistrationFee,
+		Signatures: []auth.StdSignature{auth.StdSignature{
+			PubKey:    registrarKey.PubKey(),
+			Signature: sigBytes,
+		}},
+		Memo: registrationMemo,
+	}
 
-// func (app *TruChain) initialCoins() sdk.Coins {
-// 	coins := sdk.Coins{}
-// 	categories, err := app.categoryKeeper.GetAllCategories(*(app.blockCtx))
-// 	if err != nil {
-// 		panic(err)
-// 	}
+	return tx, nil
+}
 
-// 	for _, cat := range categories {
-// 		coin := sdk.NewCoin(cat.Denom(), types.InitialCredAmount)
-// 		coins = append(coins, coin)
-// 	}
+func loadRegistrarKey() secp256k1.PrivKeySecp256k1 {
+	rootdir := viper.GetString(cli.HomeFlag)
+	if rootdir == "" {
+		rootdir = "$HOME/.apid"
+	}
+	keypath := filepath.Join(rootdir, "registrar.key")
+	fileBytes, err := ioutil.ReadFile(keypath)
+	if err != nil {
+		panic(err)
+	}
 
-// 	coins = append(coins, types.InitialTruStake)
+	keyBytes, err := hex.DecodeString(string(fileBytes))
+	if err != nil {
+		panic(err)
+	}
+	if len(keyBytes) != 32 {
+		panic("Invalid registrar key: " + string(fileBytes))
+	}
+	key := secp256k1.PrivKeySecp256k1{}
+	copy(key[:], keyBytes)
 
-// 	// coins need to be sorted by denom to be valid
-// 	coins.Sort()
-
-// 	// yes we should panic if coins aren't valid
-// 	// as it undermines the whole chain
-// 	if !coins.IsValid() {
-// 		panic("Initial coins are not valid.")
-// 	}
-
-// 	return coins
-// }
+	return key
+}
 
 // RunQuery dispatches a query (path + params) to the Tendermint node
 func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
@@ -257,9 +284,4 @@ func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
 func (a *API) DeliverPresigned(tx auth.StdTx) (sdk.TxResponse, error) {
 	txBytes := a.cliCtx.Codec.MustMarshalBinaryLengthPrefixed(tx)
 	return a.cliCtx.BroadcastTx(txBytes)
-}
-
-func redirectHandler(w http.ResponseWriter, r *http.Request) {
-	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.Path)
-	http.Redirect(w, r, url, http.StatusMovedPermanently)
 }

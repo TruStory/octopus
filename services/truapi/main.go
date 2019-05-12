@@ -1,16 +1,19 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"os"
 
-	"github.com/TruStory/octopus/services/api/truapi"
+	"github.com/TruStory/octopus/services/truapi/truapi"
 	"github.com/TruStory/truchain/app"
 	"github.com/TruStory/truchain/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/spf13/cobra"
+	"github.com/tendermint/tmlibs/cli"
 )
 
 func main() {
@@ -23,6 +26,15 @@ func main() {
 
 	codec := app.MakeCodec()
 	rootCmd.AddCommand(httpCmd(codec))
+
+	// Add flags and prefix all env exposed with TRU
+	executor := cli.PrepareMainCmd(rootCmd, "TRU", app.DefaultCLIHome)
+
+	err := executor.Execute()
+	if err != nil {
+		fmt.Printf("Failed executing CLI command: %s, exiting...\n", err)
+		os.Exit(1)
+	}
 }
 
 func httpCmd(codec *codec.Codec) *cobra.Command {

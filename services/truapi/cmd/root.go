@@ -12,12 +12,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
 	// Used for flags.
-	// cfgFile, userLicense string
+	configFile string
 
 	rootCmd = &cobra.Command{
 		Use:   "truapi",
@@ -54,13 +56,19 @@ var (
 
 // Execute executes the root command.
 func Execute() {
+	cobra.OnInitialize(initConfig)
 	codec := chain.MakeCodec()
-	rootCmd.AddCommand(serverCmd(codec))
+	rootCmd.AddCommand(startCmd(codec))
 	rootCmd.PersistentFlags().String(client.FlagChainID, "", "Chain ID of tendermint node")
-	rootCmd.MarkPersistentFlagRequired(client.FlagChainID)
+	// rootCmd.MarkPersistentFlagRequired(client.FlagChainID)
+	viper.BindPFlag(client.FlagChainID, rootCmd.PersistentFlags().Lookup(client.FlagChainID))
 
+	// viper.AutomaticEnv()
 	// Add flags and prefix all env exposed with TRU
 	// 	executor := cli.PrepareMainCmd(rootCmd, "TRU", app.DefaultCLIHome)
+
+	rootCmd.PersistentFlags().Bool("https-enabled", false, "Use HTTPS for server")
+	viper.BindPFlag("https-enabled", rootCmd.PersistentFlags().Lookup("https-enabled"))
 
 	err := rootCmd.Execute()
 	if err != nil {
@@ -69,13 +77,15 @@ func Execute() {
 	}
 }
 
-func serverCmd(codec *codec.Codec) *cobra.Command {
+func startCmd(codec *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "server",
+		Use:   "start",
 		Short: "Start API daemon, a local HTTP server",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			fmt.Println(cmd.Flag(client.FlagChainID).Value.String())
 			// fmt.Println(cmd.Flag(client.FlagTrustNode).Value.String())
+			fmt.Printf("chain-id: %s\n", viper.GetString(client.FlagChainID))
+			fmt.Printf("https-enabled: %v\n", viper.GetBool("https-enabled"))
+
 			cliCtx := context.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
 			truAPI := truapi.NewTruAPI(cliCtx)
 			truAPI.RegisterMutations()
@@ -90,5 +100,29 @@ func serverCmd(codec *codec.Codec) *cobra.Command {
 	}
 	// client.RegisterRestServerFlags(cmd)
 
+	// cmd.Flags().Bool("https-enabled", false, "Use HTTPS for server")
+	// viper.BindPFlag("https-enabled", cmd.Flags().Lookup("https-enabled"))
+	// viper.Set("https-enabled", false)
+
 	return cmd
+}
+
+func initConfig() {
+	if configFile != "" {
+		viper.SetConfigFile(configFile)
+	} else {
+		home, err := homedir.Dir()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		viper.AddConfigPath(home)
+		viper.SetConfigName(".truapid/config")
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Printf("Can't read config: %s. Using defaults.\n", err)
+		// os.Exit(1)
+	}
 }

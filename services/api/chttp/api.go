@@ -2,11 +2,12 @@ package chttp
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"encoding/json"
 
+	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/gorilla/mux"
@@ -15,7 +16,6 @@ import (
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
-	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 )
 
 // MsgTypes is a map of `Msg` type names to empty instances
@@ -117,25 +117,24 @@ func (a *API) listenAndServeTLS() error {
 
 }
 
-// RunQuery dispatches a query (path + params) to the Cosmos app
-func (a *API) RunQuery(path string, params interface{}) []byte {
-	bz, err := json.Marshal(params)
+// RunQuery dispatches a query (path + params) to the Tendermint node
+func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
+	paramBytes, err := json.Marshal(params)
 	if err != nil {
-		panic(err)
+		return nil, err
+	}
+	res, err := a.cliCtx.QueryWithData("/custom/"+path, paramBytes)
+	if err != nil {
+		return res, err
 	}
 
-	res, err := a.cliCtx.QueryWithData("/custom/"+path, bz)
-	if err != nil {
-		panic(err)
-	}
-
-	return res
+	return res, nil
 }
 
-// DeliverPresigned dispatches a pre-signed transaction to the Cosmos app
-func (a *API) DeliverPresigned(tx auth.StdTx) (*trpctypes.ResultBroadcastTxCommit, error) {
-	bz := a.cliCtx.Codec.MustMarshalBinaryLengthPrefixed(tx)
-	return a.cliCtx.BroadcastTx(bz)
+// DeliverPresigned dispatches a pre-signed transaction to the Tendermint node
+func (a *API) DeliverPresigned(tx auth.StdTx) (sdk.TxResponse, error) {
+	txBytes := a.cliCtx.Codec.MustMarshalBinaryLengthPrefixed(tx)
+	return a.cliCtx.BroadcastTx(txBytes)
 }
 
 func redirectHandler(w http.ResponseWriter, r *http.Request) {

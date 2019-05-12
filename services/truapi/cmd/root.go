@@ -27,11 +27,10 @@ var (
 
 // Execute executes the root command.
 func Execute() {
-	// Add --chain-id to persistent flags and mark it required
-	rootCmd.PersistentFlags().String(client.FlagChainID, "", "Chain ID of tendermint node")
-
 	codec := chain.MakeCodec()
 	rootCmd.AddCommand(serverCmd(codec))
+	rootCmd.PersistentFlags().String(client.FlagChainID, "", "Chain ID of tendermint node")
+	rootCmd.MarkPersistentFlagRequired(client.FlagChainID)
 
 	// Add flags and prefix all env exposed with TRU
 	// 	executor := cli.PrepareMainCmd(rootCmd, "TRU", app.DefaultCLIHome)
@@ -48,6 +47,8 @@ func serverCmd(codec *codec.Codec) *cobra.Command {
 		Use:   "server",
 		Short: "Start API daemon, a local HTTP server",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			fmt.Println(cmd.Flag(client.FlagChainID).Value.String())
+			// fmt.Println(cmd.Flag(client.FlagTrustNode).Value.String())
 			cliCtx := context.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
 			truAPI := truapi.NewTruAPI(cliCtx)
 			truAPI.RegisterMutations()
@@ -60,7 +61,7 @@ func serverCmd(codec *codec.Codec) *cobra.Command {
 			return err
 		},
 	}
-	client.RegisterRestServerFlags(cmd)
+	// client.RegisterRestServerFlags(cmd)
 
 	return cmd
 }

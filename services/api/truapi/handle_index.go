@@ -120,7 +120,7 @@ func makeStoryMetaTags(ta *TruAPI, route string, storyID int64) (*Tags, error) {
 	if totalParticipants == 1 {
 		totalParticipantsPlural = ""
 	}
-	totalStake := backingTotalAmount.Plus(challengeTotalAmount).Amount.Div(sdk.NewInt(app.Shanev))
+	totalStake := backingTotalAmount.Add(challengeTotalAmount).Amount.Quo(sdk.NewInt(app.Shanev))
 
 	return &Tags{
 		Title:       html.EscapeString(storyObj.Body),

@@ -72,13 +72,13 @@ func (ta *TruAPI) filterByTrending(ctx context.Context, feedStories []story.Stor
 		participants := len(backings) + len(challenges)
 		totalBacking := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 		for i := range backings {
-			totalBacking = totalBacking.Plus(backings[i].Amount())
+			totalBacking = totalBacking.Add(backings[i].Amount())
 		}
 		totalChallenge := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 		for j := range challenges {
-			totalChallenge = totalChallenge.Plus(challenges[j].Amount())
+			totalChallenge = totalChallenge.Add(challenges[j].Amount())
 		}
-		totalStake := totalBacking.Plus(totalChallenge).Amount.Int64()
+		totalStake := totalBacking.Add(totalChallenge).Amount.Int64()
 
 		metrics := trendingMetricsData{
 			Story:        feedStory,

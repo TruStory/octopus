@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"encoding/json"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -14,6 +15,7 @@ import (
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
+	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 )
 
 // MsgTypes is a map of `Msg` type names to empty instances
@@ -28,14 +30,14 @@ type App interface {
 
 // API presents the functionality of a Cosmos app over HTTP
 type API struct {
-	App       *App
+	cliCtx    cliContext.CLIContext
 	Supported MsgTypes
 	router    *mux.Router
 }
 
-// NewAPI creates an `API` struct from an `App` and a `MsgTypes` schema
-func NewAPI(app *App, supported MsgTypes) *API {
-	a := API{App: app, Supported: supported, router: mux.NewRouter()}
+// NewAPI creates an `API` struct from a client context and a `MsgTypes` schema
+func NewAPI(cliCtx cliContext.CLIContext, supported MsgTypes) *API {
+	a := API{cliCtx: cliCtx, Supported: supported, router: mux.NewRouter()}
 	return &a
 }
 
@@ -116,13 +118,24 @@ func (a *API) listenAndServeTLS() error {
 }
 
 // RunQuery dispatches a query (path + params) to the Cosmos app
-func (a *API) RunQuery(path string, params interface{}) abci.ResponseQuery {
-	return (*(a.App)).RunQuery(path, params)
+func (a *API) RunQuery(path string, params interface{}) []byte {
+	bz, err := json.Marshal(params)
+	if err != nil {
+		panic(err)
+	}
+
+	res, err := a.cliCtx.QueryWithData("/custom/"+path, bz)
+	if err != nil {
+		panic(err)
+	}
+
+	return res
 }
 
-// DeliverPresigned dispatches a pre-signed query to the Cosmos app
+// DeliverPresigned dispatches a pre-signed transaction to the Cosmos app
 func (a *API) DeliverPresigned(tx auth.StdTx) (*trpctypes.ResultBroadcastTxCommit, error) {
-	return (*(a.App)).DeliverPresigned(tx)
+	bz := a.cliCtx.Codec.MustMarshalBinaryLengthPrefixed(tx)
+	return a.cliCtx.BroadcastTx(bz)
 }
 
 func redirectHandler(w http.ResponseWriter, r *http.Request) {

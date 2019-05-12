@@ -30,6 +30,7 @@ import (
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
 	"github.com/gorilla/handlers"
+	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 )
 
 // ContextKey represents a string key for request context.
@@ -52,9 +53,9 @@ type TruAPI struct {
 }
 
 // NewTruAPI returns a `TruAPI` instance populated with the existing app and a new GraphQL client
-func NewTruAPI(aa *chttp.App) *TruAPI {
+func NewTruAPI(cliCtx cliContext.CLIContext) *TruAPI {
 	ta := TruAPI{
-		API:                     chttp.NewAPI(aa, supported),
+		API:                     chttp.NewAPI(cliCtx, supported),
 		GraphQLClient:           graphql.NewGraphQLClient(),
 		DBClient:                db.NewDBClient(),
 		commentsNotificationsCh: make(chan CommentNotificationRequest),
@@ -66,7 +67,6 @@ func NewTruAPI(aa *chttp.App) *TruAPI {
 	return &ta
 }
 
-// RunNotificationSender runs notification sender.
 func (ta *TruAPI) RunNotificationSender() error {
 	endpoint := os.Getenv("PUSHD_ENDPOINT_URL")
 	if endpoint == "" {

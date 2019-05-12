@@ -25,6 +25,33 @@ var (
 	}
 )
 
+// config
+// CHAIN_LETS_ENCRYPT_ENABLED
+// CHAIN_HOST
+// CHAIN_LETS_ENCRYPT_CACHE_DIR
+// home directory -- replace $HOME.apid
+// -- registrar.key
+// PG_ADDR
+// PG_USER
+// PG_USER_PW
+// PG_DB_NAME
+// COOKIE_HASH_KEY
+// COOKIE_ENCRYPT_KEY
+// APP_NAME
+// APP_URL
+// AUTH_LOGIN_REDIR
+// AUTH_LOGOUT_REDIR
+// AUTH_DENIED_REDIR
+// TWITTER_API_KEY
+// TWITTER_API_SECRET
+// CHAIN_OAUTH_CALLBACK
+// UPLOAD_URL
+// PUSHD_ENDPOINT_URL
+// MOCK_REGISTRATION
+// CHAIN_WEB_DIR
+// types.Hostname -- 0.0.0.0:1337
+// types.Portname -- 0.0.0.0:1337
+
 // Execute executes the root command.
 func Execute() {
 	codec := chain.MakeCodec()

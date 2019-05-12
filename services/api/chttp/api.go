@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
-	"math/rand"
 
 	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -18,7 +16,6 @@ import (
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
-	"github.com/oklog/ulid"
 )
 
 // MsgTypes is a map of `Msg` type names to empty instances
@@ -169,49 +166,49 @@ func (a *API) listenAndServeTLS() error {
 // }
 
 // GenerateAddress returns the first 20 characters of a ULID (https://github.com/oklog/ulid)
-func generateAddress() []byte {
-	t := time.Now()
-	entropy := ulid.Monotonic(rand.New(rand.NewSource(t.UnixNano())), 0)
-	ulidaddr := ulid.MustNew(ulid.Timestamp(t), entropy)
-	addr := []byte(ulidaddr.String())[:20]
+// func generateAddress() []byte {
+// 	t := time.Now()
+// 	entropy := ulid.Monotonic(rand.New(rand.NewSource(t.UnixNano())), 0)
+// 	ulidaddr := ulid.MustNew(ulid.Timestamp(t), entropy)
+// 	addr := []byte(ulidaddr.String())[:20]
 
-	return addr
-}
+// 	return addr
+// }
 
-func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (auth.StdTx, error) {
-	msg := users.RegisterKeyMsg{
-		Address:    addr,
-		PubKey:     k,
-		PubKeyAlgo: algo,
-		// Coins:      app.initialCoins(),
-	}
-	chainID := app.blockHeader.ChainID
-	registrarAcc := app.accountKeeper.GetAccount(*(app.blockCtx), []byte(types.RegistrarAccAddress))
-	registrarNum := registrarAcc.GetAccountNumber()
-	registrarSequence := registrarAcc.GetSequence()
-	registrationMemo := "reg"
+// func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (auth.StdTx, error) {
+// 	msg := users.RegisterKeyMsg{
+// 		Address:    addr,
+// 		PubKey:     k,
+// 		PubKeyAlgo: algo,
+// 		// Coins:      app.initialCoins(),
+// 	}
+// 	chainID := app.blockHeader.ChainID
+// 	registrarAcc := app.accountKeeper.GetAccount(*(app.blockCtx), []byte(types.RegistrarAccAddress))
+// 	registrarNum := registrarAcc.GetAccountNumber()
+// 	registrarSequence := registrarAcc.GetSequence()
+// 	registrationMemo := "reg"
 
-	// Sign tx as registrar
-	bytesToSign := auth.StdSignBytes(chainID, registrarNum, registrarSequence, types.RegistrationFee, []sdk.Msg{msg}, registrationMemo)
-	sigBytes, err := app.registrarKey.Sign(bytesToSign)
+// 	// Sign tx as registrar
+// 	bytesToSign := auth.StdSignBytes(chainID, registrarNum, registrarSequence, types.RegistrationFee, []sdk.Msg{msg}, registrationMemo)
+// 	sigBytes, err := app.registrarKey.Sign(bytesToSign)
 
-	if err != nil {
-		return auth.StdTx{}, err
-	}
+// 	if err != nil {
+// 		return auth.StdTx{}, err
+// 	}
 
-	// Construct and submit signed tx
-	tx := auth.StdTx{
-		Msgs: []sdk.Msg{msg},
-		Fee:  types.RegistrationFee,
-		Signatures: []auth.StdSignature{auth.StdSignature{
-			PubKey:    app.registrarKey.PubKey(),
-			Signature: sigBytes,
-		}},
-		Memo: registrationMemo,
-	}
+// 	// Construct and submit signed tx
+// 	tx := auth.StdTx{
+// 		Msgs: []sdk.Msg{msg},
+// 		Fee:  types.RegistrationFee,
+// 		Signatures: []auth.StdSignature{auth.StdSignature{
+// 			PubKey:    app.registrarKey.PubKey(),
+// 			Signature: sigBytes,
+// 		}},
+// 		Memo: registrationMemo,
+// 	}
 
-	return tx, nil
-}
+// 	return tx, nil
+// }
 
 // func (app *TruChain) initialCoins() sdk.Coins {
 // 	coins := sdk.Coins{}

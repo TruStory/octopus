@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"html"
-	"os"
 	"regexp"
 	"strconv"
 
@@ -94,10 +93,10 @@ func compile(index []byte, tags Tags) string {
 // makes the default meta tags
 func makeDefaultMetaTags(ta *TruAPI, route string) Tags {
 	return Tags{
-		Title:       os.Getenv("APP_NAME"),
+		Title:       ta.APIContext.Config.App.Name,
 		Description: defaultDescription,
 		Image:       defaultImage,
-		URL:         os.Getenv("APP_URL") + route,
+		URL:         ta.APIContext.Config.App.URL + route,
 	}
 }
 
@@ -126,7 +125,7 @@ func makeStoryMetaTags(ta *TruAPI, route string, storyID int64) (*Tags, error) {
 		Title:       html.EscapeString(storyObj.Body),
 		Description: fmt.Sprintf("%s: %d participant%s and %s TruStake", storyState, totalParticipants, totalParticipantsPlural, totalStake),
 		Image:       defaultImage,
-		URL:         os.Getenv("APP_URL") + route,
+		URL:         ta.APIContext.Config.App.URL + route,
 	}, nil
 }
 
@@ -144,6 +143,6 @@ func makeArgumentMetaTags(ta *TruAPI, route string, storyID int64, argumentID in
 		Title:       fmt.Sprintf("%s made an argument in %s", creatorObj.FullName, categoryObj.Title),
 		Description: html.EscapeString(stripmd.Strip(argumentObj.Body)),
 		Image:       defaultImage,
-		URL:         os.Getenv("APP_URL") + route,
+		URL:         ta.APIContext.Config.App.URL + route,
 	}, nil
 }

@@ -19,7 +19,6 @@ import (
 	trubank "github.com/TruStory/truchain/x/trubank"
 	"github.com/TruStory/truchain/x/users"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/kelseyhightower/envconfig"
 	amino "github.com/tendermint/go-amino"
 )
 
@@ -386,17 +385,6 @@ func (ta *TruAPI) filterFeedStories(ctx context.Context, feedStories []story.Sto
 }
 
 func (ta *TruAPI) filterFlaggedStories(stories *[]story.Story) ([]story.Story, error) {
-	type FlagConfig struct {
-		Limit int    `default:"4294967295"`
-		Admin string `default:"cosmos1xqc5gwzpg3fyv5en2fzyx36z2se5ks33tt57e7"`
-	}
-
-	var flagConfig FlagConfig
-	err := envconfig.Process("api_story_flag", &flagConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	unflaggedStories := make([]story.Story, 0)
 	for _, story := range *stories {
 		storyFlags, err := ta.DBClient.FlaggedStoriesByStoryID(story.ID)
@@ -404,11 +392,11 @@ func (ta *TruAPI) filterFlaggedStories(stories *[]story.Story) ([]story.Story, e
 			return nil, err
 		}
 		if len(storyFlags) > 0 {
-			if storyFlags[0].Creator == flagConfig.Admin {
+			if storyFlags[0].Creator == ta.APIContext.Config.Flag.Admin {
 				continue
 			}
 		}
-		if len(storyFlags) < flagConfig.Limit {
+		if len(storyFlags) < ta.APIContext.Config.Flag.Limit {
 			unflaggedStories = append(unflaggedStories, story)
 		}
 	}

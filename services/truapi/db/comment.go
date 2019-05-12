@@ -1,15 +1,5 @@
 package db
 
-import (
-	"github.com/kelseyhightower/envconfig"
-)
-
-// ChainConfig represents chain env vars
-type ChainConfig struct {
-	Host               string `required:"true"`
-	LetsEncryptEnabled bool   `split_words:"true"`
-}
-
 // Comment represents a comment in the DB
 type Comment struct {
 	Timestamps
@@ -22,21 +12,15 @@ type Comment struct {
 
 // CommentsByArgumentID finds comments by argument id
 func (c *Client) CommentsByArgumentID(argumentID int64) ([]Comment, error) {
-	var chainConfig ChainConfig
-	err := envconfig.Process("chain", &chainConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	comments := make([]Comment, 0)
-	err = c.Model(&comments).Where("argument_id = ?", argumentID).Select()
+	err := c.Model(&comments).Where("argument_id = ?", argumentID).Select()
 	if err != nil {
 		return nil, err
 	}
 	transformedComments := make([]Comment, 0)
 	for _, comment := range comments {
 		transformedComment := comment
-		transformedBody, err := c.replaceAddressesWithProfileURLs(chainConfig, comment.Body)
+		transformedBody, err := c.replaceAddressesWithProfileURLs(comment.Body)
 		if err != nil {
 			return transformedComments, err
 		}

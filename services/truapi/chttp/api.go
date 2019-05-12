@@ -9,13 +9,13 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"os"
 	"path/filepath"
 	"time"
 
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	chain "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/users"
-	cliContext "github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/gorilla/mux"
@@ -43,14 +43,14 @@ type App interface {
 
 // API presents the functionality of a Cosmos app over HTTP
 type API struct {
-	cliCtx    cliContext.CLIContext
+	apiCtx    truCtx.TruAPIContext
 	Supported MsgTypes
 	router    *mux.Router
 }
 
 // NewAPI creates an `API` struct from a client context and a `MsgTypes` schema
-func NewAPI(cliCtx cliContext.CLIContext, supported MsgTypes) *API {
-	a := API{cliCtx: cliCtx, Supported: supported, router: mux.NewRouter()}
+func NewAPI(apiCtx truCtx.TruAPIContext, supported MsgTypes) *API {
+	a := API{apiCtx: apiCtx, Supported: supported, router: mux.NewRouter()}
 	return &a
 }
 
@@ -83,7 +83,7 @@ func (a *API) Use(mw func(http.Handler) http.Handler) {
 
 // ListenAndServe serves HTTP using the API router
 func (a *API) ListenAndServe(addr string) error {
-	letsEncryptEnabled := os.Getenv("CHAIN_LETS_ENCRYPT_ENABLED") == "true"
+	letsEncryptEnabled := a.apiCtx.Config.Host.HTTPSEnabled == true
 	if !letsEncryptEnabled {
 		return http.ListenAndServe(addr, a.router)
 	}
@@ -91,15 +91,10 @@ func (a *API) ListenAndServe(addr string) error {
 }
 
 func (a *API) listenAndServeTLS() error {
-	host := os.Getenv("CHAIN_HOST")
-	certDir := os.Getenv("CHAIN_LETS_ENCRYPT_CACHE_DIR")
-	if certDir == "" {
-		certDir = "certs"
-	}
 	m := &autocert.Manager{
-		Cache:      autocert.DirCache(certDir),
+		Cache:      autocert.DirCache(a.apiCtx.Config.Host.HTTPSCacheDir),
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(host),
+		HostPolicy: autocert.HostWhitelist(a.apiCtx.Config.Host.Name),
 	}
 	httpServer := &http.Server{
 		Addr:    ":http",
@@ -212,7 +207,6 @@ func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (a
 	registrarNum := registrarAcc.AccountNumber
 	registrarSequence := registrarAcc.Sequence
 	registrationMemo := "reg"
-	chainID := "chain-id"
 	msg := users.RegisterKeyMsg{
 		Address:    addr,
 		PubKey:     k,
@@ -221,7 +215,14 @@ func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (a
 	}
 
 	// Sign tx as registrar
-	bytesToSign := auth.StdSignBytes(chainID, registrarNum, registrarSequence, chain.RegistrationFee, []sdk.Msg{msg}, registrationMemo)
+	bytesToSign := auth.StdSignBytes(
+		a.apiCtx.Config.ChainID,
+		registrarNum,
+		registrarSequence,
+		chain.RegistrationFee,
+		[]sdk.Msg{msg},
+		registrationMemo)
+
 	registrarKey := loadRegistrarKey()
 	sigBytes, err := registrarKey.Sign(bytesToSign)
 	if err != nil {
@@ -245,7 +246,7 @@ func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (a
 func loadRegistrarKey() secp256k1.PrivKeySecp256k1 {
 	rootdir := viper.GetString(cli.HomeFlag)
 	if rootdir == "" {
-		rootdir = "$HOME/.apid"
+		rootdir = "$HOME/.truapid"
 	}
 	keypath := filepath.Join(rootdir, "registrar.key")
 	fileBytes, err := ioutil.ReadFile(keypath)
@@ -272,7 +273,7 @@ func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := a.cliCtx.QueryWithData("/custom/"+path, paramBytes)
+	res, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
 	if err != nil {
 		return res, err
 	}
@@ -282,6 +283,6 @@ func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
 
 // DeliverPresigned dispatches a pre-signed transaction to the Tendermint node
 func (a *API) DeliverPresigned(tx auth.StdTx) (sdk.TxResponse, error) {
-	txBytes := a.cliCtx.Codec.MustMarshalBinaryLengthPrefixed(tx)
-	return a.cliCtx.BroadcastTx(txBytes)
+	txBytes := a.apiCtx.Codec.MustMarshalBinaryLengthPrefixed(tx)
+	return a.apiCtx.WithBroadcastMode(client.BroadcastBlock).BroadcastTx(txBytes)
 }

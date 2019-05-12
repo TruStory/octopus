@@ -25,7 +25,7 @@ func (ta *TruAPI) HandleUnsigned(r *http.Request) chttp.Response {
 	}
 
 	// Get the authenticated user
-	user, err := cookies.GetAuthenticatedUser(r)
+	user, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
 	if err == http.ErrNoCookie {
 		return chttp.SimpleErrorResponse(401, err)
 	}

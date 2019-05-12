@@ -7,12 +7,12 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/graphql"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
@@ -30,7 +30,6 @@ import (
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
 	"github.com/gorilla/handlers"
-	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 )
 
 // ContextKey represents a string key for request context.
@@ -43,6 +42,7 @@ const (
 // TruAPI implements an HTTP server for TruStory functionality using `chttp.API`
 type TruAPI struct {
 	*chttp.API
+	APIContext    truCtx.TruAPIContext
 	GraphQLClient *graphql.Client
 	DBClient      db.Datastore
 
@@ -53,11 +53,12 @@ type TruAPI struct {
 }
 
 // NewTruAPI returns a `TruAPI` instance populated with the existing app and a new GraphQL client
-func NewTruAPI(cliCtx cliContext.CLIContext) *TruAPI {
+func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 	ta := TruAPI{
-		API:                     chttp.NewAPI(cliCtx, supported),
+		API:                     chttp.NewAPI(apiCtx, supported),
+		APIContext:              apiCtx,
 		GraphQLClient:           graphql.NewGraphQLClient(),
-		DBClient:                db.NewDBClient(),
+		DBClient:                db.NewDBClient(apiCtx),
 		commentsNotificationsCh: make(chan CommentNotificationRequest),
 		httpClient: &http.Client{
 			Timeout: time.Second * 5,
@@ -67,13 +68,10 @@ func NewTruAPI(cliCtx cliContext.CLIContext) *TruAPI {
 	return &ta
 }
 
-func (ta *TruAPI) RunNotificationSender() error {
-	endpoint := os.Getenv("PUSHD_ENDPOINT_URL")
-	if endpoint == "" {
-		return fmt.Errorf("PUSHD_ENDPOINT_URL must be set")
-	}
+// RunNotificationSender connects to the push notification service
+func (ta *TruAPI) RunNotificationSender(apiCtx truCtx.TruAPIContext) error {
 	ta.notificationsInitialized = true
-	go ta.runCommentNotificationSender(ta.commentsNotificationsCh, endpoint)
+	go ta.runCommentNotificationSender(ta.commentsNotificationsCh, apiCtx.Config.Push.EndpointURL)
 	return nil
 }
 
@@ -83,9 +81,9 @@ func WrapHandler(h chttp.Handler) http.Handler {
 }
 
 // WithUser sets the user in the context that will be passed down to handlers.
-func WithUser(h http.Handler) http.Handler {
+func WithUser(apiCtx truCtx.TruAPIContext, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		auth, err := cookies.GetAuthenticatedUser(r)
+		auth, err := cookies.GetAuthenticatedUser(apiCtx, r)
 		if err != nil {
 			h.ServeHTTP(w, r)
 			return
@@ -96,46 +94,42 @@ func WithUser(h http.Handler) http.Handler {
 }
 
 // RegisterRoutes applies the TruStory API routes to the `chttp.API` router
-func (ta *TruAPI) RegisterRoutes() {
+func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api := ta.Subrouter("/api/v1")
 
 	// Enable gzip compression
 	api.Use(handlers.CompressHandler)
 	api.Use(chttp.JSONResponseMiddleware)
 	api.Handle("/ping", WrapHandler(ta.HandlePing))
-	api.Handle("/graphql", WithUser(WrapHandler(ta.HandleGraphQL)))
+	api.Handle("/graphql", WithUser(apiCtx, WrapHandler(ta.HandleGraphQL)))
 	api.Handle("/presigned", WrapHandler(ta.HandlePresigned))
 	api.Handle("/unsigned", WrapHandler(ta.HandleUnsigned))
 	api.Handle("/register", WrapHandler(ta.HandleRegistration))
 	api.Handle("/user", WrapHandler(ta.HandleUserDetails))
 	api.Handle("/user/search", WrapHandler(ta.HandleUsernameSearch))
-	api.Handle("/notification", WithUser(WrapHandler(ta.HandleNotificationEvent)))
+	api.Handle("/notification", WithUser(apiCtx, WrapHandler(ta.HandleNotificationEvent)))
 	api.HandleFunc("/deviceToken", ta.HandleDeviceTokenRegistration)
 	api.HandleFunc("/deviceToken/unregister", ta.HandleUnregisterDeviceToken)
 	api.HandleFunc("/upload", ta.HandleUpload)
-	api.Handle("/flagStory", WithUser(WrapHandler(ta.HandleFlagStory)))
-	api.Handle("/comments", WithUser(WrapHandler(ta.HandleComment)))
-	api.Handle("/reactions", WithUser(WrapHandler(ta.HandleReaction)))
+	api.Handle("/flagStory", WithUser(apiCtx, WrapHandler(ta.HandleFlagStory)))
+	api.Handle("/comments", WithUser(apiCtx, WrapHandler(ta.HandleComment)))
+	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
 
-	if os.Getenv("MOCK_REGISTRATION") == "true" {
+	if apiCtx.Config.App.MockRegistration == true {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))
 	}
 
-	ta.RegisterOAuthRoutes()
+	ta.RegisterOAuthRoutes(apiCtx)
 
 	// Register routes for Trustory React web app
 
-	appDir := os.Getenv("CHAIN_WEB_DIR")
-	if appDir == "" {
-		appDir = "build"
-	}
-	fs := http.FileServer(http.Dir(appDir))
+	fs := http.FileServer(http.Dir(apiCtx.Config.Web.Directory))
 
 	ta.PathPrefix("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// if it is not requesting a file with a valid extension serve the index
 		if filepath.Ext(path.Base(r.URL.Path)) == "" {
-			indexPath := filepath.Join(appDir, "index.html")
+			indexPath := filepath.Join(apiCtx.Config.Web.Directory, "index.html")
 			absIndexPath, err := filepath.Abs(indexPath)
 			if err != nil {
 				log.Printf("ERROR index.html -- %s", err)
@@ -164,17 +158,17 @@ func (ta *TruAPI) RegisterRoutes() {
 }
 
 // RegisterOAuthRoutes adds the proper routes needed for the oauth
-func (ta *TruAPI) RegisterOAuthRoutes() {
+func (ta *TruAPI) RegisterOAuthRoutes(apiCtx truCtx.TruAPIContext) {
 	oauth1Config := &oauth1.Config{
-		ConsumerKey:    os.Getenv("TWITTER_API_KEY"),
-		ConsumerSecret: os.Getenv("TWITTER_API_SECRET"),
-		CallbackURL:    os.Getenv("CHAIN_OAUTH_CALLBACK"),
+		ConsumerKey:    apiCtx.Config.Twitter.APIKey,
+		ConsumerSecret: apiCtx.Config.Twitter.APISecret,
+		CallbackURL:    apiCtx.Config.Twitter.OAUTHCallback,
 		Endpoint:       twitterOAuth1.AuthorizeEndpoint,
 	}
 
 	ta.Handle("/auth-twitter", twitter.LoginHandler(oauth1Config, nil))
-	ta.Handle("/auth-twitter-callback", HandleOAuthSuccess(oauth1Config, IssueSession(ta), HandleOAuthFailure(ta)))
-	ta.Handle("/auth-logout", Logout())
+	ta.Handle("/auth-twitter-callback", HandleOAuthSuccess(oauth1Config, IssueSession(apiCtx, ta), HandleOAuthFailure(ta)))
+	ta.Handle("/auth-logout", Logout(apiCtx))
 }
 
 // RegisterMutations registers mutations

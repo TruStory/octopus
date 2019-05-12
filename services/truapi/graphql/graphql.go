@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/TruStory/octopus/services/api/chttp"
+	"github.com/TruStory/octopus/services/truapi/chttp"
 	"github.com/samsarahq/thunder/batch"
 	thunder "github.com/samsarahq/thunder/graphql"
 	"github.com/samsarahq/thunder/graphql/introspection"

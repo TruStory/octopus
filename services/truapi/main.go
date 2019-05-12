@@ -6,7 +6,7 @@ import (
 	"net"
 	"os"
 
-	"github.com/TruStory/octopus/services/api/truapi"
+	"github.com/TruStory/octopus/services/truapi/truapi"
 	"github.com/TruStory/truchain/app"
 	"github.com/TruStory/truchain/types"
 	"github.com/cosmos/cosmos-sdk/client"

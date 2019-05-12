@@ -7,8 +7,8 @@ import (
 	"path"
 	"sort"
 
-	"github.com/TruStory/octopus/services/api/db"
-	"github.com/TruStory/octopus/services/api/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/argument"
 	"github.com/TruStory/truchain/x/backing"

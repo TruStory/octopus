@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	db "github.com/TruStory/octopus/services/api/db"
+	db "github.com/TruStory/octopus/services/truapi/db"
 	"github.com/machinebox/graphql"
 	stripmd "github.com/writeas/go-strip-markdown"
 )

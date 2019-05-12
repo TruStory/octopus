@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/TruStory/octopus/services/api/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 )
 
 // Logout deletes a session and redirects the logged in user to the correct page

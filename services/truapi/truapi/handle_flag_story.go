@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/TruStory/octopus/services/api/db"
-	"github.com/TruStory/octopus/services/api/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 
-	"github.com/TruStory/octopus/services/api/chttp"
+	"github.com/TruStory/octopus/services/truapi/chttp"
 )
 
 // FlagStoryRequest represents the JSON request for flagging a story

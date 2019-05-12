@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/TruStory/octopus/services/api/truapi/render"
+	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
 // HandleUpload proxies the request from the clients to the uploader service

@@ -25,12 +25,12 @@ import (
 	"github.com/TruStory/truchain/x/story"
 	trubank "github.com/TruStory/truchain/x/trubank"
 	"github.com/TruStory/truchain/x/users"
+	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/dghubble/gologin/twitter"
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
 	"github.com/gorilla/handlers"
-	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 )
 
 // ContextKey represents a string key for request context.
@@ -67,6 +67,7 @@ func NewTruAPI(cliCtx cliContext.CLIContext) *TruAPI {
 	return &ta
 }
 
+// RunNotificationSender connects to the push notification service
 func (ta *TruAPI) RunNotificationSender() error {
 	endpoint := os.Getenv("PUSHD_ENDPOINT_URL")
 	if endpoint == "" {

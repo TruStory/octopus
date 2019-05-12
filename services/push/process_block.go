@@ -14,6 +14,10 @@ import (
 
 // Copied from truchain/truapi until truapi is moved into Octopus
 func humanReadable(coin sdk.Coin) string {
+	// empty struct
+	if (sdk.Coin{}) == coin {
+		return "0"
+	}
 	shanevs := sdk.NewDecFromIntWithPrec(coin.Amount, 9).String()
 	parts := strings.Split(shanevs, ".")
 	number := parts[0]

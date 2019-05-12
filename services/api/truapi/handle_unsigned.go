@@ -15,13 +15,11 @@ import (
 func (ta *TruAPI) HandleUnsigned(r *http.Request) chttp.Response {
 	txr := new(chttp.UnsignedRequest)
 	jsonBytes, err := ioutil.ReadAll(r.Body)
-
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
 	}
 
 	err = json.Unmarshal(jsonBytes, txr)
-
 	if err != nil {
 		return chttp.SimpleErrorResponse(400, err)
 	}
@@ -46,14 +44,12 @@ func (ta *TruAPI) HandleUnsigned(r *http.Request) chttp.Response {
 	}
 
 	tx, err := ta.NewUnsignedStdTx(*txr, keyPair)
-
 	if err != nil {
 		fmt.Println("Error decoding tx: ", err)
 		return chttp.SimpleErrorResponse(400, err)
 	}
 
 	res, err := ta.DeliverPresigned(tx)
-
 	if err != nil {
 		return chttp.SimpleErrorResponse(400, err)
 	}

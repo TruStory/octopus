@@ -178,40 +178,40 @@ func generateAddress() []byte {
 	return addr
 }
 
-// func (app *TruChain) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (auth.StdTx, error) {
-// 	msg := users.RegisterKeyMsg{
-// 		Address:    addr,
-// 		PubKey:     k,
-// 		PubKeyAlgo: algo,
-// 		Coins:      app.initialCoins(),
-// 	}
-// 	chainID := app.blockHeader.ChainID
-// 	registrarAcc := app.accountKeeper.GetAccount(*(app.blockCtx), []byte(types.RegistrarAccAddress))
-// 	registrarNum := registrarAcc.GetAccountNumber()
-// 	registrarSequence := registrarAcc.GetSequence()
-// 	registrationMemo := "reg"
+func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (auth.StdTx, error) {
+	msg := users.RegisterKeyMsg{
+		Address:    addr,
+		PubKey:     k,
+		PubKeyAlgo: algo,
+		// Coins:      app.initialCoins(),
+	}
+	chainID := app.blockHeader.ChainID
+	registrarAcc := app.accountKeeper.GetAccount(*(app.blockCtx), []byte(types.RegistrarAccAddress))
+	registrarNum := registrarAcc.GetAccountNumber()
+	registrarSequence := registrarAcc.GetSequence()
+	registrationMemo := "reg"
 
-// 	// Sign tx as registrar
-// 	bytesToSign := auth.StdSignBytes(chainID, registrarNum, registrarSequence, types.RegistrationFee, []sdk.Msg{msg}, registrationMemo)
-// 	sigBytes, err := app.registrarKey.Sign(bytesToSign)
+	// Sign tx as registrar
+	bytesToSign := auth.StdSignBytes(chainID, registrarNum, registrarSequence, types.RegistrationFee, []sdk.Msg{msg}, registrationMemo)
+	sigBytes, err := app.registrarKey.Sign(bytesToSign)
 
-// 	if err != nil {
-// 		return auth.StdTx{}, err
-// 	}
+	if err != nil {
+		return auth.StdTx{}, err
+	}
 
-// 	// Construct and submit signed tx
-// 	tx := auth.StdTx{
-// 		Msgs: []sdk.Msg{msg},
-// 		Fee:  types.RegistrationFee,
-// 		Signatures: []auth.StdSignature{auth.StdSignature{
-// 			PubKey:    app.registrarKey.PubKey(),
-// 			Signature: sigBytes,
-// 		}},
-// 		Memo: registrationMemo,
-// 	}
+	// Construct and submit signed tx
+	tx := auth.StdTx{
+		Msgs: []sdk.Msg{msg},
+		Fee:  types.RegistrationFee,
+		Signatures: []auth.StdSignature{auth.StdSignature{
+			PubKey:    app.registrarKey.PubKey(),
+			Signature: sigBytes,
+		}},
+		Memo: registrationMemo,
+	}
 
-// 	return tx, nil
-// }
+	return tx, nil
+}
 
 // func (app *TruChain) initialCoins() sdk.Coins {
 // 	coins := sdk.Coins{}

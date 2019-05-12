@@ -217,8 +217,7 @@ func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (a
 		Address:    addr,
 		PubKey:     k,
 		PubKeyAlgo: algo,
-		// Coins:      app.initialCoins(),
-		Coins: nil,
+		Coins:      nil,
 	}
 
 	// Sign tx as registrar
@@ -266,32 +265,6 @@ func loadRegistrarKey() secp256k1.PrivKeySecp256k1 {
 
 	return key
 }
-
-// func (app *TruChain) initialCoins() sdk.Coins {
-// 	coins := sdk.Coins{}
-// 	categories, err := app.categoryKeeper.GetAllCategories(*(app.blockCtx))
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	for _, cat := range categories {
-// 		coin := sdk.NewCoin(cat.Denom(), types.InitialCredAmount)
-// 		coins = append(coins, coin)
-// 	}
-
-// 	coins = append(coins, types.InitialTruStake)
-
-// 	// coins need to be sorted by denom to be valid
-// 	coins.Sort()
-
-// 	// yes we should panic if coins aren't valid
-// 	// as it undermines the whole chain
-// 	if !coins.IsValid() {
-// 		panic("Initial coins are not valid.")
-// 	}
-
-// 	return coins
-// }
 
 // RunQuery dispatches a query (path + params) to the Tendermint node
 func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {

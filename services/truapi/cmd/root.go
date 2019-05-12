@@ -31,7 +31,7 @@ func Execute() {
 	rootCmd.PersistentFlags().String(client.FlagChainID, "", "Chain ID of tendermint node")
 
 	codec := chain.MakeCodec()
-	rootCmd.AddCommand(httpCmd(codec))
+	rootCmd.AddCommand(serverCmd(codec))
 
 	// Add flags and prefix all env exposed with TRU
 	// 	executor := cli.PrepareMainCmd(rootCmd, "TRU", app.DefaultCLIHome)
@@ -43,7 +43,7 @@ func Execute() {
 	}
 }
 
-func httpCmd(codec *codec.Codec) *cobra.Command {
+func serverCmd(codec *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "server",
 		Short: "Start API daemon, a local HTTP server",

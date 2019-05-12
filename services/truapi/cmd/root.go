@@ -67,9 +67,6 @@ func Execute() {
 	// Add flags and prefix all env exposed with TRU
 	// 	executor := cli.PrepareMainCmd(rootCmd, "TRU", app.DefaultCLIHome)
 
-	rootCmd.PersistentFlags().Bool("https-enabled", false, "Use HTTPS for server")
-	viper.BindPFlag("https-enabled", rootCmd.PersistentFlags().Lookup("https-enabled"))
-
 	err := rootCmd.Execute()
 	if err != nil {
 		fmt.Printf("Failed executing CLI command: %s, exiting...\n", err)
@@ -100,9 +97,10 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 	}
 	// client.RegisterRestServerFlags(cmd)
 
+	// TODO: why doesn't this work?
 	// cmd.Flags().Bool("https-enabled", false, "Use HTTPS for server")
-	// viper.BindPFlag("https-enabled", cmd.Flags().Lookup("https-enabled"))
-	// viper.Set("https-enabled", false)
+	cmd.Flags().String("https-enabled", "", "Use HTTPS for server")
+	viper.BindPFlag("https-enabled", cmd.Flags().Lookup("https-enabled"))
 
 	return cmd
 }
@@ -125,4 +123,15 @@ func initConfig() {
 		fmt.Printf("Can't read config: %s. Using defaults.\n", err)
 		// os.Exit(1)
 	}
+
+	type Config struct {
+		ChainID      string `mapstructure:"chain-id"`
+		HTTPSEnabled string `mapstructure:"https-enabled"`
+	}
+	config := new(Config)
+	err := viper.Unmarshal(config)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(config)
 }

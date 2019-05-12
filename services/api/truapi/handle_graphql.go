@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/TruStory/truchain/x/chttp"
-	"github.com/TruStory/truchain/x/graphql"
+	"github.com/TruStory/octopus/services/api/chttp"
+	"github.com/TruStory/octopus/services/api/graphql"
 )
 
 // HandleGraphQL decodes a `graphql.Request` from the request body and returns a `chttp.Response` containing the results from running the query.

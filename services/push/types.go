@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	db "github.com/TruStory/truchain/x/db"
+	db "github.com/TruStory/octopus/services/api/db"
 	"github.com/appleboy/gorush/gorush"
 )
 

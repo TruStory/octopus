@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/TruStory/truchain/x/chttp"
-	"github.com/TruStory/truchain/x/truapi/cookies"
+	"github.com/TruStory/octopus/services/api/chttp"
+	"github.com/TruStory/octopus/services/api/truapi/cookies"
 )
 
 // HandleUnsigned takes a `HandleUnsignedRequest` and returns a `HandleUnsignedResponse`

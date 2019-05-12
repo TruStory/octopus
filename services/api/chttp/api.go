@@ -2,22 +2,30 @@ package chttp
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
+	chain "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/users"
 	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/gorilla/mux"
 	"github.com/oklog/ulid"
+	"github.com/spf13/viper"
+	amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"github.com/tendermint/tmlibs/cli"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 )
@@ -117,8 +125,13 @@ func (a *API) listenAndServeTLS() error {
 			return nil
 		}
 	})
-	return g.Wait()
 
+	return g.Wait()
+}
+
+func redirectHandler(w http.ResponseWriter, r *http.Request) {
+	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.Path)
+	http.Redirect(w, r, url, http.StatusMovedPermanently)
 }
 
 // RegisterKey generates a new address/account for a public key
@@ -180,40 +193,79 @@ func generateAddress() []byte {
 }
 
 func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (auth.StdTx, error) {
+	// query registrar account
+	// TODO: query using Cosmos auth module (GET account/, {sdk.AccAddress})
+	addresses := users.QueryUsersByAddressesParams{
+		Addresses: []string{chain.RegistrarAccAddress},
+	}
+	res, err := a.RunQuery(users.QueryPath, addresses)
+	if err != nil {
+		return auth.StdTx{}, err
+	}
+
+	var u []users.User
+	err = amino.UnmarshalJSON(res, u)
+	if err != nil {
+		panic(err)
+	}
+	registrarAcc := u[0]
+
+	registrarNum := registrarAcc.AccountNumber
+	registrarSequence := registrarAcc.Sequence
+	registrationMemo := "reg"
+	chainID := "chain-id"
 	msg := users.RegisterKeyMsg{
 		Address:    addr,
 		PubKey:     k,
 		PubKeyAlgo: algo,
 		// Coins:      app.initialCoins(),
+		Coins: nil,
 	}
-	fmt.Println(msg)
-	// chainID := app.blockHeader.ChainID
-	// registrarAcc := app.accountKeeper.GetAccount(*(app.blockCtx), []byte(types.RegistrarAccAddress))
-	// registrarNum := registrarAcc.GetAccountNumber()
-	// registrarSequence := registrarAcc.GetSequence()
-	// registrationMemo := "reg"
 
-	// // Sign tx as registrar
-	// bytesToSign := auth.StdSignBytes(chainID, registrarNum, registrarSequence, types.RegistrationFee, []sdk.Msg{msg}, registrationMemo)
-	// sigBytes, err := app.registrarKey.Sign(bytesToSign)
+	// Sign tx as registrar
+	bytesToSign := auth.StdSignBytes(chainID, registrarNum, registrarSequence, chain.RegistrationFee, []sdk.Msg{msg}, registrationMemo)
+	registrarKey := loadRegistrarKey()
+	sigBytes, err := registrarKey.Sign(bytesToSign)
+	if err != nil {
+		return auth.StdTx{}, err
+	}
 
-	// if err != nil {
-	// 	return auth.StdTx{}, err
-	// }
+	// Construct and submit signed tx
+	tx := auth.StdTx{
+		Msgs: []sdk.Msg{msg},
+		Fee:  chain.RegistrationFee,
+		Signatures: []auth.StdSignature{auth.StdSignature{
+			PubKey:    registrarKey.PubKey(),
+			Signature: sigBytes,
+		}},
+		Memo: registrationMemo,
+	}
 
-	// // Construct and submit signed tx
-	// tx := auth.StdTx{
-	// 	Msgs: []sdk.Msg{msg},
-	// 	Fee:  types.RegistrationFee,
-	// 	Signatures: []auth.StdSignature{auth.StdSignature{
-	// 		PubKey:    app.registrarKey.PubKey(),
-	// 		Signature: sigBytes,
-	// 	}},
-	// 	Memo: registrationMemo,
-	// }
+	return tx, nil
+}
 
-	// return tx, nil
-	return auth.StdTx{}, nil
+func loadRegistrarKey() secp256k1.PrivKeySecp256k1 {
+	rootdir := viper.GetString(cli.HomeFlag)
+	if rootdir == "" {
+		rootdir = "$HOME/.apid"
+	}
+	keypath := filepath.Join(rootdir, "registrar.key")
+	fileBytes, err := ioutil.ReadFile(keypath)
+	if err != nil {
+		panic(err)
+	}
+
+	keyBytes, err := hex.DecodeString(string(fileBytes))
+	if err != nil {
+		panic(err)
+	}
+	if len(keyBytes) != 32 {
+		panic("Invalid registrar key: " + string(fileBytes))
+	}
+	key := secp256k1.PrivKeySecp256k1{}
+	copy(key[:], keyBytes)
+
+	return key
 }
 
 // func (app *TruChain) initialCoins() sdk.Coins {
@@ -260,9 +312,4 @@ func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
 func (a *API) DeliverPresigned(tx auth.StdTx) (sdk.TxResponse, error) {
 	txBytes := a.cliCtx.Codec.MustMarshalBinaryLengthPrefixed(tx)
 	return a.cliCtx.BroadcastTx(txBytes)
-}
-
-func redirectHandler(w http.ResponseWriter, r *http.Request) {
-	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.Path)
-	http.Redirect(w, r, url, http.StatusMovedPermanently)
 }

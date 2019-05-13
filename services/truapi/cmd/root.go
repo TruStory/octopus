@@ -94,7 +94,7 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 			truAPI.RegisterMutations()
 			truAPI.RegisterOAuthRoutes()
 			truAPI.RegisterResolvers()
-			truAPI.RegisterRoutes()
+			truAPI.RegisterRoutes(apiCtx)
 
 			err = truAPI.RunNotificationSender(apiCtx)
 			if err != nil {

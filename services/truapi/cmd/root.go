@@ -27,21 +27,6 @@ var (
 	}
 )
 
-// CHAIN_HOST
-// PG_ADDR
-// PG_USER
-// PG_USER_PW
-// PG_DB_NAME
-// COOKIE_HASH_KEY
-// COOKIE_ENCRYPT_KEY
-// APP_NAME
-// APP_URL
-// AUTH_LOGIN_REDIR
-// AUTH_LOGOUT_REDIR
-// AUTH_DENIED_REDIR
-// UPLOAD_URL
-// MOCK_REGISTRATION
-
 // Execute executes the root command.
 func Execute() {
 	cobra.OnInitialize(initConfig)
@@ -95,7 +80,7 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 			return err
 		},
 	}
-	// client.RegisterRestServerFlags(cmd)
+	client.RegisterRestServerFlags(cmd)
 
 	// TODO: why doesn't this work?
 	cmd.Flags().Bool("https-enabled", false, "Use HTTPS for server")

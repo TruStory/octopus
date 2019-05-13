@@ -40,7 +40,7 @@ func GetLoginCookie(apiCtx truCtx.TruAPIContext, twitterProfile *db.TwitterProfi
 		HttpOnly: true,
 		Value:    value,
 		Expires:  time.Now().Add(time.Duration(AuthenticationExpiry) * time.Hour),
-		Domain:   apiCtx.Host,
+		Domain:   apiCtx.Config.Host.Name,
 	}
 
 	return &cookie, nil
@@ -54,7 +54,7 @@ func GetLogoutCookie(apiCtx truCtx.TruAPIContext) *http.Cookie {
 		HttpOnly: true,
 		Value:    "",
 		Expires:  time.Now(),
-		Domain:   apiCtx.Host,
+		Domain:   apiCtx.Config.Host.Name,
 		MaxAge:   0,
 	}
 

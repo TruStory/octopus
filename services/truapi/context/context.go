@@ -27,8 +27,10 @@ type PushConfig struct {
 
 // WebConfig is the config for the web app
 type WebConfig struct {
-	Directory      string
-	AuthLoginRedir string `mapstructure:"auth-login-redir"`
+	Directory       string
+	AuthLoginRedir  string `mapstructure:"auth-login-redir"`
+	AuthLogoutRedir string `mapstructure:"auth-logout-redir"`
+	AuthDeniedRedir string `mapstructure:"auth-denied-redir"`
 }
 
 // TwitterConfig is the config for Twitter
@@ -52,33 +54,13 @@ type Config struct {
 type TruAPIContext struct {
 	*sdkContext.CLIContext
 
-	ChainID              string
-	Host                 string
-	Port                 string
-	HTTPSEnabled         bool
-	HTTPSCacheDir        string
-	PushEndpointURL      string
-	WebAppDirectory      string
-	WebAuthLoginRedir    string
-	TwitterAPIKey        string
-	TwitterAPISecret     string
-	TwitterOAUTHCallback string
+	Config Config
 }
 
 // NewTruAPIContext creates a new API context
 func NewTruAPIContext(cliCtx *sdkContext.CLIContext, config Config) TruAPIContext {
 	return TruAPIContext{
-		CLIContext:           cliCtx,
-		ChainID:              config.ChainID,
-		Host:                 config.Host.Name,
-		Port:                 config.Host.Port,
-		HTTPSEnabled:         config.Host.HTTPSEnabled,
-		HTTPSCacheDir:        config.Host.HTTPSCacheDir,
-		PushEndpointURL:      config.Push.EndpointURL,
-		WebAppDirectory:      config.Web.Directory,
-		WebAuthLoginRedir:    config.Web.AuthLoginRedir,
-		TwitterAPIKey:        config.Twitter.APIKey,
-		TwitterAPISecret:     config.Twitter.APISecret,
-		TwitterOAUTHCallback: config.Twitter.OAUTHCallback,
+		CLIContext: cliCtx,
+		Config:     config,
 	}
 }

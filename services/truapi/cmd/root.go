@@ -90,7 +90,7 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 				os.Exit(1)
 			}
 
-			log.Fatal(truAPI.ListenAndServe(net.JoinHostPort(apiCtx.Host, apiCtx.Port)))
+			log.Fatal(truAPI.ListenAndServe(net.JoinHostPort(apiCtx.Config.Host.Name, apiCtx.Config.Host.Port)))
 
 			return err
 		},

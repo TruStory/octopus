@@ -2,7 +2,6 @@ package truapi
 
 import (
 	"net/http"
-	"os"
 	"strings"
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
@@ -50,7 +49,7 @@ func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		http.SetCookie(w, cookie)
-		http.Redirect(w, req, apiCtx.WebAuthLoginRedir, http.StatusFound)
+		http.Redirect(w, req, apiCtx.Config.Web.AuthLoginRedir, http.StatusFound)
 	}
 	return http.HandlerFunc(fn)
 }
@@ -71,7 +70,7 @@ func HandleOAuthFailure(ta *TruAPI) http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		// if the authorization was purposefully denied by the user
 		if req.FormValue("denied") != "" {
-			http.Redirect(w, req, os.Getenv("AUTH_DENIED_REDIR"), http.StatusFound)
+			http.Redirect(w, req, ta.APIContext.Config.Web.AuthDeniedRedir, http.StatusFound)
 			return
 		}
 

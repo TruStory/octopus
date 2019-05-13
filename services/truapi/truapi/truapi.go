@@ -72,7 +72,7 @@ func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 // RunNotificationSender connects to the push notification service
 func (ta *TruAPI) RunNotificationSender(apiCtx truCtx.TruAPIContext) error {
 	ta.notificationsInitialized = true
-	go ta.runCommentNotificationSender(ta.commentsNotificationsCh, apiCtx.PushEndpointURL)
+	go ta.runCommentNotificationSender(ta.commentsNotificationsCh, apiCtx.Config.Push.EndpointURL)
 	return nil
 }
 
@@ -125,12 +125,12 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 
 	// Register routes for Trustory React web app
 
-	fs := http.FileServer(http.Dir(apiCtx.WebAppDirectory))
+	fs := http.FileServer(http.Dir(apiCtx.Config.Web.Directory))
 
 	ta.PathPrefix("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// if it is not requesting a file with a valid extension serve the index
 		if filepath.Ext(path.Base(r.URL.Path)) == "" {
-			indexPath := filepath.Join(apiCtx.WebAppDirectory, "index.html")
+			indexPath := filepath.Join(apiCtx.Config.Web.Directory, "index.html")
 			absIndexPath, err := filepath.Abs(indexPath)
 			if err != nil {
 				log.Printf("ERROR index.html -- %s", err)
@@ -161,9 +161,9 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 // RegisterOAuthRoutes adds the proper routes needed for the oauth
 func (ta *TruAPI) RegisterOAuthRoutes(apiCtx truCtx.TruAPIContext) {
 	oauth1Config := &oauth1.Config{
-		ConsumerKey:    apiCtx.TwitterAPIKey,
-		ConsumerSecret: apiCtx.TwitterAPISecret,
-		CallbackURL:    apiCtx.TwitterOAUTHCallback,
+		ConsumerKey:    apiCtx.Config.Twitter.APIKey,
+		ConsumerSecret: apiCtx.Config.Twitter.APISecret,
+		CallbackURL:    apiCtx.Config.Twitter.OAUTHCallback,
 		Endpoint:       twitterOAuth1.AuthorizeEndpoint,
 	}
 

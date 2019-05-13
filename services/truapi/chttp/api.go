@@ -82,7 +82,7 @@ func (a *API) Use(mw func(http.Handler) http.Handler) {
 
 // ListenAndServe serves HTTP using the API router
 func (a *API) ListenAndServe(addr string) error {
-	letsEncryptEnabled := a.apiCtx.HTTPSEnabled == true
+	letsEncryptEnabled := a.apiCtx.Config.Host.HTTPSEnabled == true
 	if !letsEncryptEnabled {
 		return http.ListenAndServe(addr, a.router)
 	}
@@ -91,9 +91,9 @@ func (a *API) ListenAndServe(addr string) error {
 
 func (a *API) listenAndServeTLS() error {
 	m := &autocert.Manager{
-		Cache:      autocert.DirCache(a.apiCtx.HTTPSCacheDir),
+		Cache:      autocert.DirCache(a.apiCtx.Config.Host.HTTPSCacheDir),
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(a.apiCtx.Host),
+		HostPolicy: autocert.HostWhitelist(a.apiCtx.Config.Host.Name),
 	}
 	httpServer := &http.Server{
 		Addr:    ":http",
@@ -215,7 +215,7 @@ func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (a
 
 	// Sign tx as registrar
 	bytesToSign := auth.StdSignBytes(
-		a.apiCtx.ChainID,
+		a.apiCtx.Config.ChainID,
 		registrarNum,
 		registrarSequence,
 		chain.RegistrationFee,

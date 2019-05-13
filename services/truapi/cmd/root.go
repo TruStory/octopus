@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/truapi"
@@ -18,7 +19,30 @@ import (
 )
 
 const (
-	flagAppName = "app.name"
+	flagAppName              = "app.name"
+	flagAppURL               = "app.url"
+	flagAppMockRegistration  = "app.mock.registration"
+	flagAppUploadURL         = "app.upload.url"
+	flagCookieHashKey        = "cookie.hash.key"
+	flagCookieEncryptKey     = "cookie.encrypt.key"
+	flagDatabaseHost         = "database.hostname"
+	flagDatabasePort         = "database.port"
+	flagDatabaseUser         = "database.username"
+	flagDatabasePass         = "database.password"
+	flagDatabaseName         = "database.db"
+	flagDatabasePool         = "database.pool"
+	flagHostName             = "host.name"
+	flagHostPort             = "host.port"
+	flagHostHTTPSEnabled     = "host.https.enabled"
+	flagHostHTTPSCacheDir    = "host.https.cache.dir"
+	flagPushEndpointURL      = "push.endpoint.url"
+	flagWebDirectory         = "web.directory"
+	flagWebAuthLoginRedir    = "web.auth.login.redir"
+	flagWebAuthLogoutRedir   = "web.auth.logout.redir"
+	flagWebAuthDeniedRedir   = "web.auth.denied.redir"
+	flagTwitterAPIKey        = "twitter.api.key"
+	flagTwitterAPISecret     = "twitter.api.secret"
+	flagTwitterOAUTHCallback = "twitter.oath.callback"
 )
 
 var (
@@ -86,12 +110,101 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 	}
 	client.RegisterRestServerFlags(cmd)
 
-	// TODO: why doesn't this work?
-	cmd.Flags().Bool("https-enabled", false, "Use HTTPS for server")
-	viper.BindPFlag("https-enabled", cmd.Flags().Lookup("https-enabled"))
+	cmd = registerAppFlags(cmd)
+	cmd = registerCookieFlags(cmd)
+	cmd = registerDatabaseFlags(cmd)
+	cmd = registerHostFlags(cmd)
+	cmd = registerPushFlags(cmd)
+	cmd = registerWebFlags(cmd)
+	cmd = registerTwitterFlags(cmd)
+
+	// Config vars can be set in 3 ways:
+	// i.e: for the paramter "app.name":
+	// 1. Command-line flag: --app.name TruStory
+	// 2. Env var: APP_NAME=TruStory
+	// 3. config.toml in .truchapid/config ([app] name = TruStory)
+	// 4. Default value "TruStory" if not supplied by the above
+	// Precedence: 1 -> 2 -> 3 -> 4
 
 	cmd.Flags().String(flagAppName, "TruStory", "Name of the app")
 	viper.BindPFlag(flagAppName, cmd.Flags().Lookup(flagAppName))
+
+	cmd.Flags().String(flagAppURL, "http://localhost:3000", "URL for the app")
+	viper.BindPFlag(flagAppURL, cmd.Flags().Lookup(flagAppURL))
+
+	return cmd
+}
+
+func registerDatabaseFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().String(flagDatabaseHost, "0.0.0.0", "Database host name")
+	viper.BindPFlag(flagDatabaseHost, cmd.Flags().Lookup(flagDatabaseHost))
+
+	cmd.Flags().Int(flagDatabasePort, 5432, "Database port number")
+	viper.BindPFlag(flagDatabasePort, cmd.Flags().Lookup(flagDatabasePort))
+
+	cmd.Flags().String(flagDatabaseUser, "postgres", "Database username")
+	viper.BindPFlag(flagDatabaseUser, cmd.Flags().Lookup(flagDatabaseUser))
+
+	cmd.Flags().String(flagDatabasePass, "", "Database password")
+	viper.BindPFlag(flagDatabasePass, cmd.Flags().Lookup(flagDatabasePass))
+
+	cmd.Flags().String(flagDatabaseName, "trudb", "Database name")
+	viper.BindPFlag(flagDatabaseName, cmd.Flags().Lookup(flagDatabaseName))
+
+	cmd.Flags().Int(flagDatabasePool, 25, "Database connection pool size")
+	viper.BindPFlag(flagDatabasePool, cmd.Flags().Lookup(flagDatabasePool))
+
+	return cmd
+}
+
+func registerHostFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().String(flagHostName, "0.0.0.0", "Server host")
+	viper.BindPFlag(flagHostName, cmd.Flags().Lookup(flagHostName))
+
+	cmd.Flags().Int(flagHostPort, 1337, "Server port")
+	viper.BindPFlag(flagHostPort, cmd.Flags().Lookup(flagHostPort))
+
+	cmd.Flags().Bool(flagHostHTTPSEnabled, false, "HTTPS enabled")
+	viper.BindPFlag(flagHostHTTPSEnabled, cmd.Flags().Lookup(flagHostHTTPSEnabled))
+
+	cmd.Flags().String(flagHostHTTPSCacheDir, "./certs", "HTTPS cache directory")
+	viper.BindPFlag(flagHostHTTPSCacheDir, cmd.Flags().Lookup(flagHostHTTPSCacheDir))
+
+	return cmd
+}
+
+func registerPushFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().String(flagPushEndpointURL, "http://localhost:9001", "Push notification service endpoint")
+	viper.BindPFlag(flagPushEndpointURL, cmd.Flags().Lookup(flagPushEndpointURL))
+
+	return cmd
+}
+
+func registerWebFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().String(flagWebDirectory, "./webapp", "Web app directory")
+	viper.BindPFlag(flagWebDirectory, cmd.Flags().Lookup(flagWebDirectory))
+
+	cmd.Flags().String(flagWebAuthLoginRedir, "http://localhost:3000/auth-complete", "Web login redirect URL")
+	viper.BindPFlag(flagWebAuthLoginRedir, cmd.Flags().Lookup(flagWebAuthLoginRedir))
+
+	cmd.Flags().String(flagWebAuthLogoutRedir, "http://localhost:3000", "Web logout redirect URL")
+	viper.BindPFlag(flagWebAuthLogoutRedir, cmd.Flags().Lookup(flagWebAuthLogoutRedir))
+
+	cmd.Flags().String(flagWebAuthDeniedRedir, "http://localhost:3000/auth-denied", "Web access denied redirect URL")
+	viper.BindPFlag(flagWebAuthDeniedRedir, cmd.Flags().Lookup(flagWebAuthDeniedRedir))
+
+	return cmd
+}
+
+func registerTwitterFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().String(flagTwitterAPIKey, "", "Twitter API key")
+	viper.BindPFlag(flagTwitterAPIKey, cmd.Flags().Lookup(flagTwitterAPIKey))
+
+	cmd.Flags().String(flagTwitterAPISecret, "", "Twitter API secret")
+	viper.BindPFlag(flagTwitterAPISecret, cmd.Flags().Lookup(flagTwitterAPISecret))
+
+	cmd.Flags().String(flagTwitterOAUTHCallback, "http://localhost:1337/auth-twitter-callback", "Twitter OAUTH callback URL")
+	viper.BindPFlag(flagTwitterOAUTHCallback, cmd.Flags().Lookup(flagTwitterOAUTHCallback))
 
 	return cmd
 }
@@ -107,6 +220,7 @@ func initConfig() {
 		}
 
 		viper.AutomaticEnv()
+		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		viper.AddConfigPath(home)
 		viper.SetConfigName(".truapid/config")
 	}

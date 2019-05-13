@@ -1,6 +1,8 @@
 package db
 
 import (
+	"fmt"
+
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/go-pg/pg"
 )
@@ -15,7 +17,7 @@ type Client struct {
 func NewDBClient(apiCtx truCtx.TruAPIContext) *Client {
 	config := apiCtx.Config.Database
 	db := pg.Connect(&pg.Options{
-		Addr:     config.Host + ":" + config.Port,
+		Addr:     fmt.Sprintf("%s:%d", config.Host, config.Port),
 		User:     config.User,
 		Password: config.Pass,
 		Database: config.Name,

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/TruStory/octopus/services/truapi/context"
@@ -103,7 +104,8 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 				os.Exit(1)
 			}
 
-			log.Fatal(truAPI.ListenAndServe(net.JoinHostPort(apiCtx.Config.Host.Name, apiCtx.Config.Host.Port)))
+			port := strconv.Itoa(apiCtx.Config.Host.Port)
+			log.Fatal(truAPI.ListenAndServe(net.JoinHostPort(apiCtx.Config.Host.Name, port)))
 
 			return err
 		},
@@ -118,19 +120,31 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 	cmd = registerWebFlags(cmd)
 	cmd = registerTwitterFlags(cmd)
 
-	// Config vars can be set in 3 ways:
-	// i.e: for the paramter "app.name":
-	// 1. Command-line flag: --app.name TruStory
-	// 2. Env var: APP_NAME=TruStory
-	// 3. config.toml in .truchapid/config ([app] name = TruStory)
-	// 4. Default value "TruStory" if not supplied by the above
-	// Precedence: 1 -> 2 -> 3 -> 4
+	return cmd
+}
 
+func registerAppFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().String(flagAppName, "TruStory", "Name of the app")
 	viper.BindPFlag(flagAppName, cmd.Flags().Lookup(flagAppName))
 
 	cmd.Flags().String(flagAppURL, "http://localhost:3000", "URL for the app")
 	viper.BindPFlag(flagAppURL, cmd.Flags().Lookup(flagAppURL))
+
+	cmd.Flags().Bool(flagAppMockRegistration, true, "Enables mock user registration")
+	viper.BindPFlag(flagAppMockRegistration, cmd.Flags().Lookup(flagAppMockRegistration))
+
+	cmd.Flags().String(flagAppUploadURL, "http://ec2-18-144-34-125.us-west-1.compute.amazonaws.com:4000/v1/upload/aws", "S3 upload URL for app media")
+	viper.BindPFlag(flagAppUploadURL, cmd.Flags().Lookup(flagAppUploadURL))
+
+	return cmd
+}
+
+func registerCookieFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().String(flagCookieHashKey, "0f0ee5b192c014069b85802b727b04a9c41d51b67cdc2b498e9ff60f31ad7b7b4cb573c9745eaef2bb242016747f264db427b4387f4d71579e158cdeaefc51b0", "Hash key of cookie")
+	viper.BindPFlag(flagCookieHashKey, cmd.Flags().Lookup(flagCookieHashKey))
+
+	cmd.Flags().String(flagCookieEncryptKey, "f9cc632d41202396cfc432cb89ac9eaa8ff3ad96ecd555a378a807954f6c46ec", "Encrypt key of cookie")
+	viper.BindPFlag(flagCookieEncryptKey, cmd.Flags().Lookup(flagCookieEncryptKey))
 
 	return cmd
 }

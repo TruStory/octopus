@@ -21,7 +21,7 @@ type CookieConfig struct {
 // DatabaseConfig is the database configuration
 type DatabaseConfig struct {
 	Host string `mapstructure:"hostname"`
-	Port string
+	Port int
 	User string `mapstructure:"username"`
 	Pass string `mapstructure:"password"`
 	Name string `mapstructure:"db"`
@@ -31,7 +31,7 @@ type DatabaseConfig struct {
 // HostConfig is the config for the server host
 type HostConfig struct {
 	Name          string
-	Port          string
+	Port          int
 	HTTPSEnabled  bool   `mapstructure:"https-enabled"`
 	HTTPSCacheDir string `mapstructure:"https-cache-dir"`
 }

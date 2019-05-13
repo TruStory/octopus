@@ -45,7 +45,7 @@ func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
-		cookie, err := cookies.GetLoginCookie(twitterProfile)
+		cookie, err := cookies.GetLoginCookie(apiCtx, twitterProfile)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

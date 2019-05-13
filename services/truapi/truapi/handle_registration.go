@@ -81,7 +81,7 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
 		return chttp.SimpleErrorResponse(400, err)
 	}
 
-	cookieValue, err := cookies.MakeLoginCookieValue(twitterProfile)
+	cookieValue, err := cookies.MakeLoginCookieValue(ta.APIContext, twitterProfile)
 	if err != nil {
 		return chttp.SimpleErrorResponse(400, err)
 	}

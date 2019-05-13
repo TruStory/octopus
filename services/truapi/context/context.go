@@ -25,12 +25,18 @@ type PushConfig struct {
 	EndpointURL string `mapstructure:"endpoint-url"`
 }
 
+// WebConfig is the config for the web app
+type WebConfig struct {
+	Directory string
+}
+
 // Config contains all the config variables for the API server
 type Config struct {
 	ChainID  string `mapstructure:"chain-id"`
 	Host     HostConfig
 	Push     PushConfig
 	Database DatabaseConfig
+	Web      WebConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context
@@ -43,6 +49,7 @@ type TruAPIContext struct {
 	HTTPSEnabled    bool
 	HTTPSCacheDir   string
 	PushEndpointURL string
+	WebAppDirectory string
 }
 
 // NewTruAPIContext creates a new API context
@@ -55,5 +62,6 @@ func NewTruAPIContext(cliCtx *sdkContext.CLIContext, config Config) TruAPIContex
 		HTTPSEnabled:    config.Host.HTTPSEnabled,
 		HTTPSCacheDir:   config.Host.HTTPSCacheDir,
 		PushEndpointURL: config.Push.EndpointURL,
+		WebAppDirectory: config.Web.Directory,
 	}
 }

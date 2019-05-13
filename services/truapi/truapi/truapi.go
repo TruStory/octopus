@@ -93,7 +93,7 @@ func WithUser(h http.Handler) http.Handler {
 }
 
 // RegisterRoutes applies the TruStory API routes to the `chttp.API` router
-func (ta *TruAPI) RegisterRoutes() {
+func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api := ta.Subrouter("/api/v1")
 
 	// Enable gzip compression
@@ -123,16 +123,12 @@ func (ta *TruAPI) RegisterRoutes() {
 
 	// Register routes for Trustory React web app
 
-	appDir := os.Getenv("CHAIN_WEB_DIR")
-	if appDir == "" {
-		appDir = "build"
-	}
-	fs := http.FileServer(http.Dir(appDir))
+	fs := http.FileServer(http.Dir(apiCtx.WebAppDirectory))
 
 	ta.PathPrefix("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// if it is not requesting a file with a valid extension serve the index
 		if filepath.Ext(path.Base(r.URL.Path)) == "" {
-			indexPath := filepath.Join(appDir, "index.html")
+			indexPath := filepath.Join(apiCtx.WebAppDirectory, "index.html")
 			absIndexPath, err := filepath.Abs(indexPath)
 			if err != nil {
 				log.Printf("ERROR index.html -- %s", err)

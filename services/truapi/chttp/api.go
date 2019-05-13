@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -84,25 +83,17 @@ func (a *API) Use(mw func(http.Handler) http.Handler) {
 // ListenAndServe serves HTTP using the API router
 func (a *API) ListenAndServe(addr string) error {
 	letsEncryptEnabled := a.apiCtx.HTTPSEnabled == true
-	fmt.Println("IN HERE 1")
 	if !letsEncryptEnabled {
-		fmt.Println("IN HERE 2")
 		return http.ListenAndServe(addr, a.router)
 	}
-	fmt.Println("IN HERE 3")
 	return a.listenAndServeTLS()
 }
 
 func (a *API) listenAndServeTLS() error {
-	host := os.Getenv("CHAIN_HOST")
-	certDir := os.Getenv("CHAIN_LETS_ENCRYPT_CACHE_DIR")
-	if certDir == "" {
-		certDir = "certs"
-	}
 	m := &autocert.Manager{
-		Cache:      autocert.DirCache(certDir),
+		Cache:      autocert.DirCache(a.apiCtx.HTTPSCacheDir),
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(host),
+		HostPolicy: autocert.HostWhitelist(a.apiCtx.Host),
 	}
 	httpServer := &http.Server{
 		Addr:    ":http",

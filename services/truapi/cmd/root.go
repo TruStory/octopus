@@ -17,6 +17,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	flagAppName = "app.name"
+)
+
 var (
 	// Used for flags.
 	configFile string
@@ -86,6 +90,9 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 	cmd.Flags().Bool("https-enabled", false, "Use HTTPS for server")
 	viper.BindPFlag("https-enabled", cmd.Flags().Lookup("https-enabled"))
 
+	cmd.Flags().String(flagAppName, "TruStory", "Name of the app")
+	viper.BindPFlag(flagAppName, cmd.Flags().Lookup(flagAppName))
+
 	return cmd
 }
 
@@ -104,7 +111,8 @@ func initConfig() {
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Printf("Can't read config: %s. Using defaults.\n", err)
-		// os.Exit(1)
+		fmt.Printf("Can't read config: %s. Using environment variables or defaults.\n", err)
 	}
+
+	fmt.Println(flagAppName + " = " + viper.GetString(flagAppName))
 }

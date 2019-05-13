@@ -1,10 +1,7 @@
 package db
 
 import (
-	"fmt"
-	"os"
-	"strconv"
-
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/go-pg/pg"
 )
 
@@ -15,13 +12,14 @@ type Client struct {
 }
 
 // NewDBClient creates a Postgres client
-func NewDBClient() *Client {
+func NewDBClient(apiCtx truCtx.TruAPIContext) *Client {
+	config := apiCtx.Config.Database
 	db := pg.Connect(&pg.Options{
-		Addr:     os.Getenv("PG_ADDR"),
-		User:     os.Getenv("PG_USER"),
-		Password: os.Getenv("PG_USER_PW"),
-		Database: os.Getenv("PG_DB_NAME"),
-		PoolSize: getPoolSize(),
+		Addr:     config.Host + ":" + config.Port,
+		User:     config.User,
+		Password: config.Pass,
+		Database: config.Name,
+		PoolSize: config.Pool,
 	})
 
 	return &Client{db}
@@ -71,23 +69,4 @@ func (c *Client) Find(model interface{}) error {
 // FindAll selects all models
 func (c *Client) FindAll(models interface{}) error {
 	return c.Model(models).Select()
-}
-
-func getPoolSize() int {
-	size := os.Getenv("PG_POOL_SIZE")
-	defaultPoolSize := 25
-	if size == "" {
-		return defaultPoolSize
-	}
-	poolSize, err := strconv.Atoi(size)
-
-	if err != nil {
-		fmt.Printf("WARNING: invalid pool size [%s] \n", size)
-		return defaultPoolSize
-	}
-
-	if poolSize <= 0 {
-		return defaultPoolSize
-	}
-	return poolSize
 }

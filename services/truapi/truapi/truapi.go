@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
 	"time"
@@ -59,7 +58,7 @@ func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 		API:                     chttp.NewAPI(apiCtx, supported),
 		APIContext:              apiCtx,
 		GraphQLClient:           graphql.NewGraphQLClient(),
-		DBClient:                db.NewDBClient(),
+		DBClient:                db.NewDBClient(apiCtx),
 		commentsNotificationsCh: make(chan CommentNotificationRequest),
 		httpClient: &http.Client{
 			Timeout: time.Second * 5,
@@ -117,7 +116,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
 
-	if os.Getenv("MOCK_REGISTRATION") == "true" {
+	if apiCtx.Config.App.MockRegistration == true {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))
 	}
 

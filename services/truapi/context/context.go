@@ -6,8 +6,10 @@ import (
 
 // AppConfig is the config for the app
 type AppConfig struct {
-	Name string
-	URL  string
+	Name             string
+	URL              string
+	MockRegistration bool   `mapstructure:"mock-registration"`
+	UploadURL        string `mapstructure:"upload-url"`
 }
 
 // CookieConfig is the config for the cookie
@@ -22,6 +24,8 @@ type DatabaseConfig struct {
 	Port string
 	User string `mapstructure:"username"`
 	Pass string `mapstructure:"password"`
+	Name string `mapstructure:"db"`
+	Pool int
 }
 
 // HostConfig is the config for the server host

@@ -3,7 +3,6 @@ package truapi
 import (
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
@@ -15,7 +14,7 @@ func (ta *TruAPI) HandleUpload(res http.ResponseWriter, req *http.Request) {
 	client := &http.Client{}
 
 	// preparing the request
-	request, err := http.NewRequest("POST", os.Getenv("UPLOAD_URL"), req.Body)
+	request, err := http.NewRequest("POST", ta.APIContext.Config.App.UploadURL, req.Body)
 	if err != nil {
 		render.Error(res, req, err.Error(), http.StatusBadRequest)
 	}

@@ -15,6 +15,7 @@ import (
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	chain "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/users"
+	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/gorilla/mux"
@@ -283,5 +284,5 @@ func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
 // DeliverPresigned dispatches a pre-signed transaction to the Tendermint node
 func (a *API) DeliverPresigned(tx auth.StdTx) (sdk.TxResponse, error) {
 	txBytes := a.apiCtx.Codec.MustMarshalBinaryLengthPrefixed(tx)
-	return a.apiCtx.BroadcastTx(txBytes)
+	return a.apiCtx.WithBroadcastMode(client.BroadcastBlock).BroadcastTx(txBytes)
 }

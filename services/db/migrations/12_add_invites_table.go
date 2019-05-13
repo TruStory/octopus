@@ -13,7 +13,7 @@ func init() {
 			id BIGSERIAL PRIMARY KEY,
 			creator VARCHAR (65) NOT NULL,
 			friend_twitter_username TEXT UNIQUE,
-			friend_email TEXT,
+			friend_email TEXT UNIQUE,
 			paid BOOLEAN DEFAULT FALSE,
 			created_at TIMESTAMP DEFAULT NOW(),
 			updated_at TIMESTAMP DEFAULT NOW(),

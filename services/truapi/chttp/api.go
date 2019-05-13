@@ -1,7 +1,7 @@
 package chttp
 
 import (
-	goCtx "context"
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/TruStory/octopus/services/truapi/context"
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	chain "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/users"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -43,13 +43,13 @@ type App interface {
 
 // API presents the functionality of a Cosmos app over HTTP
 type API struct {
-	apiCtx    context.TruAPIContext
+	apiCtx    truCtx.TruAPIContext
 	Supported MsgTypes
 	router    *mux.Router
 }
 
 // NewAPI creates an `API` struct from a client context and a `MsgTypes` schema
-func NewAPI(apiCtx context.TruAPIContext, supported MsgTypes) *API {
+func NewAPI(apiCtx truCtx.TruAPIContext, supported MsgTypes) *API {
 	a := API{apiCtx: apiCtx, Supported: supported, router: mux.NewRouter()}
 	return &a
 }
@@ -82,9 +82,8 @@ func (a *API) Use(mw func(http.Handler) http.Handler) {
 }
 
 // ListenAndServe serves HTTP using the API router
-func (a *API) ListenAndServe(apiCtx context.TruAPIContext, addr string) error {
-	// letsEncryptEnabled := os.Getenv("CHAIN_LETS_ENCRYPT_ENABLED") == "true"
-	letsEncryptEnabled := apiCtx.HTTPSEnabled == true
+func (a *API) ListenAndServe(addr string) error {
+	letsEncryptEnabled := a.apiCtx.HTTPSEnabled == true
 	if !letsEncryptEnabled {
 		return http.ListenAndServe(addr, a.router)
 	}
@@ -112,7 +111,7 @@ func (a *API) listenAndServeTLS() error {
 		TLSConfig: m.TLSConfig(),
 	}
 
-	g, ctx := errgroup.WithContext(goCtx.Background())
+	g, ctx := errgroup.WithContext(context.Background())
 	g.Go(func() error {
 		return httpServer.ListenAndServe()
 	})

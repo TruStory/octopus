@@ -9,7 +9,6 @@ import (
 	"github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/truapi"
 	chain "github.com/TruStory/truchain/app"
-	"github.com/TruStory/truchain/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	sdkContext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -17,21 +16,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-// DatabaseConfig is the database configuration
-type DatabaseConfig struct {
-	Host string `mapstructure:"hostname"`
-	Port string
-	User string `mapstructure:"username"`
-	Pass string `mapstructure:"password"`
-}
-
-// Config contains all the config variables for the API server
-type Config struct {
-	ChainID      string `mapstructure:"chain-id"`
-	HTTPSEnabled string `mapstructure:"https-enabled"`
-	Database     DatabaseConfig
-}
 
 var (
 	// Used for flags.
@@ -99,15 +83,22 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 			fmt.Printf("chain-id: %s\n", viper.GetString(client.FlagChainID))
 			fmt.Printf("https-enabled: %v\n", viper.GetBool("https-enabled"))
 
+			var config context.Config
+			err = viper.Unmarshal(&config)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(config)
+
 			cliCtx := sdkContext.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
-			apiCtx := context.NewTruAPIContext(&cliCtx)
+			apiCtx := context.NewTruAPIContext(&cliCtx, config)
 			truAPI := truapi.NewTruAPI(apiCtx)
 			truAPI.RegisterMutations()
 			truAPI.RegisterOAuthRoutes()
 			truAPI.RegisterResolvers()
 			truAPI.RegisterRoutes()
 
-			log.Fatal(truAPI.ListenAndServe(net.JoinHostPort(types.Hostname, types.Portname)))
+			log.Fatal(truAPI.ListenAndServe(net.JoinHostPort(apiCtx.Host, apiCtx.Port)))
 
 			return err
 		},
@@ -140,11 +131,4 @@ func initConfig() {
 		fmt.Printf("Can't read config: %s. Using defaults.\n", err)
 		// os.Exit(1)
 	}
-
-	config := new(Config)
-	err := viper.Unmarshal(config)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(config)
 }

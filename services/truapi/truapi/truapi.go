@@ -68,13 +68,9 @@ func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 }
 
 // RunNotificationSender connects to the push notification service
-func (ta *TruAPI) RunNotificationSender() error {
-	endpoint := os.Getenv("PUSHD_ENDPOINT_URL")
-	if endpoint == "" {
-		return fmt.Errorf("PUSHD_ENDPOINT_URL must be set")
-	}
+func (ta *TruAPI) RunNotificationSender(apiCtx truCtx.TruAPIContext) error {
 	ta.notificationsInitialized = true
-	go ta.runCommentNotificationSender(ta.commentsNotificationsCh, endpoint)
+	go ta.runCommentNotificationSender(ta.commentsNotificationsCh, apiCtx.PushEndpointURL)
 	return nil
 }
 

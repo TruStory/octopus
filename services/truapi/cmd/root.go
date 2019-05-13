@@ -96,6 +96,12 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 			truAPI.RegisterResolvers()
 			truAPI.RegisterRoutes()
 
+			err = truAPI.RunNotificationSender(apiCtx)
+			if err != nil {
+				fmt.Println("Notification sender could not be started: ", err)
+				os.Exit(1)
+			}
+
 			log.Fatal(truAPI.ListenAndServe(net.JoinHostPort(apiCtx.Host, apiCtx.Port)))
 
 			return err

@@ -206,7 +206,6 @@ func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (a
 	registrarNum := registrarAcc.AccountNumber
 	registrarSequence := registrarAcc.Sequence
 	registrationMemo := "reg"
-	chainID := "chain-id"
 	msg := users.RegisterKeyMsg{
 		Address:    addr,
 		PubKey:     k,
@@ -215,7 +214,14 @@ func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (a
 	}
 
 	// Sign tx as registrar
-	bytesToSign := auth.StdSignBytes(chainID, registrarNum, registrarSequence, chain.RegistrationFee, []sdk.Msg{msg}, registrationMemo)
+	bytesToSign := auth.StdSignBytes(
+		a.apiCtx.ChainID,
+		registrarNum,
+		registrarSequence,
+		chain.RegistrationFee,
+		[]sdk.Msg{msg},
+		registrationMemo)
+
 	registrarKey := loadRegistrarKey()
 	sigBytes, err := registrarKey.Sign(bytesToSign)
 	if err != nil {
@@ -239,7 +245,7 @@ func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (a
 func loadRegistrarKey() secp256k1.PrivKeySecp256k1 {
 	rootdir := viper.GetString(cli.HomeFlag)
 	if rootdir == "" {
-		rootdir = "$HOME/.apid"
+		rootdir = "$HOME/.truapid"
 	}
 	keypath := filepath.Join(rootdir, "registrar.key")
 	fileBytes, err := ioutil.ReadFile(keypath)

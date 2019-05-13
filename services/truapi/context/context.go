@@ -31,6 +31,7 @@ type Config struct {
 type TruAPIContext struct {
 	*sdkContext.CLIContext
 
+	ChainID       string
 	Host          string
 	Port          string
 	HTTPSEnabled  bool
@@ -41,6 +42,7 @@ type TruAPIContext struct {
 func NewTruAPIContext(cliCtx *sdkContext.CLIContext, config Config) TruAPIContext {
 	return TruAPIContext{
 		CLIContext:    cliCtx,
+		ChainID:       config.ChainID,
 		Host:          config.Host.Name,
 		Port:          config.Host.Port,
 		HTTPSEnabled:  config.Host.HTTPSEnabled,

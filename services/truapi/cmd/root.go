@@ -106,6 +106,7 @@ func initConfig() {
 			os.Exit(1)
 		}
 
+		viper.AutomaticEnv()
 		viper.AddConfigPath(home)
 		viper.SetConfigName(".truapid/config")
 	}

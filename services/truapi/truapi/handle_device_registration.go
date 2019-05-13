@@ -26,7 +26,7 @@ type DeviceTokenUnregistration struct {
 // HandleDeviceTokenRegistration takes a `DeviceTokenRegistrationRequest` and returns a `DeviceToken`
 func (ta *TruAPI) HandleDeviceTokenRegistration(w http.ResponseWriter, r *http.Request) {
 	// check if request comes from an authenticated user.
-	auth, err := cookies.GetAuthenticatedUser(r)
+	auth, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
@@ -63,7 +63,7 @@ func (ta *TruAPI) HandleDeviceTokenRegistration(w http.ResponseWriter, r *http.R
 // HandleUnregisterDeviceToken takes a `UnregisterDeviceTokenRequest`
 func (ta *TruAPI) HandleUnregisterDeviceToken(w http.ResponseWriter, r *http.Request) {
 	// check if request comes from an authenticated user.
-	auth, err := cookies.GetAuthenticatedUser(r)
+	auth, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return

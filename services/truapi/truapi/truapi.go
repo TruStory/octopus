@@ -43,6 +43,7 @@ const (
 // TruAPI implements an HTTP server for TruStory functionality using `chttp.API`
 type TruAPI struct {
 	*chttp.API
+	APIContext    truCtx.TruAPIContext
 	GraphQLClient *graphql.Client
 	DBClient      db.Datastore
 
@@ -56,6 +57,7 @@ type TruAPI struct {
 func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 	ta := TruAPI{
 		API:                     chttp.NewAPI(apiCtx, supported),
+		APIContext:              apiCtx,
 		GraphQLClient:           graphql.NewGraphQLClient(),
 		DBClient:                db.NewDBClient(),
 		commentsNotificationsCh: make(chan CommentNotificationRequest),
@@ -80,9 +82,9 @@ func WrapHandler(h chttp.Handler) http.Handler {
 }
 
 // WithUser sets the user in the context that will be passed down to handlers.
-func WithUser(h http.Handler) http.Handler {
+func WithUser(apiCtx truCtx.TruAPIContext, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		auth, err := cookies.GetAuthenticatedUser(r)
+		auth, err := cookies.GetAuthenticatedUser(apiCtx, r)
 		if err != nil {
 			h.ServeHTTP(w, r)
 			return
@@ -100,19 +102,19 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Use(handlers.CompressHandler)
 	api.Use(chttp.JSONResponseMiddleware)
 	api.Handle("/ping", WrapHandler(ta.HandlePing))
-	api.Handle("/graphql", WithUser(WrapHandler(ta.HandleGraphQL)))
+	api.Handle("/graphql", WithUser(apiCtx, WrapHandler(ta.HandleGraphQL)))
 	api.Handle("/presigned", WrapHandler(ta.HandlePresigned))
 	api.Handle("/unsigned", WrapHandler(ta.HandleUnsigned))
 	api.Handle("/register", WrapHandler(ta.HandleRegistration))
 	api.Handle("/user", WrapHandler(ta.HandleUserDetails))
 	api.Handle("/user/search", WrapHandler(ta.HandleUsernameSearch))
-	api.Handle("/notification", WithUser(WrapHandler(ta.HandleNotificationEvent)))
+	api.Handle("/notification", WithUser(apiCtx, WrapHandler(ta.HandleNotificationEvent)))
 	api.HandleFunc("/deviceToken", ta.HandleDeviceTokenRegistration)
 	api.HandleFunc("/deviceToken/unregister", ta.HandleUnregisterDeviceToken)
 	api.HandleFunc("/upload", ta.HandleUpload)
-	api.Handle("/flagStory", WithUser(WrapHandler(ta.HandleFlagStory)))
-	api.Handle("/comments", WithUser(WrapHandler(ta.HandleComment)))
-	api.Handle("/reactions", WithUser(WrapHandler(ta.HandleReaction)))
+	api.Handle("/flagStory", WithUser(apiCtx, WrapHandler(ta.HandleFlagStory)))
+	api.Handle("/comments", WithUser(apiCtx, WrapHandler(ta.HandleComment)))
+	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
 
 	if os.Getenv("MOCK_REGISTRATION") == "true" {

@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	gotwitter "github.com/dghubble/go-twitter/twitter"
@@ -15,7 +16,7 @@ import (
 )
 
 // IssueSession creates a session and redirects the logged in user to the correct page
-func IssueSession(ta *TruAPI) http.Handler {
+func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		twitterUser, err := twitter.UserFromContext(ctx)
@@ -49,7 +50,7 @@ func IssueSession(ta *TruAPI) http.Handler {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		http.SetCookie(w, cookie)
-		http.Redirect(w, req, os.Getenv("AUTH_LOGIN_REDIR"), http.StatusFound)
+		http.Redirect(w, req, apiCtx.WebAuthLoginRedir, http.StatusFound)
 	}
 	return http.HandlerFunc(fn)
 }

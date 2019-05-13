@@ -41,6 +41,13 @@ type PushConfig struct {
 	EndpointURL string `mapstructure:"endpoint-url"`
 }
 
+// TwitterConfig is the config for Twitter
+type TwitterConfig struct {
+	APIKey        string `mapstructure:"api-key"`
+	APISecret     string `mapstructure:"api-secret"`
+	OAUTHCallback string `mapstructure:"oath-callback"`
+}
+
 // WebConfig is the config for the web app
 type WebConfig struct {
 	Directory       string
@@ -49,23 +56,16 @@ type WebConfig struct {
 	AuthDeniedRedir string `mapstructure:"auth-denied-redir"`
 }
 
-// TwitterConfig is the config for Twitter
-type TwitterConfig struct {
-	APIKey        string `mapstructure:"api-key"`
-	APISecret     string `mapstructure:"api-secret"`
-	OAUTHCallback string `mapstructure:"oath-callback"`
-}
-
 // Config contains all the config variables for the API server
 type Config struct {
 	ChainID  string `mapstructure:"chain-id"`
 	App      AppConfig
 	Cookie   CookieConfig
+	Database DatabaseConfig
 	Host     HostConfig
 	Push     PushConfig
-	Database DatabaseConfig
-	Web      WebConfig
 	Twitter  TwitterConfig
+	Web      WebConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

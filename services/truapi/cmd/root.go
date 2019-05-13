@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -88,7 +89,7 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 			if err != nil {
 				panic(err)
 			}
-			fmt.Printf("%+v\n", config)
+			fmt.Println("Starting server with the following config: \n" + prettyPrint(config))
 
 			cliCtx := sdkContext.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
 			apiCtx := context.NewTruAPIContext(&cliCtx, config)
@@ -121,6 +122,11 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 	cmd = registerTwitterFlags(cmd)
 
 	return cmd
+}
+
+func prettyPrint(i interface{}) string {
+	s, _ := json.MarshalIndent(i, "", "\t")
+	return string(s)
 }
 
 func registerAppFlags(cmd *cobra.Command) *cobra.Command {
@@ -240,8 +246,6 @@ func initConfig() {
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Printf("Can't read config: %s. Using environment variables or defaults.\n", err)
+		fmt.Printf("Can't read config: %s. Using flags, environment variables, or defaults.\n", err)
 	}
-
-	fmt.Println(flagAppName + " = " + viper.GetString(flagAppName))
 }

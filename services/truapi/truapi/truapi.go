@@ -119,7 +119,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))
 	}
 
-	ta.RegisterOAuthRoutes()
+	ta.RegisterOAuthRoutes(apiCtx)
 
 	// Register routes for Trustory React web app
 
@@ -157,11 +157,11 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 }
 
 // RegisterOAuthRoutes adds the proper routes needed for the oauth
-func (ta *TruAPI) RegisterOAuthRoutes() {
+func (ta *TruAPI) RegisterOAuthRoutes(apiCtx truCtx.TruAPIContext) {
 	oauth1Config := &oauth1.Config{
-		ConsumerKey:    os.Getenv("TWITTER_API_KEY"),
-		ConsumerSecret: os.Getenv("TWITTER_API_SECRET"),
-		CallbackURL:    os.Getenv("CHAIN_OAUTH_CALLBACK"),
+		ConsumerKey:    apiCtx.TwitterAPIKey,
+		ConsumerSecret: apiCtx.TwitterAPISecret,
+		CallbackURL:    apiCtx.TwitterOAUTHCallback,
 		Endpoint:       twitterOAuth1.AuthorizeEndpoint,
 	}
 

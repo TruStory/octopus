@@ -92,7 +92,7 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 			apiCtx := context.NewTruAPIContext(&cliCtx, config)
 			truAPI := truapi.NewTruAPI(apiCtx)
 			truAPI.RegisterMutations()
-			truAPI.RegisterOAuthRoutes()
+			truAPI.RegisterOAuthRoutes(apiCtx)
 			truAPI.RegisterResolvers()
 			truAPI.RegisterRoutes(apiCtx)
 

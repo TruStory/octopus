@@ -30,6 +30,13 @@ type WebConfig struct {
 	Directory string
 }
 
+// TwitterConfig is the config for Twitter
+type TwitterConfig struct {
+	APIKey        string `mapstructure:"api-key"`
+	APISecret     string `mapstructure:"api-secret"`
+	OAUTHCallback string `mapstructure:"oath-callback"`
+}
+
 // Config contains all the config variables for the API server
 type Config struct {
 	ChainID  string `mapstructure:"chain-id"`
@@ -37,31 +44,38 @@ type Config struct {
 	Push     PushConfig
 	Database DatabaseConfig
 	Web      WebConfig
+	Twitter  TwitterConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context
 type TruAPIContext struct {
 	*sdkContext.CLIContext
 
-	ChainID         string
-	Host            string
-	Port            string
-	HTTPSEnabled    bool
-	HTTPSCacheDir   string
-	PushEndpointURL string
-	WebAppDirectory string
+	ChainID              string
+	Host                 string
+	Port                 string
+	HTTPSEnabled         bool
+	HTTPSCacheDir        string
+	PushEndpointURL      string
+	WebAppDirectory      string
+	TwitterAPIKey        string
+	TwitterAPISecret     string
+	TwitterOAUTHCallback string
 }
 
 // NewTruAPIContext creates a new API context
 func NewTruAPIContext(cliCtx *sdkContext.CLIContext, config Config) TruAPIContext {
 	return TruAPIContext{
-		CLIContext:      cliCtx,
-		ChainID:         config.ChainID,
-		Host:            config.Host.Name,
-		Port:            config.Host.Port,
-		HTTPSEnabled:    config.Host.HTTPSEnabled,
-		HTTPSCacheDir:   config.Host.HTTPSCacheDir,
-		PushEndpointURL: config.Push.EndpointURL,
-		WebAppDirectory: config.Web.Directory,
+		CLIContext:           cliCtx,
+		ChainID:              config.ChainID,
+		Host:                 config.Host.Name,
+		Port:                 config.Host.Port,
+		HTTPSEnabled:         config.Host.HTTPSEnabled,
+		HTTPSCacheDir:        config.Host.HTTPSCacheDir,
+		PushEndpointURL:      config.Push.EndpointURL,
+		WebAppDirectory:      config.Web.Directory,
+		TwitterAPIKey:        config.Twitter.APIKey,
+		TwitterAPISecret:     config.Twitter.APISecret,
+		TwitterOAUTHCallback: config.Twitter.OAUTHCallback,
 	}
 }

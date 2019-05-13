@@ -169,7 +169,7 @@ func (ta *TruAPI) RegisterOAuthRoutes(apiCtx truCtx.TruAPIContext) {
 
 	ta.Handle("/auth-twitter", twitter.LoginHandler(oauth1Config, nil))
 	ta.Handle("/auth-twitter-callback", HandleOAuthSuccess(oauth1Config, IssueSession(apiCtx, ta), HandleOAuthFailure(ta)))
-	ta.Handle("/auth-logout", Logout())
+	ta.Handle("/auth-logout", Logout(apiCtx))
 }
 
 // RegisterMutations registers mutations

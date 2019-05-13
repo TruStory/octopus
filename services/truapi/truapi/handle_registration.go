@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	"github.com/btcsuite/btcd/btcec"
@@ -52,7 +53,7 @@ func (ta *TruAPI) HandleRegistration(r *http.Request) chttp.Response {
 	}
 
 	// Get the Twitter User from the auth token
-	twitterUser, err := getTwitterUser(rr.AuthToken, rr.AuthTokenSecret)
+	twitterUser, err := getTwitterUser(ta.APIContext, rr.AuthToken, rr.AuthTokenSecret)
 	if err != nil {
 		return chttp.SimpleErrorResponse(400, err)
 	}
@@ -197,9 +198,9 @@ func isWhitelistedUser(twitterUser *twitter.User) (bool, error) {
 	return false, nil
 }
 
-func getTwitterUser(authToken string, authTokenSecret string) (*twitter.User, error) {
+func getTwitterUser(apiCtx truCtx.TruAPIContext, authToken string, authTokenSecret string) (*twitter.User, error) {
 	ctx := context.Background()
-	config := oauth1.NewConfig(os.Getenv("TWITTER_API_KEY"), os.Getenv("TWITTER_API_SECRET"))
+	config := oauth1.NewConfig(apiCtx.Config.Twitter.APIKey, apiCtx.Config.Twitter.APISecret)
 
 	httpClient := config.Client(ctx, oauth1.NewToken(authToken, authTokenSecret))
 	twitterClient := twitter.NewClient(httpClient)

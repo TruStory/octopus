@@ -4,6 +4,18 @@ import (
 	sdkContext "github.com/cosmos/cosmos-sdk/client/context"
 )
 
+// AppConfig is the config for the app
+type AppConfig struct {
+	Name string
+	URL  string
+}
+
+// CookieConfig is the config for the cookie
+type CookieConfig struct {
+	HashKey    string `mapstructure:"hash-key"`
+	EncryptKey string `mapstructure:"encrypt-key"`
+}
+
 // DatabaseConfig is the database configuration
 type DatabaseConfig struct {
 	Host string `mapstructure:"hostname"`
@@ -43,6 +55,8 @@ type TwitterConfig struct {
 // Config contains all the config variables for the API server
 type Config struct {
 	ChainID  string `mapstructure:"chain-id"`
+	App      AppConfig
+	Cookie   CookieConfig
 	Host     HostConfig
 	Push     PushConfig
 	Database DatabaseConfig
@@ -53,7 +67,6 @@ type Config struct {
 // TruAPIContext stores the config for the API and the underlying client context
 type TruAPIContext struct {
 	*sdkContext.CLIContext
-
 	Config Config
 }
 

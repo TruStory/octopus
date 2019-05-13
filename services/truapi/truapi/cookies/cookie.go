@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
-	"os"
 	"time"
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
@@ -119,11 +118,11 @@ func isStale(user *AuthenticatedUser) bool {
 
 func getSecureCookieInstance(apiCtx truCtx.TruAPIContext) (*securecookie.SecureCookie, error) {
 	// Saves and excrypts the context in the cookie
-	hashKey, err := hex.DecodeString(os.Getenv("COOKIE_HASH_KEY"))
+	hashKey, err := hex.DecodeString(apiCtx.Config.Cookie.HashKey)
 	if err != nil {
 		return nil, err
 	}
-	blockKey, err := hex.DecodeString(os.Getenv("COOKIE_ENCRYPT_KEY"))
+	blockKey, err := hex.DecodeString(apiCtx.Config.Cookie.EncryptKey)
 	if err != nil {
 		return nil, err
 	}

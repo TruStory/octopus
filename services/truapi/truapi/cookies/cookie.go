@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/gorilla/securecookie"
 )
@@ -28,8 +29,8 @@ type AuthenticatedUser struct {
 }
 
 // GetLoginCookie returns the http cookie that authenticates and identifies the given user
-func GetLoginCookie(twitterProfile *db.TwitterProfile) (*http.Cookie, error) {
-	value, err := MakeLoginCookieValue(twitterProfile)
+func GetLoginCookie(apiCtx truCtx.TruAPIContext, twitterProfile *db.TwitterProfile) (*http.Cookie, error) {
+	value, err := MakeLoginCookieValue(apiCtx, twitterProfile)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +40,7 @@ func GetLoginCookie(twitterProfile *db.TwitterProfile) (*http.Cookie, error) {
 		HttpOnly: true,
 		Value:    value,
 		Expires:  time.Now().Add(time.Duration(AuthenticationExpiry) * time.Hour),
-		Domain:   os.Getenv("CHAIN_HOST"),
+		Domain:   apiCtx.Host,
 	}
 
 	return &cookie, nil
@@ -47,13 +48,13 @@ func GetLoginCookie(twitterProfile *db.TwitterProfile) (*http.Cookie, error) {
 
 // GetLogoutCookie returns the http cookie that overrides
 // the login cookie to practically delete it.
-func GetLogoutCookie() *http.Cookie {
+func GetLogoutCookie(apiCtx truCtx.TruAPIContext) *http.Cookie {
 	cookie := http.Cookie{
 		Name:     UserCookieName,
 		HttpOnly: true,
 		Value:    "",
 		Expires:  time.Now(),
-		Domain:   os.Getenv("CHAIN_HOST"),
+		Domain:   apiCtx.Host,
 		MaxAge:   0,
 	}
 
@@ -61,13 +62,13 @@ func GetLogoutCookie() *http.Cookie {
 }
 
 // GetAuthenticatedUser gets the user from the request's http cookie
-func GetAuthenticatedUser(r *http.Request) (*AuthenticatedUser, error) {
+func GetAuthenticatedUser(apiCtx truCtx.TruAPIContext, r *http.Request) (*AuthenticatedUser, error) {
 	cookie, err := r.Cookie(UserCookieName)
 	if err != nil {
 		return nil, err
 	}
 
-	s, err := getSecureCookieInstance()
+	s, err := getSecureCookieInstance(apiCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -86,8 +87,8 @@ func GetAuthenticatedUser(r *http.Request) (*AuthenticatedUser, error) {
 }
 
 // MakeLoginCookieValue takes a user and encodes it into a cookie value.
-func MakeLoginCookieValue(twitterProfile *db.TwitterProfile) (string, error) {
-	s, err := getSecureCookieInstance()
+func MakeLoginCookieValue(apiCtx truCtx.TruAPIContext, twitterProfile *db.TwitterProfile) (string, error) {
+	s, err := getSecureCookieInstance(apiCtx)
 	if err != nil {
 		return "", err
 	}
@@ -116,7 +117,7 @@ func isStale(user *AuthenticatedUser) bool {
 			time.Now().Add(time.Duration(-1*AuthenticationExpiry) * time.Hour))
 }
 
-func getSecureCookieInstance() (*securecookie.SecureCookie, error) {
+func getSecureCookieInstance(apiCtx truCtx.TruAPIContext) (*securecookie.SecureCookie, error) {
 	// Saves and excrypts the context in the cookie
 	hashKey, err := hex.DecodeString(os.Getenv("COOKIE_HASH_KEY"))
 	if err != nil {

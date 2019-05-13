@@ -80,15 +80,13 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 		Short: "Start API daemon, a local HTTP server",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			// fmt.Println(cmd.Flag(client.FlagTrustNode).Value.String())
-			fmt.Printf("chain-id: %s\n", viper.GetString(client.FlagChainID))
-			fmt.Printf("https-enabled: %v\n", viper.GetBool("https-enabled"))
 
 			var config context.Config
 			err = viper.Unmarshal(&config)
 			if err != nil {
 				panic(err)
 			}
-			fmt.Println(config)
+			fmt.Printf("%+v\n", config)
 
 			cliCtx := sdkContext.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
 			apiCtx := context.NewTruAPIContext(&cliCtx, config)
@@ -106,8 +104,7 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 	// client.RegisterRestServerFlags(cmd)
 
 	// TODO: why doesn't this work?
-	// cmd.Flags().Bool("https-enabled", false, "Use HTTPS for server")
-	cmd.Flags().String("https-enabled", "", "Use HTTPS for server")
+	cmd.Flags().Bool("https-enabled", false, "Use HTTPS for server")
 	viper.BindPFlag("https-enabled", cmd.Flags().Lookup("https-enabled"))
 
 	return cmd

@@ -84,9 +84,12 @@ func (a *API) Use(mw func(http.Handler) http.Handler) {
 // ListenAndServe serves HTTP using the API router
 func (a *API) ListenAndServe(addr string) error {
 	letsEncryptEnabled := a.apiCtx.HTTPSEnabled == true
+	fmt.Println("IN HERE 1")
 	if !letsEncryptEnabled {
+		fmt.Println("IN HERE 2")
 		return http.ListenAndServe(addr, a.router)
 	}
+	fmt.Println("IN HERE 3")
 	return a.listenAndServeTLS()
 }
 

@@ -1,7 +1,7 @@
 package chttp
 
 import (
-	"context"
+	goCtx "context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -13,9 +13,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/TruStory/octopus/services/truapi/context"
 	chain "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/users"
-	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/gorilla/mux"
@@ -43,14 +43,14 @@ type App interface {
 
 // API presents the functionality of a Cosmos app over HTTP
 type API struct {
-	cliCtx    cliContext.CLIContext
+	apiCtx    context.TruAPIContext
 	Supported MsgTypes
 	router    *mux.Router
 }
 
 // NewAPI creates an `API` struct from a client context and a `MsgTypes` schema
-func NewAPI(cliCtx cliContext.CLIContext, supported MsgTypes) *API {
-	a := API{cliCtx: cliCtx, Supported: supported, router: mux.NewRouter()}
+func NewAPI(apiCtx context.TruAPIContext, supported MsgTypes) *API {
+	a := API{apiCtx: apiCtx, Supported: supported, router: mux.NewRouter()}
 	return &a
 }
 
@@ -82,8 +82,9 @@ func (a *API) Use(mw func(http.Handler) http.Handler) {
 }
 
 // ListenAndServe serves HTTP using the API router
-func (a *API) ListenAndServe(addr string) error {
-	letsEncryptEnabled := os.Getenv("CHAIN_LETS_ENCRYPT_ENABLED") == "true"
+func (a *API) ListenAndServe(apiCtx context.TruAPIContext, addr string) error {
+	// letsEncryptEnabled := os.Getenv("CHAIN_LETS_ENCRYPT_ENABLED") == "true"
+	letsEncryptEnabled := apiCtx.HTTPSEnabled == true
 	if !letsEncryptEnabled {
 		return http.ListenAndServe(addr, a.router)
 	}
@@ -111,7 +112,7 @@ func (a *API) listenAndServeTLS() error {
 		TLSConfig: m.TLSConfig(),
 	}
 
-	g, ctx := errgroup.WithContext(context.Background())
+	g, ctx := errgroup.WithContext(goCtx.Background())
 	g.Go(func() error {
 		return httpServer.ListenAndServe()
 	})
@@ -272,7 +273,7 @@ func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := a.cliCtx.QueryWithData("/custom/"+path, paramBytes)
+	res, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
 	if err != nil {
 		return res, err
 	}
@@ -282,6 +283,6 @@ func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
 
 // DeliverPresigned dispatches a pre-signed transaction to the Tendermint node
 func (a *API) DeliverPresigned(tx auth.StdTx) (sdk.TxResponse, error) {
-	txBytes := a.cliCtx.Codec.MustMarshalBinaryLengthPrefixed(tx)
-	return a.cliCtx.BroadcastTx(txBytes)
+	txBytes := a.apiCtx.Codec.MustMarshalBinaryLengthPrefixed(tx)
+	return a.apiCtx.BroadcastTx(txBytes)
 }

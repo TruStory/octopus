@@ -6,16 +6,32 @@ import (
 	"net"
 	"os"
 
+	"github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/truapi"
 	chain "github.com/TruStory/truchain/app"
 	"github.com/TruStory/truchain/types"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
+	sdkContext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+// DatabaseConfig is the database configuration
+type DatabaseConfig struct {
+	Host string `mapstructure:"hostname"`
+	Port string
+	User string `mapstructure:"username"`
+	Pass string `mapstructure:"password"`
+}
+
+// Config contains all the config variables for the API server
+type Config struct {
+	ChainID      string `mapstructure:"chain-id"`
+	HTTPSEnabled string `mapstructure:"https-enabled"`
+	Database     DatabaseConfig
+}
 
 var (
 	// Used for flags.
@@ -83,8 +99,9 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 			fmt.Printf("chain-id: %s\n", viper.GetString(client.FlagChainID))
 			fmt.Printf("https-enabled: %v\n", viper.GetBool("https-enabled"))
 
-			cliCtx := context.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
-			truAPI := truapi.NewTruAPI(cliCtx)
+			cliCtx := sdkContext.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
+			apiCtx := context.NewTruAPIContext(&cliCtx)
+			truAPI := truapi.NewTruAPI(apiCtx)
 			truAPI.RegisterMutations()
 			truAPI.RegisterOAuthRoutes()
 			truAPI.RegisterResolvers()
@@ -124,10 +141,6 @@ func initConfig() {
 		// os.Exit(1)
 	}
 
-	type Config struct {
-		ChainID      string `mapstructure:"chain-id"`
-		HTTPSEnabled string `mapstructure:"https-enabled"`
-	}
 	config := new(Config)
 	err := viper.Unmarshal(config)
 	if err != nil {

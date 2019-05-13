@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
+	"github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/graphql"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
@@ -25,7 +26,6 @@ import (
 	"github.com/TruStory/truchain/x/story"
 	trubank "github.com/TruStory/truchain/x/trubank"
 	"github.com/TruStory/truchain/x/users"
-	cliContext "github.com/cosmos/cosmos-sdk/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/dghubble/gologin/twitter"
 	"github.com/dghubble/oauth1"
@@ -53,9 +53,9 @@ type TruAPI struct {
 }
 
 // NewTruAPI returns a `TruAPI` instance populated with the existing app and a new GraphQL client
-func NewTruAPI(cliCtx cliContext.CLIContext) *TruAPI {
+func NewTruAPI(apiCtx context.TruAPIContext) *TruAPI {
 	ta := TruAPI{
-		API:                     chttp.NewAPI(cliCtx, supported),
+		API:                     chttp.NewAPI(apiCtx, supported),
 		GraphQLClient:           graphql.NewGraphQLClient(),
 		DBClient:                db.NewDBClient(),
 		commentsNotificationsCh: make(chan CommentNotificationRequest),

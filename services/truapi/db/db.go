@@ -11,6 +11,7 @@ import (
 // It wraps a pool of Postgres DB connections.
 type Client struct {
 	*pg.DB
+	config truCtx.Config
 }
 
 // NewDBClient creates a Postgres client
@@ -24,7 +25,7 @@ func NewDBClient(apiCtx truCtx.TruAPIContext) *Client {
 		PoolSize: config.Pool,
 	})
 
-	return &Client{db}
+	return &Client{db, apiCtx.Config}
 }
 
 // GenericMutations write to the database

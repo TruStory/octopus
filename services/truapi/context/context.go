@@ -28,6 +28,12 @@ type DatabaseConfig struct {
 	Pool int
 }
 
+// FlagConfig is the config for flagging content
+type FlagConfig struct {
+	Limit int
+	Admin string
+}
+
 // HostConfig is the config for the server host
 type HostConfig struct {
 	Name          string
@@ -62,6 +68,7 @@ type Config struct {
 	App      AppConfig
 	Cookie   CookieConfig
 	Database DatabaseConfig
+	Flag     FlagConfig
 	Host     HostConfig
 	Push     PushConfig
 	Twitter  TwitterConfig

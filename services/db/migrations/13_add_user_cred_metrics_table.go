@@ -14,7 +14,7 @@ func init() {
 			address VARCHAR (65) NOT NULL,
 			as_on_date DATE NOT NULL DEFAULT CURRENT_DATE,
 			cred_earned_denom VARCHAR (65) NOT NULL,
-			cred_earned_amount BIGINT NOT NULL,
+			cred_earned_amount VARCHAR (65) NOT NULL,
 			created_at TIMESTAMP DEFAULT NOW(),
 			updated_at TIMESTAMP DEFAULT NOW(),
 			deleted_at TIMESTAMP

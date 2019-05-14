@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -45,6 +44,8 @@ const (
 	flagTwitterAPIKey        = "twitter.api.key"
 	flagTwitterAPISecret     = "twitter.api.secret"
 	flagTwitterOAUTHCallback = "twitter.oath.callback"
+	flagFlagLimit            = "flag.limit"
+	flagFlagAdmin            = "flag.admin"
 )
 
 var (
@@ -64,11 +65,8 @@ func Execute() {
 	rootCmd.AddCommand(startCmd(codec))
 	rootCmd.PersistentFlags().String(client.FlagChainID, "", "Chain ID of tendermint node")
 	// rootCmd.MarkPersistentFlagRequired(client.FlagChainID)
+	// TODO: add require trust-node OR chain-id and --home?
 	viper.BindPFlag(client.FlagChainID, rootCmd.PersistentFlags().Lookup(client.FlagChainID))
-
-	// viper.AutomaticEnv()
-	// Add flags and prefix all env exposed with TRU
-	// 	executor := cli.PrepareMainCmd(rootCmd, "TRU", app.DefaultCLIHome)
 
 	err := rootCmd.Execute()
 	if err != nil {
@@ -82,14 +80,11 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 		Use:   "start",
 		Short: "Start API daemon, a local HTTP server",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			// fmt.Println(cmd.Flag(client.FlagTrustNode).Value.String())
-
 			var config context.Config
 			err = viper.Unmarshal(&config)
 			if err != nil {
 				panic(err)
 			}
-			fmt.Println("Starting server with the following config: \n" + prettyPrint(config))
 
 			cliCtx := sdkContext.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
 			apiCtx := context.NewTruAPIContext(&cliCtx, config)
@@ -120,13 +115,9 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 	cmd = registerPushFlags(cmd)
 	cmd = registerWebFlags(cmd)
 	cmd = registerTwitterFlags(cmd)
+	cmd = registerFlagFlags(cmd)
 
 	return cmd
-}
-
-func prettyPrint(i interface{}) string {
-	s, _ := json.MarshalIndent(i, "", "\t")
-	return string(s)
 }
 
 func registerAppFlags(cmd *cobra.Command) *cobra.Command {
@@ -225,6 +216,16 @@ func registerTwitterFlags(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().String(flagTwitterOAUTHCallback, "http://localhost:1337/auth-twitter-callback", "Twitter OAUTH callback URL")
 	viper.BindPFlag(flagTwitterOAUTHCallback, cmd.Flags().Lookup(flagTwitterOAUTHCallback))
+
+	return cmd
+}
+
+func registerFlagFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().Int(flagFlagLimit, 4294967295, "Number of flags needed to hide content")
+	viper.BindPFlag(flagFlagLimit, cmd.Flags().Lookup(flagFlagLimit))
+
+	cmd.Flags().String(flagFlagAdmin, "cosmos1xqc5gwzpg3fyv5en2fzyx36z2se5ks33tt57e7", "Flag admin account")
+	viper.BindPFlag(flagFlagAdmin, cmd.Flags().Lookup(flagFlagAdmin))
 
 	return cmd
 }

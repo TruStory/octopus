@@ -27,7 +27,8 @@ func unique(values []string) []string {
 func (s *service) parseCosmosMentions(body string) (string, []string) {
 	parsedBody := body
 	usernameByAddress := map[string]string{}
-	addresses := mention.GetTagsAsUniqueStrings('@', body, ' ', '\n', '\r')
+	terminators := []rune(" \n\r.,():!?")
+	addresses := mention.GetTagsAsUniqueStrings('@', body, terminators...)
 	for _, address := range addresses {
 		twitterProfile, err := s.db.TwitterProfileByAddress(address)
 		if err != nil {

@@ -46,6 +46,9 @@ const (
 	flagTwitterOAUTHCallback = "twitter.oath.callback"
 	flagFlagLimit            = "flag.limit"
 	flagFlagAdmin            = "flag.admin"
+	flagRegistrarName        = "registrar.name"
+	flagRegistrarAddr        = "registrar.addr"
+	flagRegistrarPass        = "registrar.password"
 )
 
 var (
@@ -75,6 +78,13 @@ func Execute() {
 	}
 }
 
+// ./bin/trucli config chain-id test-chain-K8fT26
+// ./bin/trucli keys add registrar --home /Users/blockshane
+// ./bin/truchaind add-genesis-account $(./bin/trucli keys show registrar -a --home /Users/blockshane) 1000trusteak,1000trustake
+// ./bin/truchaind unsafe-reset-all
+// ./bin/truchaind start
+// ./bin/truapid start --chain-id test-chain-K8fT26
+
 func startCmd(codec *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
@@ -85,6 +95,12 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 			if err != nil {
 				panic(err)
 			}
+
+			// rootDir := viper.GetString(client.HomeFlag)
+			// TODO: check if keystore is the same for trucli and truapid
+			viper.Set("home", "/Users/blockshane")
+			rootDir := viper.GetString("home")
+			fmt.Printf("--home flag is %s\n", rootDir)
 
 			cliCtx := sdkContext.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
 			apiCtx := context.NewTruAPIContext(&cliCtx, config)
@@ -116,6 +132,7 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 	cmd = registerWebFlags(cmd)
 	cmd = registerTwitterFlags(cmd)
 	cmd = registerFlagFlags(cmd)
+	cmd = registerRegistrarFlags(cmd)
 
 	return cmd
 }
@@ -226,6 +243,19 @@ func registerFlagFlags(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().String(flagFlagAdmin, "cosmos1xqc5gwzpg3fyv5en2fzyx36z2se5ks33tt57e7", "Flag admin account")
 	viper.BindPFlag(flagFlagAdmin, cmd.Flags().Lookup(flagFlagAdmin))
+
+	return cmd
+}
+
+func registerRegistrarFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().String(flagRegistrarName, "registrar", "Registrar account name")
+	viper.BindPFlag(flagRegistrarName, cmd.Flags().Lookup(flagRegistrarName))
+
+	cmd.Flags().String(flagRegistrarAddr, "", "Registrar account address")
+	viper.BindPFlag(flagRegistrarAddr, cmd.Flags().Lookup(flagRegistrarAddr))
+
+	cmd.Flags().String(flagRegistrarPass, "", "Registrar account password")
+	viper.BindPFlag(flagRegistrarPass, cmd.Flags().Lookup(flagRegistrarPass))
 
 	return cmd
 }

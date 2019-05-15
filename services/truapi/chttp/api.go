@@ -2,31 +2,26 @@ package chttp
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"path/filepath"
 	"time"
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
-	chain "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/users"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/utils"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/gorilla/mux"
 	"github.com/oklog/ulid"
-	"github.com/spf13/viper"
 	amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
-	"github.com/tendermint/tmlibs/cli"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 )
@@ -142,15 +137,8 @@ func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (
 		addr = generateAddress()
 	}
 
-	tx, err := a.signedRegistrationTx(addr, k, algo)
+	_, err = a.signAndBroadcastRegistrationTx(addr, k, algo)
 	if err != nil {
-		fmt.Println("TX Parse error: ", err, tx)
-		return
-	}
-
-	res, err := a.DeliverPresigned(tx)
-	if err != nil {
-		fmt.Println("TX Broadcast error: ", err, res)
 		return
 	}
 
@@ -163,7 +151,7 @@ func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (
 	}
 
 	var u []users.User
-	err = amino.UnmarshalJSON(result, u)
+	err = amino.UnmarshalJSON(result, &u)
 	if err != nil {
 		panic(err)
 	}
@@ -186,85 +174,48 @@ func generateAddress() []byte {
 	return addr
 }
 
-func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (auth.StdTx, error) {
-	// query registrar account
-	// TODO: query using Cosmos auth module (GET account/, {sdk.AccAddress})
-	addresses := users.QueryUsersByAddressesParams{
-		Addresses: []string{chain.RegistrarAccAddress},
-	}
-	res, err := a.RunQuery(users.QueryPath, addresses)
-	if err != nil {
-		return auth.StdTx{}, err
-	}
+// Steps:
+// get --home flag right.. /Users/blockshane/.truapid
+// created an account with trucli keys add
+// added this to truchaind with `truchaind add-genesis-account`
+// then start chain
 
-	var u []users.User
-	err = amino.UnmarshalJSON(res, u)
-	if err != nil {
+func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (sdk.TxResponse, error) {
+	cliCtx := a.apiCtx
+	config := cliCtx.Config.Registrar
+
+	registrarAddr, err := sdk.AccAddressFromBech32(config.Addr)
+	if err := cliCtx.EnsureAccountExistsFromAddr(registrarAddr); err != nil {
 		panic(err)
 	}
-	registrarAcc := u[0]
 
-	registrarNum := registrarAcc.AccountNumber
-	registrarSequence := registrarAcc.Sequence
-	registrationMemo := "reg"
 	msg := users.RegisterKeyMsg{
 		Address:    addr,
 		PubKey:     k,
 		PubKeyAlgo: algo,
 		Coins:      nil,
 	}
-
-	// Sign tx as registrar
-	bytesToSign := auth.StdSignBytes(
-		a.apiCtx.Config.ChainID,
-		registrarNum,
-		registrarSequence,
-		chain.RegistrationFee,
-		[]sdk.Msg{msg},
-		registrationMemo)
-
-	registrarKey := loadRegistrarKey()
-	sigBytes, err := registrarKey.Sign(bytesToSign)
-	if err != nil {
-		return auth.StdTx{}, err
-	}
-
-	// Construct and submit signed tx
-	tx := auth.StdTx{
-		Msgs: []sdk.Msg{msg},
-		Fee:  chain.RegistrationFee,
-		Signatures: []auth.StdSignature{auth.StdSignature{
-			PubKey:    registrarKey.PubKey(),
-			Signature: sigBytes,
-		}},
-		Memo: registrationMemo,
-	}
-
-	return tx, nil
-}
-
-func loadRegistrarKey() secp256k1.PrivKeySecp256k1 {
-	rootdir := viper.GetString(cli.HomeFlag)
-	if rootdir == "" {
-		rootdir = "$HOME/.truapid"
-	}
-	keypath := filepath.Join(rootdir, "registrar.key")
-	fileBytes, err := ioutil.ReadFile(keypath)
+	err = msg.ValidateBasic()
 	if err != nil {
 		panic(err)
 	}
 
-	keyBytes, err := hex.DecodeString(string(fileBytes))
+	// build and sign the transaction
+	seq, err := cliCtx.GetAccountSequence(registrarAddr)
 	if err != nil {
 		panic(err)
 	}
-	if len(keyBytes) != 32 {
-		panic("Invalid registrar key: " + string(fileBytes))
+	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
+	if err != nil {
+		panic(err)
 	}
-	key := secp256k1.PrivKeySecp256k1{}
-	copy(key[:], keyBytes)
 
-	return key
+	// broadcast to a Tendermint node
+	res, err := cliCtx.BroadcastTx(txBytes)
+	cliCtx.PrintOutput(res)
+
+	return res, nil
 }
 
 // RunQuery dispatches a query (path + params) to the Tendermint node

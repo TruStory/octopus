@@ -114,6 +114,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	// if user exists,
 	var addr string
 	if currentTwitterProfile.ID != 0 {

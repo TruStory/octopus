@@ -43,6 +43,15 @@ func (s *service) parseCosmosMentions(body string) (string, []string) {
 	return parsedBody, addresses
 }
 
+func contains(values []string, value string) bool {
+	for _, v := range values {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNotificationRequest, notifications chan<- *Notification) {
 	for n := range cNotifications {
 		c, err := s.db.CommentByID(n.ID)
@@ -83,6 +92,10 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			if p == c.Creator || p == n.ArgumentCreator {
 				continue
 			}
+			var action string
+			if contains(addresses, p) {
+				action = "Mentioned you in a comment"
+			}
 			notifications <- &Notification{
 				From:   &c.Creator,
 				To:     p,
@@ -90,7 +103,7 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 				Type:   db.NotificationMentionAction,
 				Msg:    parsedComment,
 				Meta:   meta,
-				Action: "Mentioned you in a comment",
+				Action: action,
 				Trim:   true,
 			}
 		}

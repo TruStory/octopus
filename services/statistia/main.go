@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"net/http"
 	"time"
 )
@@ -17,6 +16,9 @@ func main() {
 
 	yesterdayMetrics := fetchMetrics(yesterday)
 	todayMetrics := fetchMetrics(today)
+	// dailyMetrics := &MetricsSummary{
+	// 	Users: make(map[string]*UserMetrics),
+	// }
 	for address, todayMetric := range todayMetrics.Users {
 		for categoryID, todayCategoryMetric := range todayMetric.CategoryMetrics {
 			yesterdayMetric, ok := yesterdayMetrics.Users[address]
@@ -29,11 +31,11 @@ func main() {
 						TotalArguments:            todayCategoryMetric.Metrics.TotalArguments - yesterdayCategoryMetric.Metrics.TotalArguments,
 						TotalGivenEndorsements:    todayCategoryMetric.Metrics.TotalGivenEndorsements - yesterdayCategoryMetric.Metrics.TotalGivenEndorsements,
 						TotalReceivedEndorsements: todayCategoryMetric.Metrics.TotalReceivedEndorsements - yesterdayCategoryMetric.Metrics.TotalReceivedEndorsements,
-						TotalAmountStaked:         subtractCoin(todayCategoryMetric.Metrics.TotalAmountStaked, yesterdayCategoryMetric.Metrics.TotalAmountStaked),
-						TotalAmountAtStake:        subtractCoin(todayCategoryMetric.Metrics.TotalAmountAtStake, yesterdayCategoryMetric.Metrics.TotalAmountAtStake),
-						StakeEarned:               subtractCoin(todayCategoryMetric.Metrics.StakeEarned, yesterdayCategoryMetric.Metrics.StakeEarned),
-						StakeLost:                 subtractCoin(todayCategoryMetric.Metrics.StakeLost, yesterdayCategoryMetric.Metrics.StakeLost),
-						InterestEarned:            subtractCoin(todayCategoryMetric.Metrics.InterestEarned, yesterdayCategoryMetric.Metrics.InterestEarned),
+						TotalAmountStaked:         todayCategoryMetric.Metrics.TotalAmountStaked.Minus(yesterdayCategoryMetric.Metrics.TotalAmountStaked),
+						TotalAmountAtStake:        todayCategoryMetric.Metrics.TotalAmountAtStake.Minus(yesterdayCategoryMetric.Metrics.TotalAmountAtStake),
+						StakeEarned:               todayCategoryMetric.Metrics.StakeEarned.Minus(yesterdayCategoryMetric.Metrics.StakeEarned),
+						StakeLost:                 todayCategoryMetric.Metrics.StakeLost.Minus(yesterdayCategoryMetric.Metrics.StakeLost),
+						InterestEarned:            todayCategoryMetric.Metrics.InterestEarned.Minus(yesterdayCategoryMetric.Metrics.InterestEarned),
 					}
 
 					fmt.Printf("\nUser -- %v\nMetrics -- %v\nPer Day -- %v\n\n", address, todayMetric, dailyCategoryMetric)
@@ -41,24 +43,6 @@ func main() {
 
 			}
 		}
-	}
-}
-
-func subtractCoin(coinA, coinB Coin) Coin {
-	if coinA.Denom != coinB.Denom {
-		panic("denom must be same when calculating diff")
-	}
-
-	bigIntCoinA, _ := new(big.Int).SetString(coinA.Amount, 10)
-	bigIntCoinB, _ := new(big.Int).SetString(coinB.Amount, 10)
-
-	fmt.Printf("\nBIG INT DIFF -- %v -- %v\n", bigIntCoinA, bigIntCoinB)
-
-	bigIntDiff := new(big.Int).Sub(bigIntCoinA, bigIntCoinB)
-
-	return Coin{
-		Denom:  coinA.Denom,
-		Amount: bigIntDiff.String(),
 	}
 }
 

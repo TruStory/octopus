@@ -1,37 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"math/big"
 )
-
-// Int wraps integer with 256 bit range bound
-// Checks overflow, underflow and division by zero
-// Exists in range from -(2^255-1) to 2^255-1
-type Int struct {
-	i *big.Int
-}
-
-type BigInt struct {
-	big.Int
-}
-
-func (b BigInt) MarshalJSON() ([]byte, error) {
-	return []byte(b.String()), nil
-}
-
-func (b *BigInt) UnmarshalJSON(p string) error {
-	if string(p) == "null" {
-		return nil
-	}
-	var z big.Int
-	_, ok := z.SetString(p, 10)
-	if !ok {
-		return fmt.Errorf("not a valid big integer: %s", p)
-	}
-	b.Int = z
-	return nil
-}
 
 // Coin hold some amount of one currency.
 type Coin struct {
@@ -39,16 +10,21 @@ type Coin struct {
 	Amount string `json:"amount"`
 }
 
-// Minus subtracts amounts of two coins with same denom. If the coins differ in denom
-// then it panics.
-// func (coin Coin) Minus(coinB Coin) Coin {
-// 	res := Coin{coin.Denom, coin.Amount.Sub(coinB.Amount)}
-// 	if res.IsNegative() {
-// 		panic("negative count amount")
-// 	}
+// Minus substracts another coin from the given coin
+func (given *Coin) Minus(another Coin) Coin {
+	if given.Denom != another.Denom {
+		panic("only same denom coins can be subtracted")
+	}
 
-// 	return res
-// }
+	givenBI, _ := new(big.Int).SetString(given.Amount, 10)
+	anotherBI, _ := new(big.Int).SetString(another.Amount, 10)
+	diffBI := new(big.Int).Sub(givenBI, anotherBI)
+
+	return Coin{
+		Denom:  given.Denom,
+		Amount: diffBI.String(),
+	}
+}
 
 // MetricsSummary represents metrics for the platform.
 type MetricsSummary struct {

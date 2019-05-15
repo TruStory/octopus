@@ -15,6 +15,7 @@ import (
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/truchain/x/users"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/gorilla/mux"
@@ -188,7 +189,12 @@ func generateAddress() []byte {
 func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (auth.StdTx, error) {
 	// query registrar account
 	// TODO: query using Cosmos auth module (GET account/, {sdk.AccAddress})
-	registrarAddr := "cosmos1exqqpkgzpdged5y6hv5x4lkan7m0ptevzkvsnw"
+
+	// Steps
+	// created an account with trucli keys add
+	// added this to truchaind with `truchaind add-genesis-account`
+
+	registrarAddr := "cosmos16u29tlaydznkll6ukl820epz7tjqmzv37rt53n"
 	addresses := users.QueryUsersByAddressesParams{
 		Addresses: []string{registrarAddr},
 	}
@@ -203,21 +209,18 @@ func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (a
 	// TODO
 	// need to pull saved key from keystore, and sign it
 
-	cliCtx := a.apiCtx
+	fromAddr, err := sdk.AccAddressFromBech32(registrarAddr)
+	if err != nil {
+		panic(err)
+	}
+	// cliCtx := a.apiCtx.WithFromAddress(fromAddr).WithFromName("rootshane").WithFrom("rootshane")
+	cliCtx := a.apiCtx.WithFromAddress(fromAddr).WithFromName("rootshane")
+
 	// codec := a.apiCtx.Codec
 	// txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(codec))
 	if err := cliCtx.EnsureAccountExists(); err != nil {
 		panic(err)
 	}
-
-	return auth.StdTx{}, nil
-
-	// msg := users.RegisterKeyMsg{
-	// 	Address:    addr,
-	// 	PubKey:     nil,
-	// 	PubKeyAlgo: "",
-	// 	Coins:      nil,
-	// }
 
 	// var u []users.User
 	// err = amino.UnmarshalJSON(res, &u)
@@ -229,12 +232,40 @@ func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (a
 	// registrarNum := registrarAcc.AccountNumber
 	// registrarSequence := registrarAcc.Sequence
 	// registrationMemo := "reg"
-	// msg := users.RegisterKeyMsg{
-	// 	Address:    addr,
-	// 	PubKey:     k,
-	// 	PubKeyAlgo: algo,
-	// 	Coins:      nil,
+	msg := users.RegisterKeyMsg{
+		Address:    addr,
+		PubKey:     k,
+		PubKeyAlgo: algo,
+		Coins:      nil,
+	}
+	err = msg.ValidateBasic()
+	if err != nil {
+		panic(err)
+	}
+
+	keyInfo, err := keys.GetKeyInfo("rootshane")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(keyInfo)
+
+	passphrase, err := keys.GetPassphrase("rootshane")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(passphrase)
+
+	return auth.StdTx{}, nil
+
+	// build and sign the transaction
+	// txBytes, err := txBldr.BuildAndSign(fromName, passphrase, msgs)
+	// if err != nil {
+	// 	return err
 	// }
+
+	// broadcast to a Tendermint node
+	// res, err := cliCtx.BroadcastTx(txBytes)
+	// cliCtx.PrintOutput(res)
 
 	// // Sign tx as registrar
 	// bytesToSign := auth.StdSignBytes(

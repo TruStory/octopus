@@ -86,6 +86,12 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 				panic(err)
 			}
 
+			// rootDir := viper.GetString(client.HomeFlag)
+			// TODO: check if keystore is the same for trucli and truapid
+			viper.Set("home", "/Users/blockshane")
+			rootDir := viper.GetString("home")
+			fmt.Printf("--home flag is %s\n", rootDir)
+
 			cliCtx := sdkContext.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
 			apiCtx := context.NewTruAPIContext(&cliCtx, config)
 			truAPI := truapi.NewTruAPI(apiCtx)

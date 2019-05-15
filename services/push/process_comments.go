@@ -27,7 +27,8 @@ func unique(values []string) []string {
 func (s *service) parseCosmosMentions(body string) (string, []string) {
 	parsedBody := body
 	usernameByAddress := map[string]string{}
-	addresses := mention.GetTagsAsUniqueStrings('@', body, ' ', '\n', '\r')
+	terminators := []rune(" \n\r.,():!?")
+	addresses := mention.GetTagsAsUniqueStrings('@', body, terminators...)
 	for _, address := range addresses {
 		twitterProfile, err := s.db.TwitterProfileByAddress(address)
 		if err != nil {
@@ -40,6 +41,15 @@ func (s *service) parseCosmosMentions(body string) (string, []string) {
 		parsedBody = strings.ReplaceAll(parsedBody, address, username)
 	}
 	return parsedBody, addresses
+}
+
+func contains(values []string, value string) bool {
+	for _, v := range values {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNotificationRequest, notifications chan<- *Notification) {
@@ -82,6 +92,10 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			if p == c.Creator || p == n.ArgumentCreator {
 				continue
 			}
+			var action string
+			if contains(addresses, p) {
+				action = "Mentioned you in a comment"
+			}
 			notifications <- &Notification{
 				From:   &c.Creator,
 				To:     p,
@@ -89,7 +103,7 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 				Type:   db.NotificationMentionAction,
 				Msg:    parsedComment,
 				Meta:   meta,
-				Action: "Mentioned you in a comment",
+				Action: action,
 				Trim:   true,
 			}
 		}

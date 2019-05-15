@@ -13,7 +13,6 @@ import (
 	"time"
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
-	chain "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/users"
 	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -189,58 +188,81 @@ func generateAddress() []byte {
 func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (auth.StdTx, error) {
 	// query registrar account
 	// TODO: query using Cosmos auth module (GET account/, {sdk.AccAddress})
+	registrarAddr := "cosmos1exqqpkgzpdged5y6hv5x4lkan7m0ptevzkvsnw"
 	addresses := users.QueryUsersByAddressesParams{
-		Addresses: []string{chain.RegistrarAccAddress},
+		Addresses: []string{registrarAddr},
 	}
-	res, err := a.RunQuery(users.QueryPath, addresses)
-	if err != nil {
-		return auth.StdTx{}, err
-	}
+	fmt.Println(addresses)
+	// res, err := a.RunQuery(users.QueryPath, addresses)
+	// if err != nil {
+	// 	return auth.StdTx{}, err
+	// }
 
-	var u []users.User
-	err = amino.UnmarshalJSON(res, u)
-	if err != nil {
+	// auth.NewQueryAccountParams()
+
+	// TODO
+	// need to pull saved key from keystore, and sign it
+
+	cliCtx := a.apiCtx
+	// codec := a.apiCtx.Codec
+	// txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(codec))
+	if err := cliCtx.EnsureAccountExists(); err != nil {
 		panic(err)
 	}
-	registrarAcc := u[0]
 
-	registrarNum := registrarAcc.AccountNumber
-	registrarSequence := registrarAcc.Sequence
-	registrationMemo := "reg"
-	msg := users.RegisterKeyMsg{
-		Address:    addr,
-		PubKey:     k,
-		PubKeyAlgo: algo,
-		Coins:      nil,
-	}
+	return auth.StdTx{}, nil
 
-	// Sign tx as registrar
-	bytesToSign := auth.StdSignBytes(
-		a.apiCtx.Config.ChainID,
-		registrarNum,
-		registrarSequence,
-		chain.RegistrationFee,
-		[]sdk.Msg{msg},
-		registrationMemo)
+	// msg := users.RegisterKeyMsg{
+	// 	Address:    addr,
+	// 	PubKey:     nil,
+	// 	PubKeyAlgo: "",
+	// 	Coins:      nil,
+	// }
 
-	registrarKey := loadRegistrarKey()
-	sigBytes, err := registrarKey.Sign(bytesToSign)
-	if err != nil {
-		return auth.StdTx{}, err
-	}
+	// var u []users.User
+	// err = amino.UnmarshalJSON(res, &u)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// registrarAcc := u[0]
 
-	// Construct and submit signed tx
-	tx := auth.StdTx{
-		Msgs: []sdk.Msg{msg},
-		Fee:  chain.RegistrationFee,
-		Signatures: []auth.StdSignature{auth.StdSignature{
-			PubKey:    registrarKey.PubKey(),
-			Signature: sigBytes,
-		}},
-		Memo: registrationMemo,
-	}
+	// registrarNum := registrarAcc.AccountNumber
+	// registrarSequence := registrarAcc.Sequence
+	// registrationMemo := "reg"
+	// msg := users.RegisterKeyMsg{
+	// 	Address:    addr,
+	// 	PubKey:     k,
+	// 	PubKeyAlgo: algo,
+	// 	Coins:      nil,
+	// }
 
-	return tx, nil
+	// // Sign tx as registrar
+	// bytesToSign := auth.StdSignBytes(
+	// 	a.apiCtx.Config.ChainID,
+	// 	registrarNum,
+	// 	registrarSequence,
+	// 	chain.RegistrationFee,
+	// 	[]sdk.Msg{msg},
+	// 	registrationMemo)
+
+	// registrarKey := loadRegistrarKey()
+	// sigBytes, err := registrarKey.Sign(bytesToSign)
+	// if err != nil {
+	// 	return auth.StdTx{}, err
+	// }
+
+	// // Construct and submit signed tx
+	// tx := auth.StdTx{
+	// 	Msgs: []sdk.Msg{msg},
+	// 	Fee:  chain.RegistrationFee,
+	// 	Signatures: []auth.StdSignature{auth.StdSignature{
+	// 		PubKey:    registrarKey.PubKey(),
+	// 		Signature: sigBytes,
+	// 	}},
+	// 	Memo: registrationMemo,
+	// }
+
+	// return tx, nil
 }
 
 func loadRegistrarKey() secp256k1.PrivKeySecp256k1 {

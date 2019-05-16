@@ -16,7 +16,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	tmCli "github.com/tendermint/tendermint/libs/cli"
 )
 
 const (
@@ -53,9 +52,6 @@ const (
 )
 
 var (
-	// Used for flags.
-	configFile string
-
 	defaultCLIHome = os.ExpandEnv("$HOME/.octopus")
 
 	rootCmd = &cobra.Command{
@@ -76,8 +72,8 @@ func Execute() {
 	rootCmd.PersistentFlags().String(flagHome, defaultCLIHome, "Home folder that has config.toml and keystore")
 	viper.BindPFlag(flagHome, rootCmd.PersistentFlags().Lookup(flagHome))
 
-	rootDir := viper.GetString(flagHome)
-	fmt.Printf("--home flag is %s\n", rootDir)
+	// rootDir := viper.GetString(flagHome)
+	// fmt.Printf("--home flag is %s\n", rootDir)
 
 	err := rootCmd.Execute()
 	if err != nil {
@@ -107,8 +103,8 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 			// rootDir := viper.GetString(client.HomeFlag)
 			// TODO: check if keystore is the same for trucli and truapid
 			// viper.Set("home", "/Users/blockshane")
-			rootDir := viper.GetString(tmCli.HomeFlag)
-			fmt.Printf("--home flag is %s\n", rootDir)
+			// rootDir := viper.GetString(flagHome)
+			// fmt.Printf("--home flag is %s\n", rootDir)
 
 			cliCtx := sdkContext.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
 			apiCtx := context.NewTruAPIContext(&cliCtx, config)
@@ -269,37 +265,11 @@ func registerRegistrarFlags(cmd *cobra.Command) *cobra.Command {
 }
 
 func initConfig() {
-	// if configFile != "" {
-	// 	viper.SetConfigFile(configFile)
-	// } else {
-	// 	home, err := homedir.Dir()
-	// 	if err != nil {
-	// 		fmt.Println(err)
-	// 		os.Exit(1)
-	// 	}
-
-	// 	viper.AutomaticEnv()
-	// 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	// 	viper.AddConfigPath(home)
-	// 	viper.SetConfigName(".truapid/config")
-	// }
-
-	if configFile != "" {
-		viper.SetConfigFile(configFile)
-	} else {
-		// home, err := homedir.Dir()
-		home := viper.GetString(flagHome)
-		// if err != nil {
-		// 	fmt.Println(err)
-		// 	os.Exit(1)
-		// }
-
-		viper.AutomaticEnv()
-		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-		viper.AddConfigPath(home)
-		fmt.Printf("home: %s\n", home)
-		viper.SetConfigName("config")
-	}
+	home := viper.GetString(flagHome)
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AddConfigPath(home)
+	viper.SetConfigName("config")
 
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Printf("Can't read config: %s. Using flags, environment variables, or defaults.\n", err)

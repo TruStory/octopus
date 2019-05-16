@@ -137,9 +137,8 @@ func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (
 		addr = generateAddress()
 	}
 
-	tx, err := a.signedRegistrationTx(addr, k, algo)
+	_, err = a.signAndBroadcastRegistrationTx(addr, k, algo)
 	if err != nil {
-		fmt.Println("TX Parse error: ", err, tx)
 		return
 	}
 
@@ -181,9 +180,11 @@ func generateAddress() []byte {
 // added this to truchaind with `truchaind add-genesis-account`
 // then start chain
 
-func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (auth.StdTx, error) {
+func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (sdk.TxResponse, error) {
 	cliCtx := a.apiCtx
-	registrarAddr, err := sdk.AccAddressFromBech32(cliCtx.Config.Registrar.Addr)
+	config := cliCtx.Config.Registrar
+
+	registrarAddr, err := sdk.AccAddressFromBech32(config.Addr)
 	if err := cliCtx.EnsureAccountExistsFromAddr(registrarAddr); err != nil {
 		panic(err)
 	}
@@ -200,10 +201,12 @@ func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (a
 	}
 
 	// build and sign the transaction
-	name := cliCtx.Config.Registrar.Name
-	passphrase := cliCtx.Config.Registrar.Pass
-	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(0).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
-	txBytes, err := txBldr.BuildAndSign(name, passphrase, []sdk.Msg{msg})
+	seq, err := cliCtx.GetAccountSequence(registrarAddr)
+	if err != nil {
+		panic(err)
+	}
+	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
 		panic(err)
 	}
@@ -212,7 +215,7 @@ func (a *API) signedRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (a
 	res, err := cliCtx.BroadcastTx(txBytes)
 	cliCtx.PrintOutput(res)
 
-	return auth.StdTx{}, nil
+	return res, nil
 }
 
 // RunQuery dispatches a query (path + params) to the Tendermint node

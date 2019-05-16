@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-pg/pg"
+
 	"github.com/TruStory/truchain/x/db"
 	"github.com/gorilla/mux"
 )
@@ -28,18 +30,58 @@ func main() {
 		httpClient:      &http.Client{},
 		dbClient:        db.NewDBClient(),
 	}
+	defer statistia.dbClient.Close()
 
-	// Daily cronjob - go run *.go today
-	// Historical seeding - go run *.go 2019-04-14--today
 	args := os.Args[1:]
 
-	if len(args) == 1 && args[0] == "today" {
-		today := time.Now()
-		seed(statistia, today)
+	if len(args) == 0 {
+		// Running as a background service - go run *.go
+		// statistia.run()
+	} else if len(args) == 2 {
+		// Running as the historical seeder - go run *.go 2019-04-14 today
+		var from, to time.Time
+		var err error
+
+		if args[0] == "today" {
+			from = time.Now()
+		} else {
+			from, err = time.Parse("2006-01-02", args[0])
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		if args[1] == "today" {
+			to = time.Now()
+		} else {
+			to, err = time.Parse("2006-01-02", args[1])
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		statistia.seedBetween(from, to)
 	}
 }
 
-func seed(statistia *service, date time.Time) {
+// seedBetween seeds the user daily metrics between the two given dates
+func (statistia *service) seedBetween(from, to time.Time) {
+	statistia.dbClient.RunInTransaction(func(tx *pg.Tx) error {
+		// set date to starting date and keep adding 1 day to it as long as it comes before to
+		for date := from; date.Before(to); date = date.AddDate(0, 0, 1) {
+			err := statistia.seedInTxFor(tx, date)
+
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+// seedFor seeds the user daily metrics for the given date
+func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 	today := date
 	yesterday := date.Add(-24 * 1 * time.Hour)
 
@@ -91,17 +133,19 @@ func seed(statistia *service, date time.Time) {
 			}
 
 			fmt.Printf("\t\tSaving...\n")
-			err := statistia.saveMetrics(dUserMetric)
+			err := statistia.saveMetrics(tx, dUserMetric)
 			if err != nil {
 				fmt.Printf("\t\tSaving FAILED\n")
-				panic(err)
+				return err
 			}
 		}
 	}
+
+	return nil
 }
 
-func (statistia *service) saveMetrics(metrics DailyUserMetric) error {
-	err := UpsertDailyUserMetric(statistia.dbClient, metrics)
+func (statistia *service) saveMetrics(tx *pg.Tx, metrics DailyUserMetric) error {
+	err := UpsertDailyUserMetricInTx(tx, metrics)
 	if err != nil {
 		return err
 	}

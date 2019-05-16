@@ -3,6 +3,8 @@ package main
 import (
 	"time"
 
+	"github.com/go-pg/pg"
+
 	"github.com/TruStory/truchain/x/db"
 )
 
@@ -30,6 +32,31 @@ type DailyUserMetric struct {
 // UpsertDailyUserMetric inserts or updates the daily metric for the user
 func UpsertDailyUserMetric(client *db.Client, metric DailyUserMetric) error {
 	_, err := client.Model(&metric).
+		OnConflict("ON CONSTRAINT no_duplicate_metric DO UPDATE").
+		Set(`
+			address = EXCLUDED.address,
+			total_claims = EXCLUDED.total_claims,
+			total_arguments = EXCLUDED.total_arguments,
+			total_backed = EXCLUDED.total_backed,
+			total_challenged = EXCLUDED.total_challenged,
+			total_endorsements_given = EXCLUDED.total_endorsements_given,
+			total_endorsements_received = EXCLUDED.total_endorsements_received,
+			stake_earned = EXCLUDED.stake_earned,
+			stake_lost = EXCLUDED.stake_lost,
+			stake_balance = EXCLUDED.stake_balance,
+			interest_earned = EXCLUDED.interest_earned,
+			total_amount_at_stake = EXCLUDED.total_amount_at_stake,
+			total_amount_staked = EXCLUDED.total_amount_staked,
+			cred_earned = EXCLUDED.cred_earned
+		`).
+		Insert()
+
+	return err
+}
+
+// UpsertDailyUserMetricInTx inserts or updates the daily metric for the user in a transaction
+func UpsertDailyUserMetricInTx(tx *pg.Tx, metric DailyUserMetric) error {
+	_, err := tx.Model(&metric).
 		OnConflict("ON CONSTRAINT no_duplicate_metric DO UPDATE").
 		Set(`
 			address = EXCLUDED.address,

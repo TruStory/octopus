@@ -6,10 +6,13 @@ require (
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
+	github.com/bartekn/go-bip39 v0.0.0-20171116152956-a05967ea095d // indirect
+	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32 // indirect
 	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
 	github.com/corpix/uarand v0.1.0 // indirect
 	github.com/cosmos/cosmos-sdk v0.33.0
+	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d // indirect
 	github.com/dghubble/go-twitter v0.0.0-20190512073027-53f972dc4b06 // indirect
 	github.com/dghubble/gologin v2.1.0+incompatible // indirect
 	github.com/dghubble/oauth1 v0.5.0 // indirect
@@ -49,6 +52,7 @@ require (
 	github.com/spf13/cobra v0.0.3 // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
+	github.com/tendermint/btcd v0.1.1 // indirect
 	github.com/tendermint/go-amino v0.14.1 // indirect
 	github.com/tendermint/iavl v0.12.2 // indirect
 	github.com/tendermint/tendermint v0.30.2

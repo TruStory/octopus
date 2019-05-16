@@ -18,8 +18,8 @@ type DailyUserMetric struct {
 	TotalArguments            uint64    `json:"total_arguments"  sql:"type:,notnull"`
 	TotalBacked               uint64    `json:"total_backed"  sql:"type:,notnull"`
 	TotalChallenged           uint64    `json:"total_challenged"  sql:"type:,notnull"`
-	TotalEndorsementsGiven    uint64    `json:"total_endorsments_given"  sql:"type:,notnull"`
-	TotalEndorsementsReceived uint64    `json:"total_endorsments_received"  sql:"type:,notnull"`
+	TotalEndorsementsGiven    uint64    `json:"total_endorsements_given"  sql:"type:,notnull"`
+	TotalEndorsementsReceived uint64    `json:"total_endorsements_received"  sql:"type:,notnull"`
 	StakeEarned               uint64    `json:"stake_earned"  sql:"type:,notnull"`
 	StakeLost                 uint64    `json:"stake_lost"  sql:"type:,notnull"`
 	StakeBalance              uint64    `json:"stake_balance"  sql:"type:,notnull"`
@@ -29,12 +29,33 @@ type DailyUserMetric struct {
 	CredEarned                uint64    `json:"cred_earned"  sql:"type:,notnull"`
 }
 
-// AggregateByAddressAndDate gets and aggregates the user metrics for a given address on a given date
-func AggregateByAddressBetweenDates(client *db.Client, address string, date string) ([]DailyUserMetric, error) {
+// AggregateByAddressBetweenDates gets and aggregates the user metrics for a given address on a given date
+func AggregateByAddressBetweenDates(client *db.Client, address string, from string, to string) ([]DailyUserMetric, error) {
 	dUserMetrics := make([]DailyUserMetric, 0)
 	err := client.Model(&dUserMetrics).
+		Column("as_on_date", "category_id").
+		ColumnExpr(`
+			sum(total_claims) as total_claims,
+			sum(total_arguments) as total_arguments,
+			sum(total_backed) as total_backed,
+			sum(total_challenged) as total_challenged,
+			sum(total_endorsements_given) as total_endorsements_given,
+			sum(total_endorsements_received) as total_endorsements_received,
+			sum(stake_earned) as stake_earned,
+			sum(stake_lost) as stake_lost,
+			sum(stake_balance) as stake_balance,
+			sum(interest_earned) as interest_earned,
+			sum(total_amount_at_stake) as total_amount_at_stake,
+			sum(total_amount_staked) as total_amount_staked,
+			sum(cred_earned) as cred_earned
+		`).
 		Where("address = ?", address).
-		Where("as_on_date = ?", date).
+		Where("as_on_date >= ?", from).
+		Where("as_on_date <= ?", to).
+		Group("as_on_date").
+		Group("category_id").
+		Order("as_on_date").
+		Order("category_id").
 		Select()
 	if err != nil {
 		return nil, err

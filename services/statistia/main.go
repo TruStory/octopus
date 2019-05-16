@@ -86,13 +86,18 @@ func handleStatistics(statistia *service) http.Handler {
 			http.Error(w, "must provide a valid address", http.StatusBadRequest)
 			return
 		}
-		date := r.FormValue("date")
-		if date == "" {
-			http.Error(w, "must provide a date", http.StatusBadRequest)
+		from := r.FormValue("from")
+		if from == "" {
+			http.Error(w, "must provide a from date", http.StatusBadRequest)
+			return
+		}
+		to := r.FormValue("to")
+		if to == "" {
+			http.Error(w, "must provide a to date", http.StatusBadRequest)
 			return
 		}
 
-		dUserMetrics, err := AggregateByAddressAndDate(statistia.dbClient, address, date)
+		dUserMetrics, err := AggregateByAddressBetweenDates(statistia.dbClient, address, from, to)
 		if err != nil {
 			panic(err)
 		}

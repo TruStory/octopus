@@ -5,7 +5,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -270,6 +269,21 @@ func registerRegistrarFlags(cmd *cobra.Command) *cobra.Command {
 }
 
 func initConfig() {
+	// if configFile != "" {
+	// 	viper.SetConfigFile(configFile)
+	// } else {
+	// 	home, err := homedir.Dir()
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 		os.Exit(1)
+	// 	}
+
+	// 	viper.AutomaticEnv()
+	// 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	// 	viper.AddConfigPath(home)
+	// 	viper.SetConfigName(".truapid/config")
+	// }
+
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
@@ -283,8 +297,8 @@ func initConfig() {
 		viper.AutomaticEnv()
 		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		viper.AddConfigPath(home)
-		fmt.Printf("home: %s\n", filepath.Join(home, "config"))
-		viper.SetConfigName(filepath.Join(home, "config"))
+		fmt.Printf("home: %s\n", home)
+		viper.SetConfigName("config")
 	}
 
 	if err := viper.ReadInConfig(); err != nil {

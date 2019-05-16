@@ -174,19 +174,14 @@ func generateAddress() []byte {
 	return addr
 }
 
-// Steps:
-// get --home flag right.. /Users/blockshane/.truapid
-// created an account with trucli keys add
-// added this to truchaind with `truchaind add-genesis-account`
-// then start chain
-
-func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (sdk.TxResponse, error) {
+func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (res sdk.TxResponse, err error) {
 	cliCtx := a.apiCtx
 	config := cliCtx.Config.Registrar
 
 	registrarAddr, err := sdk.AccAddressFromBech32(config.Addr)
-	if err := cliCtx.EnsureAccountExistsFromAddr(registrarAddr); err != nil {
-		panic(err)
+	err = cliCtx.EnsureAccountExistsFromAddr(registrarAddr)
+	if err != nil {
+		return
 	}
 
 	msg := users.RegisterKeyMsg{
@@ -197,22 +192,22 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	}
 	err = msg.ValidateBasic()
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	// build and sign the transaction
 	seq, err := cliCtx.GetAccountSequence(registrarAddr)
 	if err != nil {
-		panic(err)
+		return
 	}
 	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	// broadcast to a Tendermint node
-	res, err := cliCtx.BroadcastTx(txBytes)
+	res, err = cliCtx.BroadcastTx(txBytes)
 	cliCtx.PrintOutput(res)
 
 	return res, nil

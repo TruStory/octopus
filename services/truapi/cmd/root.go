@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -14,9 +15,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	sdkContext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	tmCli "github.com/tendermint/tendermint/libs/cli"
 )
 
 const (
@@ -55,6 +56,8 @@ var (
 	// Used for flags.
 	configFile string
 
+	defaultCLIHome = os.ExpandEnv("$HOME/.octopus")
+
 	rootCmd = &cobra.Command{
 		Use:   "truapi",
 		Short: "TruStory API command-line interface",
@@ -66,10 +69,15 @@ func Execute() {
 	cobra.OnInitialize(initConfig)
 	codec := chain.MakeCodec()
 	rootCmd.AddCommand(startCmd(codec))
+
 	rootCmd.PersistentFlags().String(client.FlagChainID, "", "Chain ID of tendermint node")
-	// rootCmd.MarkPersistentFlagRequired(client.FlagChainID)
-	// TODO: add require trust-node OR chain-id and --home?
 	viper.BindPFlag(client.FlagChainID, rootCmd.PersistentFlags().Lookup(client.FlagChainID))
+
+	rootCmd.PersistentFlags().String(tmCli.HomeFlag, defaultCLIHome, "Home folder that has config.toml and keystore")
+	viper.BindPFlag(tmCli.HomeFlag, rootCmd.PersistentFlags().Lookup(tmCli.HomeFlag))
+
+	rootDir := viper.GetString(tmCli.HomeFlag)
+	fmt.Printf("--home flag is %s\n", rootDir)
 
 	err := rootCmd.Execute()
 	if err != nil {
@@ -83,7 +91,7 @@ func Execute() {
 // ./bin/truchaind add-genesis-account $(./bin/trucli keys show registrar -a --home /Users/blockshane) 1000trusteak,1000trustake
 // ./bin/truchaind unsafe-reset-all
 // ./bin/truchaind start
-// ./bin/truapid start --chain-id test-chain-K8fT26
+// ./bin/truapid start
 
 func startCmd(codec *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
@@ -98,8 +106,8 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 
 			// rootDir := viper.GetString(client.HomeFlag)
 			// TODO: check if keystore is the same for trucli and truapid
-			viper.Set("home", "/Users/blockshane")
-			rootDir := viper.GetString("home")
+			// viper.Set("home", "/Users/blockshane")
+			rootDir := viper.GetString(tmCli.HomeFlag)
 			fmt.Printf("--home flag is %s\n", rootDir)
 
 			cliCtx := sdkContext.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
@@ -264,16 +272,18 @@ func initConfig() {
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		// home, err := homedir.Dir()
+		home := viper.GetString(tmCli.HomeFlag)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// 	os.Exit(1)
+		// }
 
 		viper.AutomaticEnv()
 		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		viper.AddConfigPath(home)
-		viper.SetConfigName(".truapid/config")
+		fmt.Printf("home: %s", filepath.Join(home, "config"))
+		viper.SetConfigName(filepath.Join(home, "config"))
 	}
 
 	if err := viper.ReadInConfig(); err != nil {

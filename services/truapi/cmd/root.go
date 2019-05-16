@@ -43,7 +43,7 @@ const (
 	flagWebAuthDeniedRedir   = "web.auth.denied.redir"
 	flagTwitterAPIKey        = "twitter.api.key"
 	flagTwitterAPISecret     = "twitter.api.secret"
-	flagTwitterOAUTHCallback = "twitter.oath.callback"
+	flagTwitterOAUTHCallback = "twitter.oauth.callback"
 	flagFlagLimit            = "flag.limit"
 	flagFlagAdmin            = "flag.admin"
 	flagRegistrarName        = "registrar.name"

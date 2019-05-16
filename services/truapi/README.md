@@ -8,6 +8,13 @@ TruAPI serves as a web server for TruStory as well as a light client for the Tru
 truapid start
 ```
 
+## Home folder (.octopus)
+
+Contains:
+* config.toml file (see below)
+* local key store
+* Twitter whitelist
+
 ## Configuration
 
 Config vars can be set in 3 ways:

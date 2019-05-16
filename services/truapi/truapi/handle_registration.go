@@ -163,12 +163,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 }
 
 func isWhitelistedUser(twitterUser *twitter.User) (bool, error) {
-	rootdir := viper.GetString(cli.HomeFlag)
-	if rootdir == "" {
-		rootdir = os.ExpandEnv("$HOME/.truchaind")
-	}
-
-	path := filepath.Join(rootdir, "twitter-whitelist.json")
+	path := filepath.Join(viper.GetString(cli.HomeFlag), "twitter-whitelist.json")
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return false, err

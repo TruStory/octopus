@@ -106,20 +106,14 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 		return "", err
 	}
 
-	fmt.Println("IN HERE 1")
-
 	if !isWhitelisted {
 		return "", errors.New("You are not allowed to register")
 	}
-
-	fmt.Println("IN HERE 2")
 
 	currentTwitterProfile, err := ta.DBClient.TwitterProfileByID(twitterUser.ID)
 	if err != nil {
 		return "", err
 	}
-
-	fmt.Println("IN HERE 3")
 
 	// if user exists,
 	var addr string
@@ -127,15 +121,11 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 		addr = currentTwitterProfile.Address
 	}
 
-	fmt.Println("IN HERE 4")
-
 	// Fetch keypair of the user, if already exists
 	keyPair, err := ta.DBClient.KeyPairByTwitterProfileID(twitterUser.ID)
 	if err != nil {
 		return "", err
 	}
-
-	fmt.Println("IN HERE 5")
 
 	// If not available, create new
 	if keyPair.ID == 0 {
@@ -148,8 +138,6 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 		// This way, it returns the kind of public key that cosmos understands.
 		_, pubKey := btcec.PrivKeyFromBytes(btcec.S256(), []byte(fmt.Sprintf("%x", newKeyPair.Serialize())))
 
-		fmt.Println("IN HERE 5a")
-
 		keyPair := &db.KeyPair{
 			TwitterProfileID: twitterUser.ID,
 			PrivateKey:       fmt.Sprintf("%x", newKeyPair.Serialize()),
@@ -159,8 +147,6 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 		if err != nil {
 			return "", err
 		}
-
-		fmt.Println("IN HERE 5b")
 
 		// Register with cosmos only if it wasn't registered before.
 		if currentTwitterProfile.ID == 0 {
@@ -172,8 +158,6 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 			addr = newAddr.String()
 		}
 	}
-
-	fmt.Println("IN HERE 6")
 
 	return addr, nil
 }

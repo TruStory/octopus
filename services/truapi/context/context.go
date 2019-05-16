@@ -47,6 +47,13 @@ type PushConfig struct {
 	EndpointURL string `mapstructure:"endpoint-url"`
 }
 
+// RegistrarConfig is the config for the registrar account that signs in users
+type RegistrarConfig struct {
+	Name string
+	Addr string
+	Pass string `mapstructure:"password"`
+}
+
 // TwitterConfig is the config for Twitter
 type TwitterConfig struct {
 	APIKey        string `mapstructure:"api-key"`
@@ -64,15 +71,16 @@ type WebConfig struct {
 
 // Config contains all the config variables for the API server
 type Config struct {
-	ChainID  string `mapstructure:"chain-id"`
-	App      AppConfig
-	Cookie   CookieConfig
-	Database DatabaseConfig
-	Flag     FlagConfig
-	Host     HostConfig
-	Push     PushConfig
-	Twitter  TwitterConfig
-	Web      WebConfig
+	ChainID   string `mapstructure:"chain-id"`
+	App       AppConfig
+	Cookie    CookieConfig
+	Database  DatabaseConfig
+	Flag      FlagConfig
+	Host      HostConfig
+	Push      PushConfig
+	Registrar RegistrarConfig
+	Twitter   TwitterConfig
+	Web       WebConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

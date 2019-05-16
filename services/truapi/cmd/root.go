@@ -83,11 +83,12 @@ func Execute() {
 }
 
 // ./bin/trucli config chain-id test-chain-K8fT26
-// ./bin/trucli keys add registrar --home /Users/blockshane
-// ./bin/truchaind add-genesis-account $(./bin/trucli keys show registrar -a --home /Users/blockshane) 1000trusteak,1000trustake
+// ./bin/trucli keys add registrar --home /Users/blockshane/.octopus
+// ./bin/truchaind add-genesis-account $(./bin/trucli keys show registrar -a --home /Users/blockshane/.octopus) 1000trusteak,1000trustake
 // ./bin/truchaind unsafe-reset-all
 // ./bin/truchaind start
-// ./bin/truapid start
+// ./bin/truapid start --home /Users/blockshane/.octopus --chain-id test-chain-K8fT26
+// or? ./bin/truapid start --trust-node true
 
 func startCmd(codec *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{

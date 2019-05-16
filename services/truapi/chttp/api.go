@@ -18,10 +18,12 @@ import (
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/gorilla/mux"
 	"github.com/oklog/ulid"
+	"github.com/spf13/viper"
 	amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"github.com/tendermint/tmlibs/cli"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 )
@@ -184,6 +186,8 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 		return
 	}
 
+	fmt.Println("IN HERE 1")
+
 	msg := users.RegisterKeyMsg{
 		Address:    addr,
 		PubKey:     k,
@@ -195,16 +199,24 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 		return
 	}
 
+	rootDir := viper.GetString(cli.HomeFlag)
+	fmt.Printf("home flag: %s\n", rootDir)
+
 	// build and sign the transaction
 	seq, err := cliCtx.GetAccountSequence(registrarAddr)
 	if err != nil {
 		return
 	}
+
+	fmt.Println("IN HERE 2")
+
 	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
 		return
 	}
+
+	fmt.Println("IN HERE 3")
 
 	// broadcast to a Tendermint node
 	res, err = cliCtx.BroadcastTx(txBytes)

@@ -16,10 +16,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tendermint/tmlibs/cli"
 )
 
 const (
-	flagHome                 = "home"
 	flagAppName              = "app.name"
 	flagAppURL               = "app.url"
 	flagAppMockRegistration  = "app.mock.registration"
@@ -66,14 +66,11 @@ func Execute() {
 	codec := chain.MakeCodec()
 	rootCmd.AddCommand(startCmd(codec))
 
-	rootCmd.PersistentFlags().String(client.FlagChainID, "", "Chain ID of tendermint node")
+	rootCmd.PersistentFlags().String(client.FlagChainID, "", "chain ID of tendermint node")
 	viper.BindPFlag(client.FlagChainID, rootCmd.PersistentFlags().Lookup(client.FlagChainID))
 
-	rootCmd.PersistentFlags().String(flagHome, defaultCLIHome, "Home folder that has config.toml and keystore")
-	viper.BindPFlag(flagHome, rootCmd.PersistentFlags().Lookup(flagHome))
-
-	// rootDir := viper.GetString(flagHome)
-	// fmt.Printf("--home flag is %s\n", rootDir)
+	rootCmd.PersistentFlags().String(cli.HomeFlag, defaultCLIHome, "directory for config and data")
+	viper.BindPFlag(cli.HomeFlag, rootCmd.PersistentFlags().Lookup(cli.HomeFlag))
 
 	err := rootCmd.Execute()
 	if err != nil {
@@ -88,7 +85,6 @@ func Execute() {
 // ./bin/truchaind unsafe-reset-all
 // ./bin/truchaind start
 // ./bin/truapid start --home /Users/blockshane/.octopus --chain-id test-chain-K8fT26
-// or? ./bin/truapid start --trust-node true
 
 func startCmd(codec *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
@@ -100,12 +96,6 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 			if err != nil {
 				panic(err)
 			}
-
-			// rootDir := viper.GetString(client.HomeFlag)
-			// TODO: check if keystore is the same for trucli and truapid
-			// viper.Set("home", "/Users/blockshane")
-			// rootDir := viper.GetString(flagHome)
-			// fmt.Printf("--home flag is %s\n", rootDir)
 
 			cliCtx := sdkContext.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
 			apiCtx := context.NewTruAPIContext(&cliCtx, config)
@@ -266,7 +256,7 @@ func registerRegistrarFlags(cmd *cobra.Command) *cobra.Command {
 }
 
 func initConfig() {
-	home := viper.GetString(flagHome)
+	home := viper.GetString(cli.HomeFlag)
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AddConfigPath(home)

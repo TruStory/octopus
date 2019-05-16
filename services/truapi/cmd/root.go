@@ -21,6 +21,7 @@ import (
 )
 
 const (
+	flagHome                 = "home"
 	flagAppName              = "app.name"
 	flagAppURL               = "app.url"
 	flagAppMockRegistration  = "app.mock.registration"
@@ -73,10 +74,10 @@ func Execute() {
 	rootCmd.PersistentFlags().String(client.FlagChainID, "", "Chain ID of tendermint node")
 	viper.BindPFlag(client.FlagChainID, rootCmd.PersistentFlags().Lookup(client.FlagChainID))
 
-	rootCmd.PersistentFlags().String(tmCli.HomeFlag, defaultCLIHome, "Home folder that has config.toml and keystore")
-	viper.BindPFlag(tmCli.HomeFlag, rootCmd.PersistentFlags().Lookup(tmCli.HomeFlag))
+	rootCmd.PersistentFlags().String(flagHome, defaultCLIHome, "Home folder that has config.toml and keystore")
+	viper.BindPFlag(flagHome, rootCmd.PersistentFlags().Lookup(flagHome))
 
-	rootDir := viper.GetString(tmCli.HomeFlag)
+	rootDir := viper.GetString(flagHome)
 	fmt.Printf("--home flag is %s\n", rootDir)
 
 	err := rootCmd.Execute()
@@ -273,7 +274,7 @@ func initConfig() {
 		viper.SetConfigFile(configFile)
 	} else {
 		// home, err := homedir.Dir()
-		home := viper.GetString(tmCli.HomeFlag)
+		home := viper.GetString(flagHome)
 		// if err != nil {
 		// 	fmt.Println(err)
 		// 	os.Exit(1)
@@ -282,7 +283,7 @@ func initConfig() {
 		viper.AutomaticEnv()
 		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		viper.AddConfigPath(home)
-		fmt.Printf("home: %s", filepath.Join(home, "config"))
+		fmt.Printf("home: %s\n", filepath.Join(home, "config"))
 		viper.SetConfigName(filepath.Join(home, "config"))
 	}
 

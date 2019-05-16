@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -36,9 +37,10 @@ func main() {
 
 	if len(args) == 0 {
 		// Running as a background service - go run *.go
-		// statistia.run()
+		statistia.run()
 	} else if len(args) == 2 {
 		// Running as the historical seeder - go run *.go 2019-04-14 today
+		// OR running as daily cron job - go run *.go today today
 		var from, to time.Time
 		var err error
 
@@ -62,6 +64,45 @@ func main() {
 
 		statistia.seedBetween(from, to)
 	}
+}
+
+func (statistia *service) run() {
+	statistia.router.Handle("/statistics", handleStatistics(statistia))
+	http.Handle("/", statistia.router)
+
+	fmt.Printf("\nRunning on... %s\n", "http://0.0.0.0:"+statistia.port)
+	err := http.ListenAndServe(":"+statistia.port, nil)
+	if err != nil {
+		log.Println(err)
+		panic(err)
+	}
+}
+
+func handleStatistics(statistia *service) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+
+		address := r.FormValue("address")
+		if address == "" {
+			http.Error(w, "must provide a valid address", http.StatusBadRequest)
+			return
+		}
+		date := r.FormValue("date")
+		if date == "" {
+			http.Error(w, "must provide a date", http.StatusBadRequest)
+			return
+		}
+
+		dUserMetrics, err := AggregateByAddressAndDate(statistia.dbClient, address, date)
+		if err != nil {
+			panic(err)
+		}
+
+		responseBytes, _ := json.Marshal(dUserMetrics)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, string(responseBytes))
+	}
+
+	return http.HandlerFunc(fn)
 }
 
 // seedBetween seeds the user daily metrics between the two given dates

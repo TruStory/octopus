@@ -29,6 +29,20 @@ type DailyUserMetric struct {
 	CredEarned                uint64    `json:"cred_earned"  sql:"type:,notnull"`
 }
 
+// AggregateByAddressAndDate gets and aggregates the user metrics for a given address on a given date
+func AggregateByAddressBetweenDates(client *db.Client, address string, date string) ([]DailyUserMetric, error) {
+	dUserMetrics := make([]DailyUserMetric, 0)
+	err := client.Model(&dUserMetrics).
+		Where("address = ?", address).
+		Where("as_on_date = ?", date).
+		Select()
+	if err != nil {
+		return nil, err
+	}
+
+	return dUserMetrics, nil
+}
+
 // UpsertDailyUserMetric inserts or updates the daily metric for the user
 func UpsertDailyUserMetric(client *db.Client, metric DailyUserMetric) error {
 	_, err := client.Model(&metric).

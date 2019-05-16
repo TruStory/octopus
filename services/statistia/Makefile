@@ -7,4 +7,4 @@ build-linux:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0  go build -o ../../bin/statistiad *.go
 
 run:
-	go run *.go
+	go run *.go today

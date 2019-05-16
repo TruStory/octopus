@@ -1,29 +1,54 @@
 package main
 
 import (
+	"encoding/json"
 	"math/big"
+	"strconv"
 )
 
 // Coin hold some amount of one currency.
 type Coin struct {
 	Denom  string `json:"denom"`
-	Amount string `json:"amount"`
+	Amount uint64 `json:"amount"`
 }
 
 // Minus substracts another coin from the given coin
-func (given *Coin) Minus(another Coin) Coin {
-	if given.Denom != another.Denom {
+func (coin *Coin) Minus(another Coin) Coin {
+	if coin.Denom != another.Denom {
 		panic("only same denom coins can be subtracted")
 	}
 
-	givenBI, _ := new(big.Int).SetString(given.Amount, 10)
-	anotherBI, _ := new(big.Int).SetString(another.Amount, 10)
-	diffBI := new(big.Int).Sub(givenBI, anotherBI)
+	coinBI := new(big.Int).SetUint64(coin.Amount)
+	anotherBI := new(big.Int).SetUint64(another.Amount)
+	diffBI := new(big.Int).Sub(coinBI, anotherBI)
 
 	return Coin{
-		Denom:  given.Denom,
-		Amount: diffBI.String(),
+		Denom:  coin.Denom,
+		Amount: diffBI.Uint64(),
 	}
+}
+
+// UnmarshalJSON unmarshals json string into Coin struct
+func (coin *Coin) UnmarshalJSON(data []byte) error {
+	type Alias Coin
+	aux := &struct {
+		Amount string `json:"amount"`
+		*Alias
+	}{
+		Alias: (*Alias)(coin),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	amount, err := strconv.ParseUint(aux.Amount, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	coin.Amount = amount
+	return nil
 }
 
 // MetricsSummary represents metrics for the platform.
@@ -37,10 +62,10 @@ type AccumulatedUserCred map[string]Coin
 // Metrics tracked.
 type Metrics struct {
 	// Interactions
-	TotalClaims               int64 `json:"total_claims"`
-	TotalArguments            int64 `json:"total_arguments"`
-	TotalReceivedEndorsements int64 `json:"total_received_endorsements"`
-	TotalGivenEndorsements    int64 `json:"total_given_endorsments"`
+	TotalClaims               uint64 `json:"total_claims"`
+	TotalArguments            uint64 `json:"total_arguments"`
+	TotalReceivedEndorsements uint64 `json:"total_received_endorsements"`
+	TotalGivenEndorsements    uint64 `json:"total_given_endorsments"`
 
 	// StakeBased Metrics
 	TotalAmountStaked  Coin `json:"total_amount_staked"`
@@ -52,7 +77,7 @@ type Metrics struct {
 
 // CategoryMetrics summary of metrics by category.
 type CategoryMetrics struct {
-	CategoryID   int64    `json:"category_id"`
+	CategoryID   uint64   `json:"category_id"`
 	CategoryName string   `json:"category_name"`
 	CredBalance  Coin     `json:"cred_balance"`
 	Metrics      *Metrics `json:"metrics"`

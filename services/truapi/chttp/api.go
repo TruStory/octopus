@@ -18,10 +18,12 @@ import (
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/gorilla/mux"
 	"github.com/oklog/ulid"
+	"github.com/spf13/viper"
 	amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
+	"github.com/tendermint/tmlibs/cli"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 )
@@ -174,20 +176,17 @@ func generateAddress() []byte {
 	return addr
 }
 
-// Steps:
-// get --home flag right.. /Users/blockshane/.truapid
-// created an account with trucli keys add
-// added this to truchaind with `truchaind add-genesis-account`
-// then start chain
-
-func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (sdk.TxResponse, error) {
+func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (res sdk.TxResponse, err error) {
 	cliCtx := a.apiCtx
 	config := cliCtx.Config.Registrar
 
 	registrarAddr, err := sdk.AccAddressFromBech32(config.Addr)
-	if err := cliCtx.EnsureAccountExistsFromAddr(registrarAddr); err != nil {
-		panic(err)
+	err = cliCtx.EnsureAccountExistsFromAddr(registrarAddr)
+	if err != nil {
+		return
 	}
+
+	fmt.Println("IN HERE 1")
 
 	msg := users.RegisterKeyMsg{
 		Address:    addr,
@@ -197,22 +196,30 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	}
 	err = msg.ValidateBasic()
 	if err != nil {
-		panic(err)
+		return
 	}
+
+	rootDir := viper.GetString(cli.HomeFlag)
+	fmt.Printf("home flag: %s\n", rootDir)
 
 	// build and sign the transaction
 	seq, err := cliCtx.GetAccountSequence(registrarAddr)
 	if err != nil {
-		panic(err)
+		return
 	}
+
+	fmt.Println("IN HERE 2")
+
 	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
-		panic(err)
+		return
 	}
 
+	fmt.Println("IN HERE 3")
+
 	// broadcast to a Tendermint node
-	res, err := cliCtx.BroadcastTx(txBytes)
+	res, err = cliCtx.BroadcastTx(txBytes)
 	cliCtx.PrintOutput(res)
 
 	return res, nil

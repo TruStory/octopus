@@ -14,9 +14,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	sdkContext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tendermint/tmlibs/cli"
 )
 
 const (
@@ -43,7 +43,7 @@ const (
 	flagWebAuthDeniedRedir   = "web.auth.denied.redir"
 	flagTwitterAPIKey        = "twitter.api.key"
 	flagTwitterAPISecret     = "twitter.api.secret"
-	flagTwitterOAUTHCallback = "twitter.oath.callback"
+	flagTwitterOAUTHCallback = "twitter.oauth.callback"
 	flagFlagLimit            = "flag.limit"
 	flagFlagAdmin            = "flag.admin"
 	flagRegistrarName        = "registrar.name"
@@ -52,8 +52,7 @@ const (
 )
 
 var (
-	// Used for flags.
-	configFile string
+	defaultCLIHome = os.ExpandEnv("$HOME/.octopus")
 
 	rootCmd = &cobra.Command{
 		Use:   "truapi",
@@ -66,10 +65,12 @@ func Execute() {
 	cobra.OnInitialize(initConfig)
 	codec := chain.MakeCodec()
 	rootCmd.AddCommand(startCmd(codec))
-	rootCmd.PersistentFlags().String(client.FlagChainID, "", "Chain ID of tendermint node")
-	// rootCmd.MarkPersistentFlagRequired(client.FlagChainID)
-	// TODO: add require trust-node OR chain-id and --home?
+
+	rootCmd.PersistentFlags().String(client.FlagChainID, "", "chain ID of tendermint node")
 	viper.BindPFlag(client.FlagChainID, rootCmd.PersistentFlags().Lookup(client.FlagChainID))
+
+	rootCmd.PersistentFlags().String(cli.HomeFlag, defaultCLIHome, "directory for config and data")
+	viper.BindPFlag(cli.HomeFlag, rootCmd.PersistentFlags().Lookup(cli.HomeFlag))
 
 	err := rootCmd.Execute()
 	if err != nil {
@@ -79,11 +80,11 @@ func Execute() {
 }
 
 // ./bin/trucli config chain-id test-chain-K8fT26
-// ./bin/trucli keys add registrar --home /Users/blockshane
-// ./bin/truchaind add-genesis-account $(./bin/trucli keys show registrar -a --home /Users/blockshane) 1000trusteak,1000trustake
+// ./bin/trucli keys add registrar --home /Users/blockshane/.octopus
+// ./bin/truchaind add-genesis-account $(./bin/trucli keys show registrar -a --home /Users/blockshane/.octopus) 1000trusteak,1000trustake
 // ./bin/truchaind unsafe-reset-all
 // ./bin/truchaind start
-// ./bin/truapid start --chain-id test-chain-K8fT26
+// ./bin/truapid start --home /Users/blockshane/.octopus --chain-id test-chain-K8fT26
 
 func startCmd(codec *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
@@ -95,12 +96,6 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 			if err != nil {
 				panic(err)
 			}
-
-			// rootDir := viper.GetString(client.HomeFlag)
-			// TODO: check if keystore is the same for trucli and truapid
-			viper.Set("home", "/Users/blockshane")
-			rootDir := viper.GetString("home")
-			fmt.Printf("--home flag is %s\n", rootDir)
 
 			cliCtx := sdkContext.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
 			apiCtx := context.NewTruAPIContext(&cliCtx, config)
@@ -261,20 +256,11 @@ func registerRegistrarFlags(cmd *cobra.Command) *cobra.Command {
 }
 
 func initConfig() {
-	if configFile != "" {
-		viper.SetConfigFile(configFile)
-	} else {
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		viper.AutomaticEnv()
-		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".truapid/config")
-	}
+	home := viper.GetString(cli.HomeFlag)
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AddConfigPath(home)
+	viper.SetConfigName("config")
 
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Printf("Can't read config: %s. Using flags, environment variables, or defaults.\n", err)

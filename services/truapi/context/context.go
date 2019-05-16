@@ -58,7 +58,7 @@ type RegistrarConfig struct {
 type TwitterConfig struct {
 	APIKey        string `mapstructure:"api-key"`
 	APISecret     string `mapstructure:"api-secret"`
-	OAUTHCallback string `mapstructure:"oath-callback"`
+	OAUTHCallback string `mapstructure:"oauth-callback"`
 }
 
 // WebConfig is the config for the web app

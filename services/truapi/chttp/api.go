@@ -78,7 +78,7 @@ func (a *API) Use(mw func(http.Handler) http.Handler) {
 
 // ListenAndServe serves HTTP using the API router
 func (a *API) ListenAndServe(addr string) error {
-	letsEncryptEnabled := a.apiCtx.Config.Host.HTTPSEnabled == true
+	letsEncryptEnabled := a.apiCtx.Config.Host.HTTPSEnabled
 	if !letsEncryptEnabled {
 		return http.ListenAndServe(addr, a.router)
 	}
@@ -109,12 +109,10 @@ func (a *API) listenAndServeTLS() error {
 		return secureServer.ListenAndServeTLS("", "")
 	})
 	g.Go(func() error {
-		select {
-		case <-ctx.Done():
-			_ = httpServer.Shutdown(ctx)
-			_ = secureServer.Shutdown(ctx)
-			return nil
-		}
+		<-ctx.Done()
+		_ = httpServer.Shutdown(ctx)
+		_ = secureServer.Shutdown(ctx)
+		return nil
 	})
 
 	return g.Wait()
@@ -179,6 +177,9 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	config := cliCtx.Config.Registrar
 
 	registrarAddr, err := sdk.AccAddressFromBech32(config.Addr)
+	if err != nil {
+		return
+	}
 	err = cliCtx.EnsureAccountExistsFromAddr(registrarAddr)
 	if err != nil {
 		return

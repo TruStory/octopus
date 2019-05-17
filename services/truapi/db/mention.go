@@ -42,7 +42,7 @@ func (c *Client) mapAddressesToProfileURLs(body string, profileURLPrefix string)
 		}
 
 		httpPrefix := "http://"
-		if c.config.Host.HTTPSEnabled == true {
+		if c.config.Host.HTTPSEnabled {
 			httpPrefix = "https://"
 		}
 		markdownProfileURL := fmt.Sprintf("[@%s](%s%s)", twitterProfile.Username, httpPrefix, profileURL)

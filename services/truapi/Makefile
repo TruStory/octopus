@@ -10,4 +10,5 @@ run:
 	go run *.go
 
 run-docker: build-linux
+	touch truapid.env
 	docker-compose up truapid

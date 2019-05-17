@@ -150,7 +150,10 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 
 		// Register with cosmos only if it wasn't registered before.
 		if currentTwitterProfile.ID == 0 {
-			pubKeyBytes, _ := hex.DecodeString(keyPair.PublicKey)
+			pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
+			if err != nil {
+				return "", err
+			}
 			newAddr, _, _, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
 			if err != nil {
 				return "", err

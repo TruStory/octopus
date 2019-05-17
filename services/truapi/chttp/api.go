@@ -208,8 +208,11 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	}
 
 	// broadcast to a Tendermint node
-	res, err = cliCtx.BroadcastTx(txBytes)
-	cliCtx.PrintOutput(res)
+	res, err = cliCtx.WithBroadcastMode(client.BroadcastBlock).BroadcastTx(txBytes)
+	if err != nil {
+		return
+	}
+	fmt.Println(res)
 
 	return res, nil
 }
@@ -229,7 +232,15 @@ func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
 }
 
 // DeliverPresigned dispatches a pre-signed transaction to the Tendermint node
-func (a *API) DeliverPresigned(tx auth.StdTx) (sdk.TxResponse, error) {
-	txBytes := a.apiCtx.Codec.MustMarshalBinaryLengthPrefixed(tx)
-	return a.apiCtx.WithBroadcastMode(client.BroadcastBlock).BroadcastTx(txBytes)
+func (a *API) DeliverPresigned(tx auth.StdTx) (res sdk.TxResponse, err error) {
+	ctx := a.apiCtx
+
+	txBytes := ctx.Codec.MustMarshalBinaryLengthPrefixed(tx)
+	res, err = ctx.WithBroadcastMode(client.BroadcastBlock).BroadcastTx(txBytes)
+	if err != nil {
+		return
+	}
+	fmt.Println(res)
+
+	return res, nil
 }

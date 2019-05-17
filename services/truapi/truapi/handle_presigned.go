@@ -32,7 +32,6 @@ func (ta *TruAPI) HandlePresigned(r *http.Request) chttp.Response {
 	}
 
 	res, err := ta.DeliverPresigned(tx)
-
 	if err != nil {
 		return chttp.SimpleErrorResponse(400, err)
 	}

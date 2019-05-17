@@ -35,7 +35,7 @@ jobs: # basic units of work in a run
       - save_cache:
           key: go-mod-v3-{{ checksum "go.sum" }}
           paths:
-            - "/go/pkg/mod"
+            - '/go/pkg/mod'
           # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
       - persist_to_workspace:
           # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
@@ -75,7 +75,7 @@ jobs: # basic units of work in a run
     steps:
       - add_ssh_keys:
           fingerprints:
-            - "73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e"
+            - '73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e'
       - attach_workspace:
           at: /tmp/octopus/bin
       - run:
@@ -106,7 +106,7 @@ jobs: # basic units of work in a run
     steps:
       - add_ssh_keys:
           fingerprints:
-            - "73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e"
+            - '73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e'
       - run:
           name: Migrate DB
           command: |
@@ -135,7 +135,7 @@ jobs: # basic units of work in a run
           command: |
             echo "${PG_ADDR_PROD}:${PG_DB_NAME_PROD}:${PG_USER_PROD}:${PG_USER_PW_PROD}" > ~/.pgpass
             chmod 600 ~/.pgpass
-      - run: 
+      - run:
           name: Dump DB
           command: |
             mkdir -p db
@@ -143,10 +143,10 @@ jobs: # basic units of work in a run
       - persist_to_workspace:
           root: db
           paths:
-          - dump.sql.gz
+            - dump.sql.gz
   s3_upload:
     docker:
-      - image: circleci/python:2.7-jessie    
+      - image: circleci/python:2.7-jessie
     working_directory: /tmp/octopus
     steps:
       - attach_workspace:
@@ -162,6 +162,16 @@ jobs: # basic units of work in a run
       - run:
           name: Upload to S3
           command: aws s3 cp ./db/dump.sql.gz s3://io-trustory-backups/db/$(date +%y%m%d%H)-dump.sql.gz
+  metrics:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - run:
+          name: Run Metrics
+          command: |
+            cd actions/metrics
+            METRICS_DATE=$(date +%F) make run
 workflows:
   version: 2
   build-workflow:
@@ -191,7 +201,7 @@ workflows:
                 - develop
       - migrate:
           requires:
-          - test_migrations
+            - test_migrations
           filters:
             branches:
               only:
@@ -200,7 +210,7 @@ workflows:
   nightly-backup:
     triggers:
       - schedule:
-          cron: "0 0 * * *"
+          cron: '0 0 * * *'
           filters:
             branches:
               only:
@@ -210,3 +220,6 @@ workflows:
       - s3_upload:
           requires:
             - db_dump
+  metrics:
+    jobs:
+      - metrics

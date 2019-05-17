@@ -43,7 +43,9 @@ require (
 	github.com/tendermint/tendermint v0.30.2
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a // indirect
-	golang.org/x/net v0.0.0-20190313082753-5c2c250b6a70 // indirect
-	google.golang.org/grpc v1.19.0 // indirect
+	golang.org/x/net v0.0.0-20190313082753-5c2c250b6a70
+	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
+	google.golang.org/api v0.5.0
+	gopkg.in/Iwark/spreadsheet.v2 v2.0.0-20190213044300-aa3ac0c59139
 	mellium.im/sasl v0.2.1 // indirect
 )

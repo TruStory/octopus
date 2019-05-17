@@ -45,8 +45,8 @@ func (m *Mockery) mock() {
 func main() {
 
 	mockery := &Mockery{
-		httpClient:  &http.Client{},
-		dbClient:    db.NewDBClient(),
+		httpClient: &http.Client{},
+		// dbClient:    db.NewDBClient(),
 		apiEndpoint: mustEnv("SEED_API_ENDPOINT"),
 	}
 

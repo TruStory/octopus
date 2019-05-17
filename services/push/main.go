@@ -295,7 +295,7 @@ func (s *service) run(stop <-chan struct{}) {
 	for {
 		select {
 		case event := <-txsCh:
-			switch event.Data.(types.TMEventData) {
+			switch v := event.Data.(type) {
 			case types.EventDataTx:
 				s.processTransactionEvent(v, notificationsCh)
 			case types.EventDataNewBlock:

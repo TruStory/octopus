@@ -17,6 +17,7 @@ import (
 	db "github.com/TruStory/octopus/services/truapi/db"
 	"github.com/sirupsen/logrus"
 
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/tendermint/tendermint/libs/pubsub/query"
 	"github.com/tendermint/tendermint/rpc/client"
 	"github.com/tendermint/tendermint/types"
@@ -318,7 +319,17 @@ func main() {
 	topic := getEnv("NOTIFICATION_TOPIC", "io.trustory.app.devnet")
 	graphqlEndpoint := mustEnv("PUSHD_GRAPHQL_ENDPOINT")
 
-	dbClient := db.NewDBClient()
+	config := truCtx.Config{
+		Database: truCtx.DatabaseConfig{
+			Host: getEnv("PG_ADDR", "localhost"),
+			Port: 5432,
+			User: getEnv("PG_USER", "postgres"),
+			Pass: getEnv("PG_USER_PW", ""),
+			Name: getEnv("PG_DB_NAME", "trudb"),
+			Pool: 25,
+		},
+	}
+	dbClient := db.NewDBClient(config)
 	graphqlClient := graphql.NewClient(graphqlEndpoint)
 	log.Info("pushd connected to db and starting")
 

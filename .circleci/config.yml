@@ -9,29 +9,22 @@ executors:
 jobs: # basic units of work in a run
   build: # runs not using Workflows must have a `build` job as entry point
     executor: go
-
     parallelism: 2
-
     steps: # steps that comprise the `build` job
       - checkout # check out source code to working directory
-
       - restore_cache: # restores saved cache if no changes are detected since last run
           keys:
             - go-mod-v3-{{ checksum "go.sum" }}
-
       - run:
           name: Install linter
           command: |
             GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
-
       - run: make # pull and build dependencies for the project
-
       - run:
           name: List built binaries
           command: |
             pwd
             ls -l ./bin/
-
       - save_cache:
           key: go-mod-v3-{{ checksum "go.sum" }}
           paths:
@@ -45,6 +38,7 @@ jobs: # basic units of work in a run
           paths:
             - pushd
             - spotlightd
+            - truapid
   test_migrations:
     docker:
       - image: circleci/golang:1.12
@@ -90,7 +84,9 @@ jobs: # basic units of work in a run
                 mkdir ~/.ssh
                 ssh-keyscan $VENICE4_HOST >> ~/.ssh/known_hosts
                 scp bin/pushd "$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/pushd"
+                scp bin/truapid "$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/truapid"
                 ssh $VENICE4_USER@$VENICE4_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
+                ssh $VENICE4_USER@$VENICE4_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d truapid"
                 echo "deploying to venice4"
             elif [ "${CIRCLE_BRANCH}" == "develop" ]
             then
@@ -98,8 +94,19 @@ jobs: # basic units of work in a run
                 mkdir ~/.ssh
                 ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
                 scp bin/pushd "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd"
+                scp bin/truapid "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/truapid"
                 ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
+                ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d truapid"
                 echo "deployed to devnet"
+            fi
+            elif [ "${CIRCLE_BRANCH}" == "refactor/55-api-service" ]
+            then
+               
+                mkdir ~/.ssh
+                ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
+                scp bin/truapid "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/truapid"
+                ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d truapid"
+                echo "deployed truapid to devnet"
             fi
   migrate:
     executor: go
@@ -189,6 +196,7 @@ workflows:
               only:
                 - master
                 - develop
+                - refactor/55-api-service
       - migrate:
           requires:
           - test_migrations

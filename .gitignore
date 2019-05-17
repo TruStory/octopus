@@ -2,5 +2,5 @@ bin/*
 vendor/*
 .DS_Store
 .envrc
-.env
+*.env
 .vscode

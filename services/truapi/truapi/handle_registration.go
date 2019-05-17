@@ -129,7 +129,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 
 	// If not available, create new
 	if keyPair.ID == 0 {
-		newKeyPair, _ := btcec.NewPrivateKey(btcec.S256())
+		newKeyPair, err := btcec.NewPrivateKey(btcec.S256())
 		if err != nil {
 			return "", err
 		}

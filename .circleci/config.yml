@@ -38,7 +38,6 @@ jobs: # basic units of work in a run
           paths:
             - pushd
             - spotlightd
-            - truapid
   test_migrations:
     docker:
       - image: circleci/golang:1.12
@@ -83,30 +82,22 @@ jobs: # basic units of work in a run
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
                 mkdir ~/.ssh
                 ssh-keyscan $VENICE4_HOST >> ~/.ssh/known_hosts
+                ssh $VENICE4_USER@$VENICE4_HOST "sudo systemctl stop truapid.service"
+                ssh $VENICE4_USER@$VENICE4_HOST "cd octopus && git pull && make -C services/truapi build-linux && cp bin/truapid /home/ubuntu/go/bin/"
+                ssh $VENICE4_USER@$VENICE4_HOST "sudo systemctl start truapid.service"
                 scp bin/pushd "$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/pushd"
-                scp bin/truapid "$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/truapid"
                 ssh $VENICE4_USER@$VENICE4_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
-                ssh $VENICE4_USER@$VENICE4_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d truapid"
                 echo "deploying to venice4"
             elif [ "${CIRCLE_BRANCH}" == "develop" ]
             then
-               
                 mkdir ~/.ssh
                 ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
+                ssh $DEVNET_USER@$DEVNET_HOST "sudo systemctl stop truapid.service"
+                ssh $DEVNET_USER@$DEVNET_HOST "cd octopus && git pull && make -C services/truapi build-linux && cp bin/truapid /home/ubuntu/go/bin/"
+                ssh $DEVNET_USER@$DEVNET_HOST "sudo systemctl start truapid.service"
                 scp bin/pushd "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd"
-                scp bin/truapid "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/truapid"
                 ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
-                ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d truapid"
                 echo "deployed to devnet"
-            fi
-            elif [ "${CIRCLE_BRANCH}" == "refactor/55-api-service" ]
-            then
-               
-                mkdir ~/.ssh
-                ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
-                scp bin/truapid "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/truapid"
-                ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d truapid"
-                echo "deployed truapid to devnet"
             fi
   migrate:
     executor: go
@@ -196,7 +187,6 @@ workflows:
               only:
                 - master
                 - develop
-                - refactor/55-api-service
       - migrate:
           requires:
           - test_migrations

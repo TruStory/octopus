@@ -129,7 +129,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 
 	// If not available, create new
 	if keyPair.ID == 0 {
-		newKeyPair, _ := btcec.NewPrivateKey(btcec.S256())
+		newKeyPair, err := btcec.NewPrivateKey(btcec.S256())
 		if err != nil {
 			return "", err
 		}
@@ -189,7 +189,7 @@ func isWhitelistedUser(twitterUser *twitter.User) (bool, error) {
 	}
 
 	for _, whitelistedUser := range whitelistedUsers {
-		if strings.ToLower(whitelistedUser) == strings.ToLower(twitterUser.ScreenName) {
+		if strings.EqualFold(whitelistedUser, twitterUser.ScreenName) {
 			return true, nil
 		}
 	}

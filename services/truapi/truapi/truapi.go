@@ -116,7 +116,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
 
-	if apiCtx.Config.App.MockRegistration == true {
+	if apiCtx.Config.App.MockRegistration {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))
 	}
 
@@ -145,7 +145,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 			compiledIndexFile := CompileIndexFile(ta, indexFile, r.RequestURI)
 
 			w.Header().Add("Content-Type", "text/html")
-			_, err = fmt.Fprintf(w, compiledIndexFile)
+			_, err = fmt.Println(compiledIndexFile)
 			if err != nil {
 				log.Printf("ERROR index.html -- %s", err)
 				http.Error(w, "Error serving index.html", http.StatusInternalServerError)

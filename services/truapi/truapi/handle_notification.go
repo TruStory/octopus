@@ -44,7 +44,7 @@ func (ta *TruAPI) handleUpdateNotificationEvent(r *http.Request) chttp.Response 
 	}
 
 	// if request was made to mark all notification as read
-	if request.NotificationID == -1 && *request.Read == true {
+	if request.NotificationID == -1 && *request.Read {
 		return markAllAsRead(ta, r)
 	}
 

@@ -279,7 +279,6 @@ func (s *service) run(stop <-chan struct{}) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	// txsCh := make(chan interface{})
 	txsCh, err := client.Subscribe(ctx, "trustory-push-client", tmQuery)
 	if err != nil {
 		s.log.WithError(err).Fatal("could not connect to remote endpoint")

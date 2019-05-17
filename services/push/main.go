@@ -252,7 +252,11 @@ func (s *service) logChainStatus(c *client.HTTP) {
 	}
 	if status != nil {
 		nodeInfo := status.NodeInfo
-		s.log.Infof("connected to [%s] address: %s", nodeInfo.Moniker, nodeInfo.NetAddress().String())
+		netAddress, err := nodeInfo.NetAddress()
+		if err != nil {
+			return
+		}
+		s.log.Infof("connected to [%s] address: %s", nodeInfo.Moniker, netAddress.String())
 	}
 
 }

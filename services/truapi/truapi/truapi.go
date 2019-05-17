@@ -58,7 +58,7 @@ func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 		API:                     chttp.NewAPI(apiCtx, supported),
 		APIContext:              apiCtx,
 		GraphQLClient:           graphql.NewGraphQLClient(),
-		DBClient:                db.NewDBClient(apiCtx),
+		DBClient:                db.NewDBClient(apiCtx.Config),
 		commentsNotificationsCh: make(chan CommentNotificationRequest),
 		httpClient: &http.Client{
 			Timeout: time.Second * 5,

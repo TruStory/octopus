@@ -15,17 +15,16 @@ type Client struct {
 }
 
 // NewDBClient creates a Postgres client
-func NewDBClient(apiCtx truCtx.TruAPIContext) *Client {
-	config := apiCtx.Config.Database
+func NewDBClient(config truCtx.Config) *Client {
 	db := pg.Connect(&pg.Options{
-		Addr:     fmt.Sprintf("%s:%d", config.Host, config.Port),
-		User:     config.User,
-		Password: config.Pass,
-		Database: config.Name,
-		PoolSize: config.Pool,
+		Addr:     fmt.Sprintf("%s:%d", config.Database.Host, config.Database.Port),
+		User:     config.Database.User,
+		Password: config.Database.Pass,
+		Database: config.Database.Name,
+		PoolSize: config.Database.Pool,
 	})
 
-	return &Client{db, apiCtx.Config}
+	return &Client{db, config}
 }
 
 // GenericMutations write to the database

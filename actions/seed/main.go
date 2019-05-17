@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	db "github.com/TruStory/octopus/services/truapi/db"
 	"github.com/icrowley/fake"
 )
@@ -43,10 +44,20 @@ func (m *Mockery) mock() {
 }
 
 func main() {
+	config := truCtx.Config{
+		Database: truCtx.DatabaseConfig{
+			Host: mustEnv("PG_ADDR"),
+			Port: 5432,
+			User: mustEnv("PG_USER"),
+			Pass: mustEnv("PG_USER_PW"),
+			Name: mustEnv("PG_DB_NAME"),
+			Pool: 25,
+		},
+	}
 
 	mockery := &Mockery{
-		httpClient: &http.Client{},
-		// dbClient:    db.NewDBClient(),
+		httpClient:  &http.Client{},
+		dbClient:    db.NewDBClient(config),
 		apiEndpoint: mustEnv("SEED_API_ENDPOINT"),
 	}
 

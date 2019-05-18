@@ -14,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	sdkContext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tmlibs/cli"
@@ -64,7 +65,7 @@ var (
 func Execute() {
 	cobra.OnInitialize(initConfig)
 	codec := chain.MakeCodec()
-	rootCmd.AddCommand(startCmd(codec))
+	rootCmd.AddCommand(startCmd(codec), version.VersionCmd)
 
 	rootCmd.PersistentFlags().String(client.FlagChainID, "", "chain ID of tendermint node")
 	err := viper.BindPFlag(client.FlagChainID, rootCmd.PersistentFlags().Lookup(client.FlagChainID))

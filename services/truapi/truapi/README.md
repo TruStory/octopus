@@ -7,10 +7,10 @@ This file contains step-by-step instructions for extending the server in a few o
 - Ensure message type exists on server
 - Ensure there is a route to handle messages from that package
 - Enable the API to decode this message type
-  - In `x/truapi/supported_msgs.go`
+  - In `/truapi/supported_msgs.go`
       - Add an entry in the `supported` map for your new message type. The key is the name of the type, and the value is an empty struct of that type.
 - Enable the chain to handle this message type
-  - In `x/$msgpkg/handler.go`
+  - In `x/$mypackage/handler.go`
     - Add function to handle message type
     - If necessary, modify the `NewHandler` call site to pass additional keepers
     - Add case for new message type inside `NewHandler`
@@ -54,12 +54,12 @@ GraphQL resolvers can be top-level queries (e.g. `stories(categoryID)`), or stru
   - For struct fields, these will be an instance of the struct on which the field is being defined
 
 - Write a resolver
-  - See `x/truapi/resolver.go` for examples of both resolver types (and add your resolver to this file)
+  - See `/truapi/resolver.go` for examples of both resolver types (and add your resolver to this file)
   - A query resolver has the signature `func(context.Context, mypackage.MyQueryParamStructType)`
   - A struct field resolver has the signature `func(context.Context, mypackage.MyStructType)`
 
 - Register the resolver
-  - In `x/truapi/truapi.go`, call the appropriate registration method inside of `RegisterResolvers()`
+  - In `/truapi/truapi.go`, call the appropriate registration method inside of `RegisterResolvers()`
   - To register a query resolver, simply call `ta.GraphQLClient.RegisterQueryResolver("myQuery", ta.myQueryResolver)`
   - All fields for a given struct are registered together, like so:
     ```go

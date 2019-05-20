@@ -30,3 +30,42 @@ name = TruStory
 4. Default value "TruStory" if not supplied by the above
 
 Precedence: 1 -> 2 -> 3 -> 4
+
+## GraphQL Queries
+You can reach your client at `http://localhost:1337/api/v1/graphql/`
+
+Sample query:
+```graphql
+{
+  stories {
+    id
+    body
+    backings {
+      amount {
+        amount
+      }
+      argument {
+        id
+        creator {
+          address
+        }
+        timestamp {
+          createdTime
+        }
+        storyId
+        body
+        likes {
+          argumentID
+          creator {
+            address
+          }
+          timestamp {
+            createdTime
+          }
+        }
+      }
+    }
+  }
+}
+```
+

@@ -2,13 +2,23 @@ package chttp
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
-	"os"
+	"time"
 
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
+	"github.com/TruStory/truchain/x/users"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/utils"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/gorilla/mux"
+	"github.com/oklog/ulid"
+	amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -19,7 +29,7 @@ import (
 // MsgTypes is a map of `Msg` type names to empty instances
 type MsgTypes map[string]interface{}
 
-// App is implemented by a Cosmos app to provide chain functionality to the API
+// App is implemented by a Cosmos app client to provide chain functionality to the API
 type App interface {
 	RegisterKey(tcmn.HexBytes, string) (sdk.AccAddress, uint64, sdk.Coins, error)
 	RunQuery(string, interface{}) abci.ResponseQuery
@@ -28,14 +38,14 @@ type App interface {
 
 // API presents the functionality of a Cosmos app over HTTP
 type API struct {
-	App       *App
+	apiCtx    truCtx.TruAPIContext
 	Supported MsgTypes
 	router    *mux.Router
 }
 
-// NewAPI creates an `API` struct from an `App` and a `MsgTypes` schema
-func NewAPI(app *App, supported MsgTypes) *API {
-	a := API{App: app, Supported: supported, router: mux.NewRouter()}
+// NewAPI creates an `API` struct from a client context and a `MsgTypes` schema
+func NewAPI(apiCtx truCtx.TruAPIContext, supported MsgTypes) *API {
+	a := API{apiCtx: apiCtx, Supported: supported, router: mux.NewRouter()}
 	return &a
 }
 
@@ -68,7 +78,7 @@ func (a *API) Use(mw func(http.Handler) http.Handler) {
 
 // ListenAndServe serves HTTP using the API router
 func (a *API) ListenAndServe(addr string) error {
-	letsEncryptEnabled := os.Getenv("CHAIN_LETS_ENCRYPT_ENABLED") == "true"
+	letsEncryptEnabled := a.apiCtx.Config.Host.HTTPSEnabled
 	if !letsEncryptEnabled {
 		return http.ListenAndServe(addr, a.router)
 	}
@@ -76,15 +86,10 @@ func (a *API) ListenAndServe(addr string) error {
 }
 
 func (a *API) listenAndServeTLS() error {
-	host := os.Getenv("CHAIN_HOST")
-	certDir := os.Getenv("CHAIN_LETS_ENCRYPT_CACHE_DIR")
-	if certDir == "" {
-		certDir = "certs"
-	}
 	m := &autocert.Manager{
-		Cache:      autocert.DirCache(certDir),
+		Cache:      autocert.DirCache(a.apiCtx.Config.Host.HTTPSCacheDir),
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(host),
+		HostPolicy: autocert.HostWhitelist(a.apiCtx.Config.Host.Name),
 	}
 	httpServer := &http.Server{
 		Addr:    ":http",
@@ -104,28 +109,139 @@ func (a *API) listenAndServeTLS() error {
 		return secureServer.ListenAndServeTLS("", "")
 	})
 	g.Go(func() error {
-		select {
-		case <-ctx.Done():
-			_ = httpServer.Shutdown(ctx)
-			_ = secureServer.Shutdown(ctx)
-			return nil
-		}
+		<-ctx.Done()
+		_ = httpServer.Shutdown(ctx)
+		_ = secureServer.Shutdown(ctx)
+		return nil
 	})
+
 	return g.Wait()
-
-}
-
-// RunQuery dispatches a query (path + params) to the Cosmos app
-func (a *API) RunQuery(path string, params interface{}) abci.ResponseQuery {
-	return (*(a.App)).RunQuery(path, params)
-}
-
-// DeliverPresigned dispatches a pre-signed query to the Cosmos app
-func (a *API) DeliverPresigned(tx auth.StdTx) (*trpctypes.ResultBroadcastTxCommit, error) {
-	return (*(a.App)).DeliverPresigned(tx)
 }
 
 func redirectHandler(w http.ResponseWriter, r *http.Request) {
 	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.Path)
 	http.Redirect(w, r, url, http.StatusMovedPermanently)
+}
+
+// RegisterKey generates a new address/account for a public key
+func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (
+	accAddr sdk.AccAddress, accNum uint64, coins sdk.Coins, err error) {
+
+	var addr []byte
+	if string(algo[0]) == "*" {
+		addr = []byte("cosmostestingaddress")
+		algo = algo[1:]
+	} else {
+		addr = generateAddress()
+	}
+
+	_, err = a.signAndBroadcastRegistrationTx(addr, k, algo)
+	if err != nil {
+		return
+	}
+
+	addresses := users.QueryUsersByAddressesParams{
+		Addresses: []string{sdk.AccAddress(addr).String()},
+	}
+	result, err := a.RunQuery(users.QueryPath, addresses)
+	if err != nil {
+		return
+	}
+
+	var u []users.User
+	err = amino.UnmarshalJSON(result, &u)
+	if err != nil {
+		panic(err)
+	}
+	if len(u) == 0 {
+		err = errors.New("Unable to locate account " + string(addr))
+		return
+	}
+	stored := u[0]
+
+	return sdk.AccAddress(addr), stored.AccountNumber, stored.Coins, nil
+}
+
+// GenerateAddress returns the first 20 characters of a ULID (https://github.com/oklog/ulid)
+func generateAddress() []byte {
+	t := time.Now()
+	entropy := ulid.Monotonic(rand.New(rand.NewSource(t.UnixNano())), 0)
+	ulidaddr := ulid.MustNew(ulid.Timestamp(t), entropy)
+	addr := []byte(ulidaddr.String())[:20]
+
+	return addr
+}
+
+func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (res sdk.TxResponse, err error) {
+	cliCtx := a.apiCtx
+	config := cliCtx.Config.Registrar
+
+	registrarAddr, err := sdk.AccAddressFromBech32(config.Addr)
+	if err != nil {
+		return
+	}
+	err = cliCtx.EnsureAccountExistsFromAddr(registrarAddr)
+	if err != nil {
+		return
+	}
+
+	msg := users.RegisterKeyMsg{
+		Address:    addr,
+		PubKey:     k,
+		PubKeyAlgo: algo,
+		Coins:      nil,
+	}
+	err = msg.ValidateBasic()
+	if err != nil {
+		return
+	}
+
+	// build and sign the transaction
+	seq, err := cliCtx.GetAccountSequence(registrarAddr)
+	if err != nil {
+		return
+	}
+
+	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
+	if err != nil {
+		return
+	}
+
+	// broadcast to a Tendermint node
+	res, err = cliCtx.WithBroadcastMode(client.BroadcastBlock).BroadcastTx(txBytes)
+	if err != nil {
+		return
+	}
+	fmt.Println(res)
+
+	return res, nil
+}
+
+// RunQuery dispatches a query (path + params) to the Tendermint node
+func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
+	paramBytes, err := json.Marshal(params)
+	if err != nil {
+		return nil, err
+	}
+	res, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}
+
+// DeliverPresigned dispatches a pre-signed transaction to the Tendermint node
+func (a *API) DeliverPresigned(tx auth.StdTx) (res sdk.TxResponse, err error) {
+	ctx := a.apiCtx
+
+	txBytes := ctx.Codec.MustMarshalBinaryLengthPrefixed(tx)
+	res, err = ctx.WithBroadcastMode(client.BroadcastBlock).BroadcastTx(txBytes)
+	if err != nil {
+		return
+	}
+	fmt.Println(res)
+
+	return res, nil
 }

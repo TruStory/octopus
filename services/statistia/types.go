@@ -56,30 +56,31 @@ type MetricsSummary struct {
 	Users map[string]*UserMetrics `json:"users"`
 }
 
-// AccumulatedUserCred tracks accumulated cred by day.
-type AccumulatedUserCred map[string]Coin
-
 // Metrics tracked.
 type Metrics struct {
 	// Interactions
-	TotalClaims               uint64 `json:"total_claims"`
-	TotalArguments            uint64 `json:"total_arguments"`
+	TotalClaims    uint64 `json:"total_claims"`
+	TotalArguments uint64 `json:"total_arguments"`
+	// TotalClaimsBacked         uint64 `json:"total_claims_backed"`
+	// TotalClaimsChallenged     uint64 `json:"total_claims_challenged"`
 	TotalReceivedEndorsements uint64 `json:"total_received_endorsements"`
 	TotalGivenEndorsements    uint64 `json:"total_given_endorsments"`
 
 	// StakeBased Metrics
-	TotalAmountStaked  Coin `json:"total_amount_staked"`
-	StakeEarned        Coin `json:"stake_earned"`
-	StakeLost          Coin `json:"stake_lost"`
-	TotalAmountAtStake Coin `json:"total_amount_at_stake"`
-	InterestEarned     Coin `json:"interest_earned"`
+	TotalAmountBacked     Coin `json:"total_Amount_backed"`
+	TotalAmountChallenged Coin `json:"total_Amount_challenged"`
+	TotalAmountStaked     Coin `json:"total_amount_staked"`
+	StakeEarned           Coin `json:"stake_earned"`
+	StakeLost             Coin `json:"stake_lost"`
+	TotalAmountAtStake    Coin `json:"total_amount_at_stake"`
+	InterestEarned        Coin `json:"interest_earned"`
 }
 
 // CategoryMetrics summary of metrics by category.
 type CategoryMetrics struct {
 	CategoryID   uint64   `json:"category_id"`
 	CategoryName string   `json:"category_name"`
-	CredBalance  Coin     `json:"cred_balance"`
+	CredEarned   Coin     `json:"cred_earned"`
 	Metrics      *Metrics `json:"metrics"`
 }
 
@@ -90,7 +91,4 @@ type UserMetrics struct {
 
 	// ByCategoryID
 	CategoryMetrics map[int64]*CategoryMetrics `json:"category_metrics"`
-
-	// Tracked by day
-	CredEarned map[string]AccumulatedUserCred
 }

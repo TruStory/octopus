@@ -9,9 +9,9 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/TruStory/octopus/services/truapi/db"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/category"
-	"github.com/TruStory/truchain/x/db"
 	"github.com/TruStory/truchain/x/story"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stripmd "github.com/writeas/go-strip-markdown"

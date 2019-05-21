@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	db "github.com/TruStory/truchain/x/db"
+	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/icrowley/fake"
 )
 

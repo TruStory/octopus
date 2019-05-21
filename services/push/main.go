@@ -14,7 +14,7 @@ import (
 	"github.com/appleboy/gorush/gorush"
 	"github.com/machinebox/graphql"
 
-	db "github.com/TruStory/truchain/x/db"
+	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/sirupsen/logrus"
 
 	"github.com/tendermint/tendermint/libs/pubsub/query"

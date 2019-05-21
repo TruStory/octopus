@@ -7,13 +7,12 @@ import (
 	"strings"
 
 	"github.com/gernest/mention"
-	"github.com/kelseyhightower/envconfig"
 )
 
 // replace @cosmosaddr with profile link [@username](https://app.trustory.io/profile/cosmosaddr)
-func (c *Client) replaceAddressesWithProfileURLs(config ChainConfig, body string) (string, error) {
-	profileURLPrefix := path.Join(config.Host, "profile")
-	profileURLsByAddress, err := c.mapAddressesToProfileURLs(config, body, profileURLPrefix)
+func (c *Client) replaceAddressesWithProfileURLs(body string) (string, error) {
+	profileURLPrefix := path.Join(c.config.Host.Name, "profile")
+	profileURLsByAddress, err := c.mapAddressesToProfileURLs(body, profileURLPrefix)
 	if err != nil {
 		return "", err
 	}
@@ -24,7 +23,7 @@ func (c *Client) replaceAddressesWithProfileURLs(config ChainConfig, body string
 	return body, nil
 }
 
-func (c *Client) mapAddressesToProfileURLs(config ChainConfig, body string, profileURLPrefix string) (map[string]string, error) {
+func (c *Client) mapAddressesToProfileURLs(body string, profileURLPrefix string) (map[string]string, error) {
 	profileURLsByAddress := map[string]string{}
 	addresses := parseMentions(body)
 	for _, address := range addresses {
@@ -43,7 +42,7 @@ func (c *Client) mapAddressesToProfileURLs(config ChainConfig, body string, prof
 		}
 
 		httpPrefix := "http://"
-		if config.LetsEncryptEnabled == true {
+		if c.config.Host.HTTPSEnabled {
 			httpPrefix = "https://"
 		}
 		markdownProfileURL := fmt.Sprintf("[@%s](%s%s)", twitterProfile.Username, httpPrefix, profileURL)
@@ -88,10 +87,5 @@ func (c *Client) TranslateToCosmosMentions(body string) (string, error) {
 
 // TranslateToUsersMentions translates from cosmos addresses mentions to users mentions.
 func (c *Client) TranslateToUsersMentions(body string) (string, error) {
-	var chainConfig ChainConfig
-	err := envconfig.Process("chain", &chainConfig)
-	if err != nil {
-		return body, err
-	}
-	return c.replaceAddressesWithProfileURLs(chainConfig, body)
+	return c.replaceAddressesWithProfileURLs(body)
 }

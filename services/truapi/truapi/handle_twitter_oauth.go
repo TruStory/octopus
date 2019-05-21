@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/TruStory/truchain/x/db"
-	"github.com/TruStory/truchain/x/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	gotwitter "github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/gologin"
 	oauth1Login "github.com/dghubble/gologin/oauth1"

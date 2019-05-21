@@ -30,7 +30,7 @@ require (
 	github.com/itskingori/go-wkhtml v0.0.0-20180226001954-aa8c15cb0496
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/joho/godotenv v1.3.0
-	github.com/kelseyhightower/envconfig v1.3.0 // indirect
+	github.com/kelseyhightower/envconfig v1.3.0
 	github.com/machinebox/graphql v0.2.3-0.20181106130121-3a9253180225
 	github.com/matryer/is v1.2.0 // indirect
 	github.com/oklog/ulid v1.3.1

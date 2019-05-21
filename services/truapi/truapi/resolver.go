@@ -6,23 +6,20 @@ import (
 	"fmt"
 	"path"
 	"sort"
-	"strings"
 
+	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/argument"
 	"github.com/TruStory/truchain/x/backing"
 	"github.com/TruStory/truchain/x/category"
 	"github.com/TruStory/truchain/x/challenge"
-	"github.com/TruStory/truchain/x/db"
 	"github.com/TruStory/truchain/x/params"
 	"github.com/TruStory/truchain/x/story"
-	"github.com/TruStory/truchain/x/truapi/cookies"
 	trubank "github.com/TruStory/truchain/x/trubank"
 	"github.com/TruStory/truchain/x/users"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/kelseyhightower/envconfig"
 	amino "github.com/tendermint/go-amino"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // FeedFilter is parameter for filtering the story feed

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -251,15 +250,10 @@ func (statistia *service) fetchMetrics(date time.Time) *MetricsSummary {
 		panic(err)
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		panic(err)
-	}
-
 	metrics := &MetricsSummary{
 		Users: make(map[string]*UserMetrics),
 	}
-	err = json.Unmarshal(body, &metrics)
+	err = json.NewDecoder(response.Body).Decode(metrics)
 	if err != nil {
 		panic(err)
 	}

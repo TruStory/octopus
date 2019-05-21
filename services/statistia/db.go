@@ -3,13 +3,11 @@ package main
 import (
 	"time"
 
-	"github.com/TruStory/truchain/x/db"
 	"github.com/go-pg/pg"
 )
 
 // UserMetric is the db model to interact with user metrics
 type UserMetric struct {
-	tableName                 struct{}  `sql:"user_metrics"`
 	Address                   string    `json:"address"`
 	AsOnDate                  time.Time `json:"as_on_date"`
 	CategoryID                int64     `json:"category_id"`
@@ -28,16 +26,6 @@ type UserMetric struct {
 	TotalAmountAtStake        uint64    `json:"total_amount_at_stake"  sql:"type:,notnull"`
 	TotalAmountStaked         uint64    `json:"total_amount_staked"  sql:"type:,notnull"`
 	CredEarned                uint64    `json:"cred_earned"  sql:"type:,notnull"`
-}
-
-// UpsertDailyUserMetric inserts or updates the daily metric for the user
-func UpsertDailyUserMetric(client *db.Client, metric UserMetric) error {
-	_, err := client.Model(&metric).
-		OnConflict("ON CONSTRAINT no_duplicate_metric DO UPDATE").
-		Set(upsertStatement()).
-		Insert()
-
-	return err
 }
 
 // UpsertDailyUserMetricInTx inserts or updates the daily metric for the user in a transaction

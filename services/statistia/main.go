@@ -78,7 +78,7 @@ func (statistia *service) run() {
 
 // seedBetween seeds the user daily metrics between the two given dates
 func (statistia *service) seedBetween(from, to time.Time) {
-	statistia.dbClient.RunInTransaction(func(tx *pg.Tx) error {
+	err := statistia.dbClient.RunInTransaction(func(tx *pg.Tx) error {
 		// set date to starting date and keep adding 1 day to it as long as it comes before to
 		for date := from; date.Before(to); date = date.AddDate(0, 0, 1) {
 			err := statistia.seedInTxFor(tx, date)
@@ -90,65 +90,10 @@ func (statistia *service) seedBetween(from, to time.Time) {
 
 		return nil
 	})
-}
 
-func (statistia *service) calculateBalance(from, to time.Time) {
-	today := time.Now()
-	tomorrow := today.Add(24 * 1 * time.Hour)
-	fmt.Println(tomorrow.Format("2006-01-02"))
-
-	tmMetrics := statistia.fetchMetrics(tomorrow)
-
-	userMetrics := tmMetrics.Users["cosmos1xqc5gwzpg3fyv5en2fzyx36z2se5ks33tt57e7"]
-
-	var totalStakeEarned, totalStakeLost, totalInterestEarned, totalAtStake uint64
-	for _, categoryMetric := range userMetrics.CategoryMetrics {
-		totalStakeEarned += categoryMetric.Metrics.StakeEarned.Amount
-		totalStakeLost += categoryMetric.Metrics.StakeLost.Amount
-		totalInterestEarned += categoryMetric.Metrics.InterestEarned.Amount
-		totalAtStake += categoryMetric.Metrics.TotalAmountAtStake.Amount
+	if err != nil {
+		panic(err)
 	}
-
-	// initial balance = current balance - total earned + total lost - total interest earned + at stake
-	initialBalance := int64(userMetrics.Balance.Amount - totalStakeEarned + totalStakeLost - totalInterestEarned + totalAtStake)
-
-	fmt.Println(userMetrics.Balance.Amount, initialBalance)
-
-	// set date to starting date and keep adding 1 day to it as long as it comes before to
-	var dailyBalances = []int64{initialBalance}
-	for date := from; date.Before(to); date = date.AddDate(0, 0, 1) {
-		today := date
-		yesterday := date.Add(-24 * 1 * time.Hour)
-
-		yMetrics := statistia.fetchMetrics(yesterday)
-		tMetrics := statistia.fetchMetrics(today)
-		tUserMetrics := tMetrics.Users["cosmos1xqc5gwzpg3fyv5en2fzyx36z2se5ks33tt57e7"]
-
-		totalStakeEarned, totalStakeLost, totalInterestEarned = 0, 0, 0
-		for categoryID, tCategoryMetric := range tUserMetrics.CategoryMetrics {
-			totalStakeEarned += tCategoryMetric.Metrics.StakeEarned.Amount
-			totalStakeLost += tCategoryMetric.Metrics.StakeLost.Amount
-			totalInterestEarned += tCategoryMetric.Metrics.InterestEarned.Amount
-
-			yUserMetric, ok := yMetrics.Users["cosmos1xqc5gwzpg3fyv5en2fzyx36z2se5ks33tt57e7"]
-			if ok {
-				yCategoryMetric, ok := yUserMetric.CategoryMetrics[categoryID]
-				if ok {
-					totalStakeEarned -= yCategoryMetric.Metrics.StakeEarned.Amount
-					totalStakeLost -= yCategoryMetric.Metrics.StakeLost.Amount
-					totalInterestEarned -= yCategoryMetric.Metrics.InterestEarned.Amount
-				}
-			}
-		}
-
-		// daily balance = PREVIOUS BALANCE  + (total earned - total lost - total interest earned + at stake)
-		// fmt.Println(dailyBalances[len(dailyBalances)-1], totalStakeEarned, totalStakeLost, totalInterestEarned, totalAtStake)
-		dailyBalance := dailyBalances[len(dailyBalances)-1] + int64(totalStakeEarned-totalStakeLost+totalInterestEarned)
-		dailyBalances = append(dailyBalances, dailyBalance)
-		fmt.Println(dailyBalance)
-	}
-
-	fmt.Println(dailyBalances)
 }
 
 // seedFor seeds the user daily metrics for the given date

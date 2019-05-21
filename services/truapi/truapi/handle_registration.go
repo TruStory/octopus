@@ -53,7 +53,7 @@ func (ta *TruAPI) HandleRegistration(r *http.Request) chttp.Response {
 	}
 
 	// Get the Twitter User from the auth token
-	twitterUser, err := getTwitterUser(rr.AuthToken, rr.AuthTokenSecret)
+	twitterUser, err := getTwitterUser(ta.APIContext, rr.AuthToken, rr.AuthTokenSecret)
 	if err != nil {
 		return chttp.SimpleErrorResponse(400, err)
 	}
@@ -82,7 +82,7 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
 		return chttp.SimpleErrorResponse(400, err)
 	}
 
-	cookieValue, err := cookies.MakeLoginCookieValue(twitterProfile)
+	cookieValue, err := cookies.MakeLoginCookieValue(ta.APIContext, twitterProfile)
 	if err != nil {
 		return chttp.SimpleErrorResponse(400, err)
 	}
@@ -114,6 +114,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	// if user exists,
 	var addr string
 	if currentTwitterProfile.ID != 0 {
@@ -128,7 +129,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 
 	// If not available, create new
 	if keyPair.ID == 0 {
-		newKeyPair, _ := btcec.NewPrivateKey(btcec.S256())
+		newKeyPair, err := btcec.NewPrivateKey(btcec.S256())
 		if err != nil {
 			return "", err
 		}
@@ -149,8 +150,11 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 
 		// Register with cosmos only if it wasn't registered before.
 		if currentTwitterProfile.ID == 0 {
-			pubKeyBytes, _ := hex.DecodeString(keyPair.PublicKey)
-			newAddr, _, _, err := (*(ta.App)).RegisterKey(pubKeyBytes, "secp256k1")
+			pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
+			if err != nil {
+				return "", err
+			}
+			newAddr, _, _, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
 			if err != nil {
 				return "", err
 			}
@@ -162,12 +166,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 }
 
 func isWhitelistedUser(twitterUser *twitter.User) (bool, error) {
-	rootdir := viper.GetString(cli.HomeFlag)
-	if rootdir == "" {
-		rootdir = os.ExpandEnv("$HOME/.truchaind")
-	}
-
-	path := filepath.Join(rootdir, "twitter-whitelist.json")
+	path := filepath.Join(viper.GetString(cli.HomeFlag), "twitter-whitelist.json")
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return false, err
@@ -190,7 +189,7 @@ func isWhitelistedUser(twitterUser *twitter.User) (bool, error) {
 	}
 
 	for _, whitelistedUser := range whitelistedUsers {
-		if strings.ToLower(whitelistedUser) == strings.ToLower(twitterUser.ScreenName) {
+		if strings.EqualFold(whitelistedUser, twitterUser.ScreenName) {
 			return true, nil
 		}
 	}
@@ -198,9 +197,9 @@ func isWhitelistedUser(twitterUser *twitter.User) (bool, error) {
 	return false, nil
 }
 
-func getTwitterUser(authToken string, authTokenSecret string) (*twitter.User, error) {
+func getTwitterUser(apiCtx truCtx.TruAPIContext, authToken string, authTokenSecret string) (*twitter.User, error) {
 	ctx := context.Background()
-	config := oauth1.NewConfig(os.Getenv("TWITTER_API_KEY"), os.Getenv("TWITTER_API_SECRET"))
+	config := oauth1.NewConfig(apiCtx.Config.Twitter.APIKey, apiCtx.Config.Twitter.APISecret)
 
 	httpClient := config.Client(ctx, oauth1.NewToken(authToken, authTokenSecret))
 	twitterClient := twitter.NewClient(httpClient)

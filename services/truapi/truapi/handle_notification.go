@@ -44,7 +44,7 @@ func (ta *TruAPI) handleUpdateNotificationEvent(r *http.Request) chttp.Response 
 	}
 
 	// if request was made to mark all notification as read
-	if request.NotificationID == -1 && *request.Read == true {
+	if request.NotificationID == -1 && *request.Read {
 		return markAllAsRead(ta, r)
 	}
 
@@ -67,7 +67,7 @@ func (ta *TruAPI) handleUpdateNotificationEvent(r *http.Request) chttp.Response 
 }
 
 func markAllAsRead(ta *TruAPI, r *http.Request) chttp.Response {
-	user, err := cookies.GetAuthenticatedUser(r)
+	user, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
 	if err != nil {
 		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
 	}

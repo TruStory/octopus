@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/TruStory/truchain/x/chttp"
+	"github.com/TruStory/octopus/services/truapi/chttp"
 )
 
 // HandlePresigned dispatches a `chttp.PresignedRequest` to a Cosmos app

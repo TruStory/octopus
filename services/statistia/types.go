@@ -59,10 +59,10 @@ type MetricsSummary struct {
 // Metrics tracked.
 type Metrics struct {
 	// Interactions
-	TotalClaims    uint64 `json:"total_claims"`
-	TotalArguments uint64 `json:"total_arguments"`
-	// TotalClaimsBacked         uint64 `json:"total_claims_backed"`
-	// TotalClaimsChallenged     uint64 `json:"total_claims_challenged"`
+	TotalClaims               uint64 `json:"total_claims"`
+	TotalArguments            uint64 `json:"total_arguments"`
+	TotalBackings             uint64 `json:"total_backings"`
+	TotalChallenges           uint64 `json:"total_challenges"`
 	TotalReceivedEndorsements uint64 `json:"total_received_endorsements"`
 	TotalGivenEndorsements    uint64 `json:"total_given_endorsments"`
 

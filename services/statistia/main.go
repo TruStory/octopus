@@ -79,10 +79,6 @@ func (statistia *service) run() {
 
 // seedBetween seeds the user daily metrics between the two given dates
 func (statistia *service) seedBetween(from, to time.Time) {
-
-	statistia.calculateBalance(from, to)
-	return
-
 	statistia.dbClient.RunInTransaction(func(tx *pg.Tx) error {
 		// set date to starting date and keep adding 1 day to it as long as it comes before to
 		for date := from; date.Before(to); date = date.AddDate(0, 0, 1) {
@@ -175,13 +171,13 @@ func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 			// thus, today's metrics become the daily metrics,
 			// thus, creating and initializing a default struct.
 			dUserMetric := UserMetric{
-				Address:        address,
-				AsOnDate:       today,
-				CategoryID:     categoryID,
-				TotalClaims:    tCategoryMetric.Metrics.TotalClaims,
-				TotalArguments: tCategoryMetric.Metrics.TotalArguments,
-				// TotalClaimsBacked:         tCategoryMetric.Metrics.TotalClaimsBacked,
-				// TotalClaimsChallenged:     tCategoryMetric.Metrics.TotalClaimsChallenged,
+				Address:                   address,
+				AsOnDate:                  today,
+				CategoryID:                categoryID,
+				TotalClaims:               tCategoryMetric.Metrics.TotalClaims,
+				TotalArguments:            tCategoryMetric.Metrics.TotalArguments,
+				TotalClaimsBacked:         tCategoryMetric.Metrics.TotalBackings,
+				TotalClaimsChallenged:     tCategoryMetric.Metrics.TotalChallenges,
 				TotalAmountBacked:         tCategoryMetric.Metrics.TotalAmountBacked.Amount,
 				TotalAmountChallenged:     tCategoryMetric.Metrics.TotalAmountChallenged.Amount,
 				TotalEndorsementsGiven:    tCategoryMetric.Metrics.TotalGivenEndorsements,
@@ -203,8 +199,8 @@ func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 				if ok {
 					dUserMetric.TotalClaims = tCategoryMetric.Metrics.TotalClaims - yCategoryMetric.Metrics.TotalClaims
 					dUserMetric.TotalArguments = tCategoryMetric.Metrics.TotalArguments - yCategoryMetric.Metrics.TotalArguments
-					// dUserMetric.TotalClaimsBacked = tCategoryMetric.Metrics.TotalClaimsBacked - yCategoryMetric.Metrics.TotalClaimsBacked
-					// dUserMetric.TotalClaimsChallenged = tCategoryMetric.Metrics.TotalClaimsChallenged - yCategoryMetric.Metrics.TotalClaimsChallenged
+					dUserMetric.TotalClaimsBacked = tCategoryMetric.Metrics.TotalBackings - yCategoryMetric.Metrics.TotalBackings
+					dUserMetric.TotalClaimsChallenged = tCategoryMetric.Metrics.TotalChallenges - yCategoryMetric.Metrics.TotalChallenges
 					dUserMetric.TotalEndorsementsGiven = tCategoryMetric.Metrics.TotalGivenEndorsements - yCategoryMetric.Metrics.TotalGivenEndorsements
 					dUserMetric.TotalEndorsementsReceived = tCategoryMetric.Metrics.TotalReceivedEndorsements - yCategoryMetric.Metrics.TotalReceivedEndorsements
 					dUserMetric.TotalAmountBacked = tCategoryMetric.Metrics.TotalAmountBacked.Minus(yCategoryMetric.Metrics.TotalAmountBacked).Amount

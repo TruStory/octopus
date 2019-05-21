@@ -19,7 +19,7 @@ type UserResponse struct {
 
 // HandleUserDetails takes a `UserRequest` and returns a `UserResponse`
 func (ta *TruAPI) HandleUserDetails(r *http.Request) chttp.Response {
-	user, err := cookies.GetAuthenticatedUser(r)
+	user, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
 	if err == http.ErrNoCookie {
 		return chttp.SimpleErrorResponse(401, err)
 	}

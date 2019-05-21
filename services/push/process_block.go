@@ -14,6 +14,10 @@ import (
 
 // Copied from truchain/truapi until truapi is moved into Octopus
 func humanReadable(coin sdk.Coin) string {
+	// empty struct
+	if (sdk.Coin{}) == coin {
+		return "0"
+	}
 	shanevs := sdk.NewDecFromIntWithPrec(coin.Amount, 9).String()
 	parts := strings.Split(shanevs, ".")
 	number := parts[0]
@@ -45,13 +49,13 @@ func getWinnerMsg(stake, reward, interest sdk.Coin) string {
 		if i == "0" {
 			return msg
 		}
-		return fmt.Sprintf("%s and earned %s interest", msg, i)
+		return fmt.Sprintf("%s and earned an interest payment of %s TruStake", msg, i)
 	}
 	msg := fmt.Sprintf("You won %s TruStake", r)
 	if i == "0" {
 		return msg
 	}
-	return fmt.Sprintf("%s but earned %s TruStake in interest", msg, i)
+	return fmt.Sprintf("%s and earned an interest payment of %s TruStake", msg, i)
 }
 func getLoserMsg(stake, interest sdk.Coin) string {
 	s, i := humanReadable(stake), humanReadable(interest)
@@ -59,7 +63,7 @@ func getLoserMsg(stake, interest sdk.Coin) string {
 	if i == "0" {
 		return msg
 	}
-	return fmt.Sprintf("%s but earned %s TruStake in interest", msg, i)
+	return fmt.Sprintf("%s but earned an interest payment of %s TruStake", msg, i)
 }
 
 func getResultMessage(t truchain.StakeDistributionResultsType, isBacker bool, staker truchain.Staker, earns UserEarns) string {
@@ -69,7 +73,7 @@ func getResultMessage(t truchain.StakeDistributionResultsType, isBacker bool, st
 		if i == "0" {
 			return fmt.Sprintf("It's a tie! You were refunded %s TruStake", humanReadable(staker.Amount))
 		}
-		return fmt.Sprintf("It's a tie! You were refunded %s TruStake but earned %s TruStake in interest",
+		return fmt.Sprintf("It's a tie! You were refunded %s TruStake and earned an interest payment of %s TruStake",
 			humanReadable(staker.Amount),
 			humanReadable(earns.Interest),
 		)

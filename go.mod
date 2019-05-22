@@ -3,7 +3,7 @@ module github.com/TruStory/octopus
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
-	github.com/TruStory/truchain v0.1.3-0.20190520001459-184c6d3450b2
+	github.com/TruStory/truchain v0.1.17
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32

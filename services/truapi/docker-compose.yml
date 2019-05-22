@@ -1,0 +1,8 @@
+version: '3'
+services:
+  truapid:
+    build: .
+    env_file:
+      - truapid.env
+    ports:
+      - '9001:9001'

@@ -11,13 +11,11 @@ import (
 	"syscall"
 	"time"
 
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
+	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/appleboy/gorush/gorush"
 	"github.com/machinebox/graphql"
-
-	db "github.com/TruStory/truchain/x/db"
 	"github.com/sirupsen/logrus"
-
-	"github.com/tendermint/tendermint/libs/pubsub/query"
 	"github.com/tendermint/tendermint/rpc/client"
 	"github.com/tendermint/tendermint/types"
 )
@@ -251,7 +249,11 @@ func (s *service) logChainStatus(c *client.HTTP) {
 	}
 	if status != nil {
 		nodeInfo := status.NodeInfo
-		s.log.Infof("connected to [%s] address: %s", nodeInfo.Moniker, nodeInfo.NetAddress().String())
+		netAddress, err := nodeInfo.NetAddress()
+		if err != nil {
+			return
+		}
+		s.log.Infof("connected to [%s] address: %s", nodeInfo.Moniker, netAddress.String())
 	}
 
 }
@@ -260,7 +262,7 @@ func (s *service) run(stop <-chan struct{}) {
 
 	remote := getEnv("REMOTE_ENDPOINT", "tcp://0.0.0.0:26657")
 	client := client.NewHTTP(remote, "/websocket")
-	tmQuery := query.MustParse("tru.event = 'Push'")
+	tmQuery := "tru.event = 'Push'"
 	err := client.Start()
 	if err != nil {
 		s.log.WithError(err).Fatal("error starting client")
@@ -275,13 +277,12 @@ func (s *service) run(stop <-chan struct{}) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	txsCh := make(chan interface{})
-	err = client.Subscribe(ctx, "trustory-push-client", tmQuery, txsCh)
+	txsCh, err := client.Subscribe(ctx, "trustory-push-client", tmQuery)
 	if err != nil {
 		s.log.WithError(err).Fatal("could not connect to remote endpoint")
 	}
 	s.logChainStatus(client)
-	s.log.Infof("subscribing to query event %s", tmQuery.String())
+	s.log.Infof("subscribing to query event %s", tmQuery)
 	notificationsCh := make(chan *Notification)
 	cNotificationsCh := make(chan *CommentNotificationRequest)
 	go s.startHTTP(stop, cNotificationsCh)
@@ -291,7 +292,7 @@ func (s *service) run(stop <-chan struct{}) {
 	for {
 		select {
 		case event := <-txsCh:
-			switch v := event.(type) {
+			switch v := event.Data.(type) {
 			case types.EventDataTx:
 				s.processTransactionEvent(v, notificationsCh)
 			case types.EventDataNewBlock:
@@ -318,7 +319,17 @@ func main() {
 	topic := getEnv("NOTIFICATION_TOPIC", "io.trustory.app.devnet")
 	graphqlEndpoint := mustEnv("PUSHD_GRAPHQL_ENDPOINT")
 
-	dbClient := db.NewDBClient()
+	config := truCtx.Config{
+		Database: truCtx.DatabaseConfig{
+			Host: getEnv("PG_ADDR", "localhost"),
+			Port: 5432,
+			User: getEnv("PG_USER", "postgres"),
+			Pass: getEnv("PG_USER_PW", ""),
+			Name: getEnv("PG_DB_NAME", "trudb"),
+			Pool: 25,
+		},
+	}
+	dbClient := db.NewDBClient(config)
 	graphqlClient := graphql.NewClient(graphqlEndpoint)
 	log.Info("pushd connected to db and starting")
 

@@ -9,29 +9,22 @@ executors:
 jobs: # basic units of work in a run
   build: # runs not using Workflows must have a `build` job as entry point
     executor: go
-
     parallelism: 2
-
     steps: # steps that comprise the `build` job
       - checkout # check out source code to working directory
-
       - restore_cache: # restores saved cache if no changes are detected since last run
           keys:
             - go-mod-v3-{{ checksum "go.sum" }}
-
       - run:
           name: Install linter
           command: |
             GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
-
       - run: make # pull and build dependencies for the project
-
       - run:
           name: List built binaries
           command: |
             pwd
             ls -l ./bin/
-
       - save_cache:
           key: go-mod-v3-{{ checksum "go.sum" }}
           paths:
@@ -89,14 +82,19 @@ jobs: # basic units of work in a run
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
                 mkdir ~/.ssh
                 ssh-keyscan $VENICE4_HOST >> ~/.ssh/known_hosts
+                ssh $VENICE4_USER@$VENICE4_HOST "sudo systemctl stop truapid.service"
+                ssh $VENICE4_USER@$VENICE4_HOST "cd octopus && git pull && make -C services/truapi build-linux && cp bin/truapid /home/ubuntu/go/bin/"
+                ssh $VENICE4_USER@$VENICE4_HOST "sudo systemctl start truapid.service"
                 scp bin/pushd "$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/pushd"
                 ssh $VENICE4_USER@$VENICE4_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
                 echo "deploying to venice4"
             elif [ "${CIRCLE_BRANCH}" == "develop" ]
             then
-               
                 mkdir ~/.ssh
                 ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
+                ssh $DEVNET_USER@$DEVNET_HOST "sudo systemctl stop truapid.service"
+                ssh $DEVNET_USER@$DEVNET_HOST "cd octopus && git pull && make -C services/truapi build-linux && cp bin/truapid /home/ubuntu/go/bin/"
+                ssh $DEVNET_USER@$DEVNET_HOST "sudo systemctl start truapid.service"
                 scp bin/pushd "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd"
                 ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
                 echo "deployed to devnet"

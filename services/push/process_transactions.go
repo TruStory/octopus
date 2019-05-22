@@ -6,8 +6,8 @@ import (
 
 	"strings"
 
+	"github.com/TruStory/octopus/services/truapi/db"
 	truchain "github.com/TruStory/truchain/types"
-	db "github.com/TruStory/truchain/x/db"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/types"

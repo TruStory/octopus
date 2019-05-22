@@ -12,6 +12,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
+	option "google.golang.org/api/option"
 	sheets "google.golang.org/api/sheets/v4"
 	"gopkg.in/Iwark/spreadsheet.v2"
 )
@@ -53,7 +54,11 @@ func toShanev(coin sdk.Coin) sdk.Dec {
 	return sdk.NewDecFromInt(coin.Amount).Quo(decShanev)
 }
 func main() {
-	data, err := ioutil.ReadFile("client_secret.json")
+	metricsEndpoint := mustEnv("METRICS_ENDPOINT")
+	secretFile := mustEnv("METRICS_SECRET_FILE")
+	spreadsheetID := mustEnv("METRICS_SPREADSHEET_ID")
+	spreadsheetRange := mustEnv("METRICS_SPREADSHEET_RANGE")
+	data, err := ioutil.ReadFile(secretFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -61,16 +66,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	client := conf.Client(context.TODO())
+	ctx := context.Background()
+	client := conf.Client(ctx)
 
-	srv, err := sheets.New(client)
+	srv, err := sheets.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		log.Fatalf("Unable to retrieve Sheets client: %v", err)
 	}
-
-	metricsEndpoint := mustEnv("METRICS_ENDPOINT")
-	spreadsheetID := mustEnv("METRICS_SPREADSHEET_ID")
-	spreadsheetRange := mustEnv("METRICS_SPREADSHEET_RANGE")
 
 	defaultDate := time.Now().Format("2006-01-02")
 	date := getEnv("METRICS_DATE", defaultDate)

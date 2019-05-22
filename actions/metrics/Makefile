@@ -5,6 +5,6 @@ encrypt_secret:
 decrypt_secret:
 	@openssl aes-256-cbc -d -in client_secret.json.enc -out client_secret.json  -k $(METRICS_DECODE_SECRET_KEY)
 
-run: decrypt_secret
+run: 
 	go run *.go
 	

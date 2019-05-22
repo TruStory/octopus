@@ -145,7 +145,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 			compiledIndexFile := CompileIndexFile(ta, indexFile, r.RequestURI)
 
 			w.Header().Add("Content-Type", "text/html")
-			_, err = fmt.Println(compiledIndexFile)
+			_, err = fmt.Fprint(w, compiledIndexFile)
 			if err != nil {
 				log.Printf("ERROR index.html -- %s", err)
 				http.Error(w, "Error serving index.html", http.StatusInternalServerError)

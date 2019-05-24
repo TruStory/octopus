@@ -192,7 +192,7 @@ func (ta *TruAPI) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 	categories := ta.allCategoriesResolver(r.Context(), struct{}{})
 	if len(categories) == 0 {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		render.Error(w, r, "no categories found", http.StatusInternalServerError)
 		return
 	}
 	mappedCategories := make(map[int64]category.Category)

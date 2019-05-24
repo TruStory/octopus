@@ -89,8 +89,8 @@ func (statistia *service) run() {
 
 // seedBetween seeds the user daily metrics between the two given dates
 func (statistia *service) seedBetween(from, to time.Time) {
-	// adding one day because date.Before checks "<" and not "<="
-	to.Add(24 * 1 * time.Hour)
+	// adding two days because date.Before checks "<" and not "<="
+	to = to.Add(24 * 1 * time.Hour)
 
 	err := statistia.dbClient.RunInTransaction(func(tx *pg.Tx) error {
 		// set date to starting date and keep adding 1 day to it as long as it comes before to
@@ -117,8 +117,8 @@ func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 
 	yMetrics := statistia.fetchMetrics(yesterday)
 	tMetrics := statistia.fetchMetrics(today)
-	fmt.Println(tMetrics)
 	fmt.Printf("Seeding for... %s in comparison with...%s\n", today.Format("2006-01-02"), yesterday.Format("2006-01-02"))
+	fmt.Println(tMetrics)
 
 	for address, tUserMetric := range tMetrics.Users {
 		fmt.Printf("\tCalculating for User... %s\n", address)
@@ -128,7 +128,7 @@ func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 			// by default, assume that the user has no previous activity,
 			// thus, today's metrics become the daily metrics,
 			// thus, creating and initializing a default struct.
-			dUserMetric := UserMetric{
+			dUserMetric := db.UserMetric{
 				Address:                   address,
 				AsOnDate:                  today,
 				CategoryID:                categoryID,
@@ -184,8 +184,8 @@ func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 	return nil
 }
 
-func (statistia *service) saveMetrics(tx *pg.Tx, metrics UserMetric) error {
-	err := UpsertDailyUserMetricInTx(tx, metrics)
+func (statistia *service) saveMetrics(tx *pg.Tx, metrics db.UserMetric) error {
+	err := db.UpsertDailyUserMetricInTx(tx, metrics)
 	if err != nil {
 		return err
 	}

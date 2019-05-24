@@ -113,6 +113,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/upload", ta.HandleUpload)
 	api.Handle("/flagStory", WithUser(apiCtx, WrapHandler(ta.HandleFlagStory)))
 	api.Handle("/comments", WithUser(apiCtx, WrapHandler(ta.HandleComment)))
+	api.Handle("/invite", WithUser(apiCtx, WrapHandler(ta.HandleInvite)))
 	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
 
@@ -318,6 +319,30 @@ func (ta *TruAPI) RegisterResolvers() {
 		"amount":        func(_ context.Context, q sdk.Coin) string { return q.Amount.String() },
 		"denom":         func(_ context.Context, q sdk.Coin) string { return q.Denom },
 		"humanReadable": func(_ context.Context, q sdk.Coin) string { return HumanReadable(q) },
+	})
+
+	ta.GraphQLClient.RegisterQueryResolver("invites", ta.invitesResolver)
+	ta.GraphQLClient.RegisterObjectResolver("Invite", db.Invite{}, map[string]interface{}{
+		"id": func(_ context.Context, i db.Invite) int64 { return i.ID },
+		"creator": func(ctx context.Context, i db.Invite) users.User {
+			creator, err := sdk.AccAddressFromBech32(i.Creator)
+			if err != nil {
+				return users.User{}
+			}
+			return getUser(ctx, creator)
+		},
+		"friend": func(ctx context.Context, i db.Invite) users.User {
+			twitterProfile, err := ta.DBClient.TwitterProfileByUsername(i.FriendTwitterUsername)
+			if err != nil || twitterProfile == nil {
+				return users.User{}
+			}
+			friend, err := sdk.AccAddressFromBech32(twitterProfile.Address)
+			if err != nil {
+				return users.User{}
+			}
+			return getUser(ctx, friend)
+		},
+		"createdAt": func(_ context.Context, q db.Invite) time.Time { return q.CreatedAt },
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("params", ta.paramsResolver)

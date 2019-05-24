@@ -2,6 +2,7 @@ package truapi
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -185,11 +186,17 @@ func (ta *TruAPI) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 	stories := make([]story.Story, 0)
 
-	_, err = ta.RunQuery("stories/all", struct{}{})
+	res, err := ta.RunQuery("stories/all", struct{}{})
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	err = json.Unmarshal(res, &stories)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	categories := ta.allCategoriesResolver(r.Context(), struct{}{})
 	if len(categories) == 0 {
 		render.Error(w, r, "no categories found", http.StatusInternalServerError)

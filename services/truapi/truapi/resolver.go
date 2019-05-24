@@ -39,6 +39,12 @@ type QueryByCategoryIDAndFeedFilter struct {
 	FeedFilter FeedFilter `graphql:",optional"`
 }
 
+// UserMetricsFilter is query params for filtering the statistia metrics
+type UserMetricsFilter struct {
+	From string
+	To   string
+}
+
 func (ta *TruAPI) allCategoriesResolver(ctx context.Context, q struct{}) []category.Category {
 	res, err := ta.RunQuery("categories/all", struct{}{})
 	if err != nil {
@@ -434,4 +440,16 @@ func (ta *TruAPI) reactionsResolver(ctx context.Context, rxnable db.Reactionable
 		panic(err)
 	}
 	return reactions
+}
+
+func (ta *TruAPI) userMetricsResolver(ctx context.Context, q UserMetricsFilter) []db.UserMetric {
+	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
+	if !ok {
+		return make([]db.UserMetric, 0)
+	}
+	response, err := ta.DBClient.AggregateUserMetricsByAddressBetweenDates(user.Address, q.From, q.To)
+	if err != nil {
+		panic(err)
+	}
+	return response
 }

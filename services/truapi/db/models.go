@@ -48,6 +48,7 @@ type Queries interface {
 	ReactionsCountByReactionable(reactionable Reactionable) ([]ReactionsCount, error)
 	TranslateToCosmosMentions(body string) (string, error)
 	TranslateToUsersMentions(body string) (string, error)
+	AggregateUserMetricsByAddressBetweenDates(address string, from string, to string) ([]UserMetric, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

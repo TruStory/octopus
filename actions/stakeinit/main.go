@@ -49,7 +49,10 @@ func seedInitialBalances(dbClient *db.Client) {
 		}
 
 		fmt.Println(address, initialBalance)
-		dbClient.UpsertInitialStakeBalance(initialBalance)
+		err := dbClient.UpsertInitialStakeBalance(initialBalance)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 

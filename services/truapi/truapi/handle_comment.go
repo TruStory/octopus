@@ -7,6 +7,7 @@ import (
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
 	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 )
 
 // AddCommentRequest represents the JSON request for adding a comment
@@ -35,7 +36,7 @@ func (ta *TruAPI) handleCreateComment(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(400, err)
 	}
 
-	user := r.Context().Value(userContextKey)
+	user := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
 	if user == nil {
 		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
 	}
@@ -44,7 +45,7 @@ func (ta *TruAPI) handleCreateComment(r *http.Request) chttp.Response {
 		ParentID:   request.ParentID,
 		ArgumentID: request.ArgumentID,
 		Body:       request.Body,
-		Creator:    request.Creator,
+		Creator:    user.Address,
 	}
 	err = ta.DBClient.AddComment(comment)
 	if err != nil {

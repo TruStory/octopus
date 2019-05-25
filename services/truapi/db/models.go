@@ -49,6 +49,7 @@ type Queries interface {
 	TranslateToCosmosMentions(body string) (string, error)
 	TranslateToUsersMentions(body string) (string, error)
 	AggregateUserMetricsByAddressBetweenDates(address string, from string, to string) ([]UserMetric, error)
+	InitialStakeBalanceByAddress(address string) (*InitialStakeBalance, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

@@ -92,3 +92,27 @@ type UserMetrics struct {
 	// ByCategoryID
 	CategoryMetrics map[int64]*CategoryMetrics `json:"category_metrics"`
 }
+
+// UsersByAddressesQuery fetches a user by the given address
+const UsersByAddressesQuery = `
+  query User($addresses: [String]) {
+		users(addresses: $addresses) {
+			id
+			coins {
+				amount
+				denom
+			}
+		}
+	}
+`
+
+// User represents the user from the chain
+type User struct {
+	ID    string `json:"id"`
+	Coins []Coin `json:"coins"`
+}
+
+// UsersByAddressesResponse defines the JSON response
+type UsersByAddressesResponse struct {
+	Users []User `json:"users"`
+}

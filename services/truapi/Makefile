@@ -13,7 +13,7 @@ build:
 	go build $(BUILD_FLAGS) -o ../../bin/truapid *.go
 
 build-linux:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0  /usr/local/go/bin/go build $(BUILD_FLAGS) -o ../../bin/truapid *.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0  go build $(BUILD_FLAGS) -o ../../bin/truapid *.go
 
 run:
 	go run *.go

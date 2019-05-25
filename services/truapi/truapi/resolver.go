@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path"
 	"sort"
+	"strings"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
@@ -420,6 +421,35 @@ func (ta *TruAPI) commentsResolver(ctx context.Context, q argument.Argument) []d
 		panic(err)
 	}
 	return comments
+}
+
+func (ta *TruAPI) invitesResolver(ctx context.Context) []db.Invite {
+	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
+	if !ok {
+		return make([]db.Invite, 0)
+	}
+
+	twitterProfile, err := ta.DBClient.TwitterProfileByID(user.TwitterProfileID)
+	if err != nil {
+		panic(err)
+	}
+
+	// TODO: pull this in from an ENV
+	if strings.EqualFold(twitterProfile.Username, "lilrushishah") ||
+		strings.EqualFold(twitterProfile.Username, "patel0phone") ||
+		strings.EqualFold(twitterProfile.Username, "iam_preethi") ||
+		strings.EqualFold(twitterProfile.Username, "truted2") {
+		invites, err := ta.DBClient.Invites()
+		if err != nil {
+			panic(err)
+		}
+		return invites
+	}
+	invites, err := ta.DBClient.InvitesByAddress(user.Address)
+	if err != nil {
+		panic(err)
+	}
+	return invites
 }
 
 func (ta *TruAPI) reactionsCountResolver(ctx context.Context, rxnable db.Reactionable) []db.ReactionsCount {

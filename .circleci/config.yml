@@ -38,6 +38,7 @@ jobs: # basic units of work in a run
           paths:
             - pushd
             - spotlightd
+            - truapid
   test_migrations:
     docker:
       - image: circleci/golang:1.12
@@ -83,7 +84,8 @@ jobs: # basic units of work in a run
                 mkdir ~/.ssh
                 ssh-keyscan $VENICE4_HOST >> ~/.ssh/known_hosts
                 ssh $VENICE4_USER@$VENICE4_HOST "sudo systemctl stop truapid.service"
-                ssh $VENICE4_USER@$VENICE4_HOST "cd octopus && git pull && make -C services/truapi build-linux && cp bin/truapid /home/ubuntu/go/bin/"
+                scp bin/truapid "$VENICE4_USER@$VENICE4_HOST:/home/ubuntu/go/bin/truapid"
+                ssh $VENICE4_USER@$VENICE4_HOST "sudo setcap CAP_NET_BIND_SERVICE=+eip /home/ubuntu/go/bin/truapid"
                 ssh $VENICE4_USER@$VENICE4_HOST "sudo systemctl start truapid.service"
                 scp bin/pushd "$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/pushd"
                 ssh $VENICE4_USER@$VENICE4_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
@@ -93,7 +95,8 @@ jobs: # basic units of work in a run
                 mkdir ~/.ssh
                 ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
                 ssh $DEVNET_USER@$DEVNET_HOST "sudo systemctl stop truapid.service"
-                ssh $DEVNET_USER@$DEVNET_HOST "cd octopus && git pull && make -C services/truapi build-linux && cp bin/truapid /home/ubuntu/go/bin/"
+                scp bin/truapid "$DEVNET_USER@$DEVNET_HOST:/home/ubuntu/go/bin/truapid"
+                ssh $DEVNET_USER@$DEVNET_HOST "sudo setcap CAP_NET_BIND_SERVICE=+eip /home/ubuntu/go/bin/truapid"
                 ssh $DEVNET_USER@$DEVNET_HOST "sudo systemctl start truapid.service"
                 scp bin/pushd "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd"
                 ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"

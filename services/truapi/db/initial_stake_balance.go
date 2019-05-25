@@ -9,7 +9,7 @@ type InitialStakeBalance struct {
 // InitialStakeBalanceByAddress gets the initial stake balance for a user
 func (c *Client) InitialStakeBalanceByAddress(address string) (*InitialStakeBalance, error) {
 	balance := new(InitialStakeBalance)
-	err := c.Model(&balance).Where("address = ?", address).Select()
+	err := c.Model(balance).Where("address = ?", address).Select()
 
 	if err != nil {
 		return nil, err

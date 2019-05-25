@@ -89,8 +89,9 @@ type CategoryMetrics struct {
 
 // UserMetrics a summary of different metrics per user
 type UserMetrics struct {
-	UserName string   `json:"username"`
-	Balance  sdk.Coin `json:"balance"`
+	UserName       string   `json:"username"`
+	Balance        sdk.Coin `json:"balance"`
+	RunningBalance sdk.Coin `json:"running_balance"`
 
 	// ByCategoryID
 	CategoryMetrics map[int64]*CategoryMetrics `json:"category_metrics"`
@@ -329,9 +330,36 @@ func (ta *TruAPI) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 		return nil
 	}
+
+	getInitialStakeBalance := func(user users.User) int64 {
+		initialStakeBalance, err := ta.DBClient.InitialStakeBalanceByAddress(user.Address)
+		if err != nil {
+			return 0
+		}
+
+		return int64(initialStakeBalance.InitialBalance)
+	}
+
+	calculateRunningBalance := func(ctx context.Context, user users.User) sdk.Coin {
+		var balance = sdk.NewInt64Coin(app.StakeDenom, getInitialStakeBalance(user))
+		txns := ta.transactionsResolver(ctx, app.QueryByCreatorParams{Creator: user.Address})
+
+		for _, txn := range txns {
+			// if the txn time is not before (i.e. after) the passed date, we'll ignore
+			if !txn.Timestamp.CreatedTime.Before(beforeDate) {
+				continue
+			}
+
+			balance = balance.Add(txn.Amount)
+		}
+
+		return balance
+	}
+
 	for userAddress, userMetrics := range metricsSummary.Users {
 		user := getUser(r.Context(), userAddress)
 		userMetrics.Balance = sdk.NewCoin(app.StakeDenom, user.Coins.AmountOf(app.StakeDenom))
+		userMetrics.RunningBalance = calculateRunningBalance(r.Context(), user)
 
 		for cID, cm := range userMetrics.CategoryMetrics {
 			c := findCategoryByID(categories, cID)

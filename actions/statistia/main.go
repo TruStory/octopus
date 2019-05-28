@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,12 +12,14 @@ import (
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	db "github.com/TruStory/octopus/services/truapi/db"
+	"github.com/machinebox/graphql"
 )
 
 type service struct {
 	metricsEndpoint string
 	httpClient      *http.Client
 	dbClient        *db.Client
+	graphqlClient   *graphql.Client
 }
 
 func main() {
@@ -34,6 +37,7 @@ func main() {
 		metricsEndpoint: mustEnv("STATISTIA_METRICS_ENDPOINT"),
 		httpClient:      &http.Client{},
 		dbClient:        db.NewDBClient(dbConfig),
+		graphqlClient:   graphql.NewClient(mustEnv("STATISTIA_GRAPHQL_ENDPOINT")),
 	}
 	defer statistia.dbClient.Close()
 
@@ -63,11 +67,54 @@ func (statistia *service) run() {
 	}
 	to = time.Now()
 
+	statistia.seedInitialBalances()
 	statistia.seedBetween(from, to)
+}
+
+// seedInitialBalances seeds the initial balances of all the users
+// whose initial balances are not tracked yet
+func (statistia *service) seedInitialBalances() {
+	fmt.Printf("----------SEEDING INITIAL BALANCES----------\n")
+	users, err := statistia.fetchUsers()
+	if err != nil {
+		panic(err)
+	}
+
+	tomorrow := time.Now().Add(24 * 1 * time.Hour)
+	tmMetrics := statistia.fetchMetrics(tomorrow)
+
+	for address, user := range users {
+		initialBalance := db.InitialStakeBalance{
+			Address:        address,
+			InitialBalance: filterStakeCoin(user.Coins).Amount,
+		}
+
+		// if any activity by the user is found, we will reverse calculate the initial balance
+		userMetrics, ok := tmMetrics.Users[address]
+		if ok {
+			var totalStakeEarned, totalStakeLost, totalInterestEarned, totalAtStake uint64
+			for _, categoryMetric := range userMetrics.CategoryMetrics {
+				totalStakeEarned += categoryMetric.Metrics.StakeEarned.Amount
+				totalStakeLost += categoryMetric.Metrics.StakeLost.Amount
+				totalInterestEarned += categoryMetric.Metrics.InterestEarned.Amount
+				totalAtStake += categoryMetric.Metrics.TotalAmountAtStake.Amount
+			}
+
+			// initial balance = current balance - total earned + total lost - total interest earned + at stake
+			initialBalance.InitialBalance = userMetrics.Balance.Amount - totalStakeEarned + totalStakeLost - totalInterestEarned + totalAtStake
+		}
+		fmt.Println(address, initialBalance)
+		err = statistia.dbClient.UpsertInitialStakeBalance(initialBalance)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 // seedBetween seeds the user daily metrics between the two given dates
 func (statistia *service) seedBetween(from, to time.Time) {
+	fmt.Printf("----------SEEDING USER METRICS----------\n")
+
 	// adding two days because date.Before checks "<" and not "<="
 	to = to.Add(24 * 1 * time.Hour)
 
@@ -97,7 +144,6 @@ func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 	yMetrics := statistia.fetchMetrics(yesterday)
 	tMetrics := statistia.fetchMetrics(today)
 	fmt.Printf("Seeding for... %s in comparison with...%s\n", today.Format("2006-01-02"), yesterday.Format("2006-01-02"))
-	fmt.Println(tMetrics)
 
 	for address, tUserMetric := range tMetrics.Users {
 		fmt.Printf("\tCalculating for User... %s\n", address)
@@ -165,6 +211,7 @@ func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 	return nil
 }
 
+// saveMetrics dumps the per-day-basis metrics for the user in database
 func (statistia *service) saveMetrics(tx *pg.Tx, metrics db.UserMetric) error {
 	err := db.UpsertDailyUserMetricInTx(tx, metrics)
 	if err != nil {
@@ -172,6 +219,34 @@ func (statistia *service) saveMetrics(tx *pg.Tx, metrics db.UserMetric) error {
 	}
 
 	return nil
+}
+
+// fetchUsers fetches the users and their coin holdings from the chain
+func (statistia *service) fetchUsers() (map[string]User, error) {
+	users := make([]db.TwitterProfile, 0)
+	addresses := make([]string, 0)
+	err := statistia.dbClient.FindAll(&users)
+	if err != nil {
+		panic(err)
+	}
+	for _, user := range users {
+		addresses = append(addresses, user.Address)
+	}
+
+	graphqlReq := graphql.NewRequest(UsersByAddressesQuery)
+
+	graphqlReq.Var("addresses", addresses)
+	var usersMap = make(map[string]User)
+	var graphqlRes UsersByAddressesResponse
+	ctx := context.Background()
+	if err := statistia.graphqlClient.Run(ctx, graphqlReq, &graphqlRes); err != nil {
+		return usersMap, err
+	}
+
+	for _, user := range graphqlRes.Users {
+		usersMap[user.ID] = user
+	}
+	return usersMap, nil
 }
 
 // fetchMetrics fetches the metrics for a given day from the metrics endpoint
@@ -199,6 +274,20 @@ func (statistia *service) fetchMetrics(date time.Time) *MetricsSummary {
 	}
 
 	return metrics
+}
+
+// filterStakeCoin returns the trustake/trusteak coin
+func filterStakeCoin(coins []Coin) Coin {
+	var stake Coin
+
+	// assuming that everyone will have the stake coin balance
+	for _, coin := range coins {
+		if coin.Denom == "trusteak" || coin.Denom == "trustake" {
+			stake = coin
+		}
+	}
+
+	return stake
 }
 
 func getEnv(env, defaultValue string) string {

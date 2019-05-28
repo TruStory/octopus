@@ -206,6 +206,14 @@ workflows:
             branches:
               only:
                 - master
+  statistia:
+    triggers:
+      - schedule:
+          cron: "0 1 * * *"
+          filters:
+            branches:
+              only:
+                - master
     jobs:
       - db_dump
       - s3_upload:

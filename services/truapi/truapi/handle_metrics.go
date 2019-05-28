@@ -168,7 +168,9 @@ func (um *UserMetrics) addCredEarned(categoryID int64, amount sdk.Coin) {
 }
 
 func (um *UserMetrics) addRunningBalance(amount sdk.Coin) {
-	um.RunningBalance = um.RunningBalance.Add(amount)
+	if amount.Denom == app.StakeDenom {
+		um.RunningBalance = um.RunningBalance.Add(amount)
+	}
 }
 
 // HandleMetrics dumps metrics per user basis.

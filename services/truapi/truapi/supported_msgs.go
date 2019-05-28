@@ -5,6 +5,7 @@ import (
 	"github.com/TruStory/truchain/x/backing"
 	"github.com/TruStory/truchain/x/challenge"
 	"github.com/TruStory/truchain/x/story"
+	"github.com/TruStory/truchain/x/trubank"
 )
 
 var supported = chttp.MsgTypes{
@@ -13,4 +14,5 @@ var supported = chttp.MsgTypes{
 	"LikeBackingArgumentMsg":   backing.LikeBackingArgumentMsg{},
 	"CreateChallengeMsg":       challenge.CreateChallengeMsg{},
 	"LikeChallengeArgumentMsg": challenge.LikeChallengeArgumentMsg{},
+	"PayRewardMsg":             trubank.PayRewardMsg{},
 }

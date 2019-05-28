@@ -11,13 +11,10 @@ import (
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	db "github.com/TruStory/octopus/services/truapi/db"
-	"github.com/gorilla/mux"
 )
 
 type service struct {
-	port            string
 	metricsEndpoint string
-	router          *mux.Router
 	httpClient      *http.Client
 	dbClient        *db.Client
 }
@@ -34,46 +31,13 @@ func main() {
 		},
 	}
 	statistia := &service{
-		port:            getEnv("STATISTIA_PORT", "6284"),
 		metricsEndpoint: mustEnv("STATISTIA_METRICS_ENDPOINT"),
-		router:          mux.NewRouter(),
 		httpClient:      &http.Client{},
 		dbClient:        db.NewDBClient(dbConfig),
 	}
 	defer statistia.dbClient.Close()
 
 	statistia.run()
-	args := os.Args[1:]
-
-	if len(args) == 0 {
-		// Running as a background service - go run *.go
-		statistia.run()
-	} else if len(args) == 2 {
-		// Running as the historical seeder - go run *.go 2019-04-14 today
-		// OR running as daily cron job - go run *.go today today
-		var from, to time.Time
-		var err error
-
-		if args[0] == "today" {
-			from = time.Now()
-		} else {
-			from, err = time.Parse("2006-01-02", args[0])
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		if args[1] == "today" {
-			to = time.Now()
-		} else {
-			to, err = time.Parse("2006-01-02", args[1])
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		statistia.seedBetween(from, to)
-	}
 }
 
 func (statistia *service) run() {

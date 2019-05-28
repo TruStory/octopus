@@ -242,5 +242,6 @@ workflows:
             branches:
               only:
                 - master
+                - develop
     jobs:
       - statistia_dump

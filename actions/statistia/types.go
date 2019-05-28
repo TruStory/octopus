@@ -42,12 +42,17 @@ func (coin *Coin) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	amount, err := strconv.ParseUint(aux.Amount, 10, 64)
+	amount, err := strconv.ParseInt(aux.Amount, 10, 64)
 	if err != nil {
 		panic(err)
 	}
 
-	coin.Amount = amount
+	// amounts cannot be negative
+	if amount < 0 {
+		amount = 0
+	}
+
+	coin.Amount = uint64(amount)
 	return nil
 }
 

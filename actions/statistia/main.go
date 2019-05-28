@@ -82,7 +82,6 @@ func (statistia *service) seedInitialBalances() {
 
 	tomorrow := time.Now().Add(24 * 1 * time.Hour)
 	tmMetrics := statistia.fetchMetrics(tomorrow)
-
 	for address, user := range users {
 		initialBalance := db.InitialStakeBalance{
 			Address:        address,

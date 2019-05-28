@@ -27,7 +27,7 @@ func getMockTwitterUser() *twitter.User {
 		ScreenName:      "trustory_engineering",
 		Name:            "Trustory Engineering",
 		Email:           "engineering@trustory.io",
-		ProfileImageURL: "https://pbs.twimg.com/profile_images/999336936572567552/SY65rL1h_bigger.jpg",
+		ProfileImageURL: "https://pbs.twimg.com/profile_images/1123407649335209985/pSuqllTI_bigger.jpg",
 	}
 
 	return mocked

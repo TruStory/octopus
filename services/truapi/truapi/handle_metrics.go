@@ -167,6 +167,10 @@ func (um *UserMetrics) addCredEarned(categoryID int64, amount sdk.Coin) {
 	m.CredEarned = m.CredEarned.Add(amount)
 }
 
+func (um *UserMetrics) addRunningBalance(amount sdk.Coin) {
+	um.RunningBalance = um.RunningBalance.Add(amount)
+}
+
 // HandleMetrics dumps metrics per user basis.
 func (ta *TruAPI) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
@@ -340,26 +344,10 @@ func (ta *TruAPI) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 		return int64(initialStakeBalance.InitialBalance)
 	}
 
-	calculateRunningBalance := func(ctx context.Context, user users.User) sdk.Coin {
-		var balance = sdk.NewInt64Coin(app.StakeDenom, getInitialStakeBalance(user))
-		txns := ta.transactionsResolver(ctx, app.QueryByCreatorParams{Creator: user.Address})
-
-		for _, txn := range txns {
-			// if the txn time is not before (i.e. after) the passed date, we'll ignore
-			if !txn.Timestamp.CreatedTime.Before(beforeDate) {
-				continue
-			}
-
-			balance = balance.Add(txn.Amount)
-		}
-
-		return balance
-	}
-
 	for userAddress, userMetrics := range metricsSummary.Users {
 		user := getUser(r.Context(), userAddress)
 		userMetrics.Balance = sdk.NewCoin(app.StakeDenom, user.Coins.AmountOf(app.StakeDenom))
-		userMetrics.RunningBalance = calculateRunningBalance(r.Context(), user)
+		userMetrics.RunningBalance = sdk.NewInt64Coin(app.StakeDenom, getInitialStakeBalance(user))
 
 		for cID, cm := range userMetrics.CategoryMetrics {
 			c := findCategoryByID(categories, cID)
@@ -380,6 +368,9 @@ func (ta *TruAPI) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 			if !tx.Timestamp.CreatedTime.Before(beforeDate) {
 				continue
 			}
+
+			userMetrics.addRunningBalance(tx.Amount)
+
 			switch tx.TransactionType {
 			case trubank.Interest:
 				i, ok := mappedStories[tx.GroupID]

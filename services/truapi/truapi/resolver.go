@@ -336,7 +336,14 @@ func (ta *TruAPI) transactionsResolver(_ context.Context, q app.QueryByCreatorPa
 		panic(err)
 	}
 
-	return *transactions
+	storyTransactions := make([]trubank.Transaction, 0)
+	for _, transaction := range *transactions {
+		if transaction.TransactionType != trubank.InviteAFriend {
+			storyTransactions = append(storyTransactions, transaction)
+		}
+	}
+
+	return storyTransactions
 }
 
 func (ta *TruAPI) unreadNotificationsCountResolver(ctx context.Context, q struct{}) *db.NotificationsCountResponse {

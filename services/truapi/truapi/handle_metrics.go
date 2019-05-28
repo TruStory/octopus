@@ -328,17 +328,8 @@ func (ta *TruAPI) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 		return users.User{}
 	}
 
-	findCategoryByID := func(categories []category.Category, categoryID int64) *category.Category {
-		for _, c := range categories {
-			if c.ID == categoryID {
-				return &c
-			}
-		}
-		return nil
-	}
-
-	getInitialStakeBalance := func(user users.User) int64 {
-		initialStakeBalance, err := ta.DBClient.InitialStakeBalanceByAddress(user.Address)
+	getInitialStakeBalance := func(address string) int64 {
+		initialStakeBalance, err := ta.DBClient.InitialStakeBalanceByAddress(address)
 		if err != nil {
 			return 0
 		}
@@ -346,16 +337,19 @@ func (ta *TruAPI) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 		return int64(initialStakeBalance.InitialBalance)
 	}
 
-	for userAddress, userMetrics := range metricsSummary.Users {
+	users, err := ta.DBClient.TwitterProfiles()
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+	}
+	for _, userProfile := range users {
+		userAddress := userProfile.Address
+		userMetrics := metricsSummary.GetUserMetrics(userAddress)
 		user := getUser(r.Context(), userAddress)
 		userMetrics.Balance = sdk.NewCoin(app.StakeDenom, user.Coins.AmountOf(app.StakeDenom))
-		userMetrics.RunningBalance = sdk.NewInt64Coin(app.StakeDenom, getInitialStakeBalance(user))
+		userMetrics.RunningBalance = sdk.NewInt64Coin(app.StakeDenom, getInitialStakeBalance(userAddress))
 
-		for cID, cm := range userMetrics.CategoryMetrics {
-			c := findCategoryByID(categories, cID)
-			if c == nil {
-				continue
-			}
+		for cID, c := range metricsSummary.Categories {
+			cm := userMetrics.getMetricsByCategory(cID)
 			cm.CredEarned = sdk.NewCoin(c.Denom(), sdk.NewInt(0))
 			cm.CategoryName = c.Title
 		}

@@ -130,7 +130,13 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	ta.PathPrefix("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// if it is not requesting a file with a valid extension serve the index
 		if filepath.Ext(path.Base(r.URL.Path)) == "" {
-			indexPath := filepath.Join(apiCtx.Config.Web.Directory, "index.html")
+			webVersionCookie, _ := r.Cookie("web_version")
+			webDirectory := apiCtx.Config.Web.Directory;
+			if webVersionCookie != nil && webVersionCookie.Value == "2" {
+				webDirectory = apiCtx.Config.Web.DirectoryV2;
+			}
+			indexPath := filepath.Join(webDirectory, "index.html")
+
 			absIndexPath, err := filepath.Abs(indexPath)
 			if err != nil {
 				log.Printf("ERROR index.html -- %s", err)

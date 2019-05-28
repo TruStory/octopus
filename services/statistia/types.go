@@ -86,8 +86,9 @@ type CategoryMetrics struct {
 
 // UserMetrics a summary of different metrics per user
 type UserMetrics struct {
-	UserName string `json:"username"`
-	Balance  Coin   `json:"balance"`
+	UserName       string `json:"username"`
+	Balance        Coin   `json:"balance"`
+	RunningBalance Coin   `json:"running_balance"`
 
 	// ByCategoryID
 	CategoryMetrics map[int64]*CategoryMetrics `json:"category_metrics"`

@@ -75,6 +75,21 @@ func UpsertDailyUserMetricInTx(tx *pg.Tx, metric UserMetric) error {
 	return err
 }
 
+// AreUserMetricsEmpty returns whether the user metrics table is empty or not
+func (c *Client) AreUserMetricsEmpty() (bool, error) {
+	var userMetric UserMetric
+	count, err := c.Model(&userMetric).Count()
+	if err != nil {
+		return false, err
+	}
+
+	if count == 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func upsertStatement() string {
 	return `
 		address = EXCLUDED.address,

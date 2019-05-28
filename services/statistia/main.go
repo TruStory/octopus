@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -43,6 +42,7 @@ func main() {
 	}
 	defer statistia.dbClient.Close()
 
+	statistia.run()
 	args := os.Args[1:]
 
 	if len(args) == 0 {
@@ -77,14 +77,29 @@ func main() {
 }
 
 func (statistia *service) run() {
-	http.Handle("/", statistia.router)
 
-	fmt.Printf("\nRunning on... %s\n", "http://0.0.0.0:"+statistia.port)
-	err := http.ListenAndServe(":"+statistia.port, nil)
+	areEmpty, err := statistia.dbClient.AreUserMetricsEmpty()
 	if err != nil {
-		log.Println(err)
 		panic(err)
 	}
+
+	// Running as the historical seeder
+	// OR
+	// Running as daily cron job
+	var from, to time.Time
+	if areEmpty {
+		// starting from the April Fool's day of 2019
+		from, err = time.Parse("2006-01-02", "2019-04-01")
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		// starting from today only
+		from = time.Now()
+	}
+	to = time.Now()
+
+	statistia.seedBetween(from, to)
 }
 
 // seedBetween seeds the user daily metrics between the two given dates
@@ -145,7 +160,7 @@ func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 				StakeEarned:               tCategoryMetric.Metrics.StakeEarned.Amount,
 				StakeLost:                 tCategoryMetric.Metrics.StakeLost.Amount,
 				InterestEarned:            tCategoryMetric.Metrics.InterestEarned.Amount,
-				StakeBalance:              tUserMetric.Balance.Amount,
+				StakeBalance:              tUserMetric.RunningBalance.Amount,
 				CredEarned:                tCategoryMetric.CredEarned.Amount,
 			}
 
@@ -153,6 +168,8 @@ func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 			// we'll calculate the difference to get the given day's metrics.
 			yUserMetric, ok := yMetrics.Users[address]
 			if ok {
+				dUserMetric.StakeBalance = tUserMetric.RunningBalance.Minus(yUserMetric.RunningBalance).Amount
+
 				yCategoryMetric, ok := yUserMetric.CategoryMetrics[categoryID]
 				if ok {
 					dUserMetric.TotalClaims = tCategoryMetric.Metrics.TotalClaims - yCategoryMetric.Metrics.TotalClaims

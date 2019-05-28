@@ -241,7 +241,6 @@ workflows:
           filters:
             branches:
               only:
-                - master
-                - develop
+                - feature/metrics__feature/statistia
     jobs:
       - statistia_dump

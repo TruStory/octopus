@@ -296,11 +296,3 @@ func getEnv(env, defaultValue string) string {
 	}
 	return defaultValue
 }
-
-func mustEnv(env string) string {
-	val := os.Getenv(env)
-	if val == "" {
-		panic(fmt.Sprintf("must provide %s variable", env))
-	}
-	return val
-}

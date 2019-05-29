@@ -412,7 +412,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		"id":             func(_ context.Context, q users.User) string { return q.Address },
 		"coins":          func(_ context.Context, q users.User) sdk.Coins { return q.Coins },
 		"pubkey":         func(_ context.Context, q users.User) string { return q.Pubkey.String() },
-		"twitterProfile": ta.twitterProfileResolver,
+		"twitterProfile": func(ctx context.Context, q users.User) db.TwitterProfile { return ta.twitterProfileResolver(ctx, q.Address) },
 		"transactions": func(ctx context.Context, q users.User) []trubank.Transaction {
 			return getTransactions(ctx, q.Address)
 		},
@@ -491,6 +491,23 @@ func (ta *TruAPI) RegisterResolvers() {
 		"category": func(ctx context.Context, q db.UserMetric) category.Category {
 			return ta.categoryResolver(ctx, category.QueryCategoryByIDParams{ID: q.CategoryID})
 		},
+	})
+
+	// V2 resolvers
+	getEarnedBalance := func(q AppAccount) sdk.Coin { 
+		amount := sdk.NewCoin(app.StakeDenom, sdk.ZeroInt())
+		for _, earned := range q.EarnedStake {
+			amount = amount.Add(earned.Coin)
+		}
+		return amount;
+	}
+
+	ta.GraphQLClient.RegisterQueryResolver("appAccount", ta.appAccountResolver)
+	ta.GraphQLClient.RegisterObjectResolver("AppAccount", AppAccount{}, map[string]interface{}{
+		"id": func(_ context.Context, q AppAccount) string { return q.Address },
+		"earnedBalance": func(_ context.Context, q AppAccount) sdk.Coin { return getEarnedBalance(q) },
+		"availableBalance": func(_ context.Context, q AppAccount) sdk.Coin { return q.Coins[0] },
+		"twitterProfile": func(ctx context.Context, q AppAccount) db.TwitterProfile { return ta.twitterProfileResolver(ctx, q.Address) },
 	})
 
 	ta.GraphQLClient.BuildSchema()

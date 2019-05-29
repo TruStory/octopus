@@ -294,8 +294,7 @@ func (ta *TruAPI) storyResolver(_ context.Context, q story.QueryStoryByIDParams)
 	return *s
 }
 
-func (ta *TruAPI) twitterProfileResolver(ctx context.Context, q users.User) db.TwitterProfile {
-	addr := q.Address
+func (ta *TruAPI) twitterProfileResolver(ctx context.Context, addr string) db.TwitterProfile {
 	twitterProfile, err := ta.DBClient.TwitterProfileByAddress(addr)
 	if twitterProfile == nil {
 		return db.TwitterProfile{}
@@ -489,4 +488,62 @@ func (ta *TruAPI) userMetricsResolver(ctx context.Context, q UserMetricsFilter) 
 		panic(err)
 	}
 	return response
+}
+
+// V2 resolvers
+type queryAppAccountByID struct {
+	ID string `graphql:"id"`
+}
+
+func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryAppAccountByID) AppAccount {
+	addresses := users.QueryUsersByAddressesParams{
+		Addresses: []string{q.ID},
+	}
+
+	res, err := ta.RunQuery("users/addresses", addresses)
+	if err != nil {
+		return AppAccount{}
+	}
+
+	users := new([]users.User)
+	err = amino.UnmarshalJSON(res, users)
+	if err != nil {
+		return AppAccount{}
+	}
+	if len(*users) == 0 {
+		return AppAccount{}
+	}
+	u := (*users)[0]
+
+	// split User.Coins into AppAccount.Coins and AppAccount.EarnedStake
+	trustake := make(sdk.Coins, 0)
+	earnedStake := make([]EarnedCoin, 0)
+
+	trustake = append(trustake, sdk.NewCoin(app.StakeDenom, u.Coins.AmountOf(app.StakeDenom)))
+
+	communityID := int64(1)
+	for _, coin := range u.Coins {
+		if coin.Denom != app.StakeDenom {
+			earnedCoin := sdk.NewCoin(app.StakeDenom, coin.Amount)
+			earned := EarnedCoin{
+				Coin: earnedCoin,
+				CommunityID: communityID,
+			}
+			earnedStake = append(earnedStake, earned)
+			communityID++
+		}
+	}
+
+	appAccount := AppAccount{
+		BaseAccount: BaseAccount{
+			Address: u.Address,
+			AccountNumber: u.AccountNumber,
+			Coins:         trustake,
+			Sequence:      u.Sequence,
+			PubKey:        u.Pubkey,
+		},
+		EarnedStake:	 earnedStake,
+	}
+
+	return appAccount
 }

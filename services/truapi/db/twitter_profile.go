@@ -98,13 +98,3 @@ func (c *Client) UpsertTwitterProfile(profile *TwitterProfile) error {
 
 	return err
 }
-
-// TwitterProfiles returns all twitter profiles.
-func (c *Client) TwitterProfiles() ([]TwitterProfile, error) {
-	twitterProfiles := make([]TwitterProfile, 0)
-	err := c.Model(&twitterProfiles).Select()
-	if err != nil {
-		return twitterProfiles, err
-	}
-	return twitterProfiles, nil
-}

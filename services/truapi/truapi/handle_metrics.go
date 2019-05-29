@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	db "github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/category"
@@ -337,7 +338,8 @@ func (ta *TruAPI) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 		return int64(initialStakeBalance.InitialBalance)
 	}
 
-	users, err := ta.DBClient.TwitterProfiles()
+	users := make([]db.TwitterProfile, 0)
+	err = ta.DBClient.FindAll(&users)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 	}

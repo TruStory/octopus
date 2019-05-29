@@ -31,7 +31,6 @@ type Mutations interface {
 // Queries read from the database
 type Queries interface {
 	GenericQueries
-	TwitterProfiles() ([]TwitterProfile, error)
 	TwitterProfileByID(id int64) (TwitterProfile, error)
 	TwitterProfileByAddress(addr string) (*TwitterProfile, error)
 	TwitterProfileByUsername(username string) (*TwitterProfile, error)

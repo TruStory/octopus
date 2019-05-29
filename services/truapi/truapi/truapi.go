@@ -116,6 +116,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/invite", WithUser(apiCtx, WrapHandler(ta.HandleInvite)))
 	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
+	api.HandleFunc("/metrics", ta.HandleMetrics)
 
 	if apiCtx.Config.App.MockRegistration {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))
@@ -481,6 +482,14 @@ func (ta *TruAPI) RegisterResolvers() {
 		// required to retrieve story state, because we only show endorse count once the story is expired
 		"story": func(ctx context.Context, q CredArgument) story.Story {
 			return ta.storyResolver(ctx, story.QueryStoryByIDParams{ID: q.StoryID})
+		},
+	})
+
+	ta.GraphQLClient.RegisterQueryResolver("userMetrics", ta.userMetricsResolver)
+	ta.GraphQLClient.RegisterObjectResolver("UserMetrics", db.UserMetric{}, map[string]interface{}{
+		"asOnDate": func(_ context.Context, q db.UserMetric) string { return q.AsOnDate.Format("2006-01-02") },
+		"category": func(ctx context.Context, q db.UserMetric) category.Category {
+			return ta.categoryResolver(ctx, category.QueryCategoryByIDParams{ID: q.CategoryID})
 		},
 	})
 

@@ -5,6 +5,7 @@ import (
 
 	app "github.com/TruStory/truchain/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	tcmn "github.com/tendermint/tendermint/libs/common"
 )
 
 // CredArgument represents an argument that earned cred based on likes.
@@ -27,4 +28,33 @@ type CommentNotificationRequest struct {
 	StoryID         int64     `json:"storyId"`
 	Creator         string    `json:"creator"`
 	Timestamp       time.Time `json:"timestamp"`
+}
+
+// V2 Truchain structs
+
+// AppAccount will be imported from truchain in the future
+type AppAccount struct {
+	BaseAccount
+
+	EarnedStake []EarnedCoin
+	SlashCount  int
+	IsJailed    bool
+	JailEndTime time.Time
+	CreatedTime time.Time
+}
+
+// EarnedCoin will be imported from truchain in the future
+type EarnedCoin struct {
+	sdk.Coin
+
+	CommunityID int64
+}
+
+// BaseAccount will be imported from truchain in the future
+type BaseAccount struct {
+	Address       string
+	Coins         sdk.Coins
+	PubKey        tcmn.HexBytes
+	AccountNumber uint64
+	Sequence      uint64
 }

@@ -51,6 +51,7 @@ type Queries interface {
 	AggregateUserMetricsByAddressBetweenDates(address string, from string, to string) ([]UserMetric, error)
 	InitialStakeBalanceByAddress(address string) (*InitialStakeBalance, error)
 	AreUserMetricsEmpty() (bool, error)
+	OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

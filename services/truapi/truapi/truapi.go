@@ -117,6 +117,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
 	api.HandleFunc("/metrics", ta.HandleMetrics)
+	api.Handle("/track/", WithUser(apiCtx, http.HandlerFunc(ta.HandleTrackEvent)))
 
 	if apiCtx.Config.App.MockRegistration {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))
@@ -132,9 +133,9 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 		// if it is not requesting a file with a valid extension serve the index
 		if filepath.Ext(path.Base(r.URL.Path)) == "" {
 			webVersionCookie, _ := r.Cookie("web_version")
-			webDirectory := apiCtx.Config.Web.Directory;
+			webDirectory := apiCtx.Config.Web.Directory
 			if webVersionCookie != nil && webVersionCookie.Value == "2" {
-				webDirectory = apiCtx.Config.Web.DirectoryV2;
+				webDirectory = apiCtx.Config.Web.DirectoryV2
 			}
 			indexPath := filepath.Join(webDirectory, "index.html")
 

@@ -34,10 +34,10 @@ func main() {
 		},
 	}
 	statistia := &service{
-		metricsEndpoint: mustEnv("STATISTIA_METRICS_ENDPOINT"),
+		metricsEndpoint: getEnv("STATISTIA_METRICS_ENDPOINT", "http://localhost:1337/api/v1/metrics"),
 		httpClient:      &http.Client{},
 		dbClient:        db.NewDBClient(dbConfig),
-		graphqlClient:   graphql.NewClient(mustEnv("STATISTIA_GRAPHQL_ENDPOINT")),
+		graphqlClient:   graphql.NewClient(getEnv("STATISTIA_GRAPHQL_ENDPOINT", "http://localhost:1337/api/v1/graphql")),
 	}
 	defer statistia.dbClient.Close()
 
@@ -295,12 +295,4 @@ func getEnv(env, defaultValue string) string {
 		return val
 	}
 	return defaultValue
-}
-
-func mustEnv(env string) string {
-	val := os.Getenv(env)
-	if val == "" {
-		panic(fmt.Sprintf("must provide %s variable", env))
-	}
-	return val
 }

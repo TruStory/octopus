@@ -178,7 +178,7 @@ jobs: # basic units of work in a run
               ssh $VENICE4_USER@$VENICE4_HOST "cd $OCTOPUS_LOCATION && git pull"
               ssh $VENICE4_USER@$VENICE4_HOST "cd $OCTOPUS_LOCATION && PG_ADDR=$PG_ADDR_PROD PG_USER=$PG_USER_PROD PG_USER_PW=$PG_USER_PW_PROD PG_DB_NAME=$PG_DB_NAME_PROD /usr/local/go/bin/go run ./actions/statistia/*.go"
               echo "[DONE] Statistia Daily Job on Testnet"
-            elif [ "${CIRCLE_BRANCH}" == "develop" ]
+            elif [ "${CIRCLE_BRANCH}" == "fix/env-vars-statistia" ]
             then               
               mkdir ~/.ssh
               ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
@@ -241,7 +241,6 @@ workflows:
           filters:
             branches:
               only:
-                - master
-                - develop
+                - fix/env-vars-statistia
     jobs:
       - statistia_dump

@@ -358,12 +358,23 @@ func (ta *TruAPI) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 		profile, err := ta.DBClient.TwitterProfileByAddress(userAddress)
 		if profile != nil && err == nil {
 			userMetrics.UserName = profile.Username
+
+			if profile.CreatedAt.After(beforeDate) {
+				userMetrics.RunningBalance = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+			}
 		}
 
 		txs := ta.transactionsResolver(r.Context(), app.QueryByCreatorParams{Creator: userAddress})
 		userStoryResults := make(map[int64]*storyRewardResult)
-		for _, tx := range txs {
+
+		for index, tx := range txs {
 			if !tx.Timestamp.CreatedTime.Before(beforeDate) {
+				// if the first txn is created AFTER the given date,
+				// we will reset the running balance to ZERO
+				if index == 0 {
+					userMetrics.RunningBalance = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+				}
+
 				continue
 			}
 

@@ -37,7 +37,8 @@ type queryByCommunitySlugAndFeedFilter struct {
 	FeedFilter    FeedFilter `graphql:",optional"`
 }
 
-const SummaryLength = 156
+// SummaryLength is amount of characters allowed when summarizing an argument
+const SummaryLength = 140
 
 func convertCategoryToCommunity(category category.Category) Community {
 	return Community{

@@ -30,6 +30,7 @@ import (
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
 	"github.com/gorilla/handlers"
+	"github.com/julianshen/og"
 )
 
 // ContextKey represents a string key for request context.
@@ -165,9 +166,9 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 		}
 		if webVersionCookie != nil && webVersionCookie.Value == "2" {
 			fsV2.ServeHTTP(w, r)
-		} else {
-			fs.ServeHTTP(w, r)
+			return
 		}
+		fs.ServeHTTP(w, r)
 	}))
 }
 
@@ -415,10 +416,12 @@ func (ta *TruAPI) RegisterResolvers() {
 
 	ta.GraphQLClient.RegisterQueryResolver("users", ta.usersResolver)
 	ta.GraphQLClient.RegisterObjectResolver("User", users.User{}, map[string]interface{}{
-		"id":             func(_ context.Context, q users.User) string { return q.Address },
-		"coins":          func(_ context.Context, q users.User) sdk.Coins { return q.Coins },
-		"pubkey":         func(_ context.Context, q users.User) string { return q.Pubkey.String() },
-		"twitterProfile": func(ctx context.Context, q users.User) db.TwitterProfile { return ta.twitterProfileResolver(ctx, q.Address) },
+		"id":     func(_ context.Context, q users.User) string { return q.Address },
+		"coins":  func(_ context.Context, q users.User) sdk.Coins { return q.Coins },
+		"pubkey": func(_ context.Context, q users.User) string { return q.Pubkey.String() },
+		"twitterProfile": func(ctx context.Context, q users.User) db.TwitterProfile {
+			return ta.twitterProfileResolver(ctx, q.Address)
+		},
 		"transactions": func(ctx context.Context, q users.User) []trubank.Transaction {
 			return getTransactions(ctx, q.Address)
 		},
@@ -500,20 +503,95 @@ func (ta *TruAPI) RegisterResolvers() {
 	})
 
 	// V2 resolvers
-	getEarnedBalance := func(q AppAccount) sdk.Coin { 
+	getEarnedBalance := func(q AppAccount) sdk.Coin {
 		amount := sdk.NewCoin(app.StakeDenom, sdk.ZeroInt())
 		for _, earned := range q.EarnedStake {
 			amount = amount.Add(earned.Coin)
 		}
-		return amount;
+		return amount
 	}
 
 	ta.GraphQLClient.RegisterQueryResolver("appAccount", ta.appAccountResolver)
 	ta.GraphQLClient.RegisterObjectResolver("AppAccount", AppAccount{}, map[string]interface{}{
-		"id": func(_ context.Context, q AppAccount) string { return q.Address },
-		"earnedBalance": func(_ context.Context, q AppAccount) sdk.Coin { return getEarnedBalance(q) },
+		"id":               func(_ context.Context, q AppAccount) string { return q.Address },
+		"earnedBalance":    func(_ context.Context, q AppAccount) sdk.Coin { return getEarnedBalance(q) },
 		"availableBalance": func(_ context.Context, q AppAccount) sdk.Coin { return q.Coins[0] },
-		"twitterProfile": func(ctx context.Context, q AppAccount) db.TwitterProfile { return ta.twitterProfileResolver(ctx, q.Address) },
+		"twitterProfile": func(ctx context.Context, q AppAccount) db.TwitterProfile {
+			return ta.twitterProfileResolver(ctx, q.Address)
+		},
+	})
+
+	ta.GraphQLClient.RegisterQueryResolver("communities", ta.communitiesResolver)
+	ta.GraphQLClient.RegisterQueryResolver("community", ta.communityResolver)
+	ta.GraphQLClient.RegisterObjectResolver("Community", Community{}, map[string]interface{}{
+		"id": func(_ context.Context, q Community) int64 { return q.ID },
+		"iconImage": func(_ context.Context, q Community) string {
+			return filepath.Join(ta.APIContext.Config.App.S3AssetsURL, "communities/default_icon_normal.png")
+		},
+		"heroImage": func(_ context.Context, q Community) string {
+			return filepath.Join(ta.APIContext.Config.App.S3AssetsURL, "communities/default_hero.png")
+		},
+	})
+
+	ta.GraphQLClient.RegisterPaginatedQueryResolverWithFilter("claims", ta.claimsResolver, map[string]interface{}{
+		"body": func(_ context.Context, q Claim) string { return q.Body },
+	})
+	ta.GraphQLClient.RegisterPaginatedObjectResolver("claims", "iD", Claim{}, map[string]interface{}{
+		"id": func(_ context.Context, q Claim) int64 { return q.ID },
+		"community": func(ctx context.Context, q Claim) Community {
+			return ta.communityResolver(ctx, queryByCommunityID{q.CommunityID})
+		},
+		"source": func(ctx context.Context, q Claim) string { return q.Source.String() },
+		"sourceImage": func(ctx context.Context, q Claim) string {
+			onImage := og.OgImage{}
+			err := og.GetPageDataFromUrl(q.Source.String(), &onImage)
+			if err != nil || onImage.Url == "" {
+				return filepath.Join(ta.APIContext.Config.App.S3AssetsURL, "sourceImage_default.jpg")
+			}
+			return onImage.Url
+		},
+		"argumentCount": func(_ context.Context, q Claim) int64 { return 0 },
+		"topArgument":   ta.topArgumentResolver,
+		"arguments": func(ctx context.Context, q Claim) []Argument {
+			return ta.claimArgumentsResolver(ctx, queryByClaimID{ID: q.ID})
+		},
+		"stakerCount": func(_ context.Context, q Claim) int64 { return 0 },
+		"stakers": func(ctx context.Context, q Claim) []AppAccount {
+			return []AppAccount{ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})}
+		},
+		"comments": func(ctx context.Context, q Claim) []db.Comment {
+			return ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
+		},
+		"creator": func(ctx context.Context, q Claim) AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
+		},
+	})
+	ta.GraphQLClient.RegisterQueryResolver("claim", ta.claimResolver)
+
+	ta.GraphQLClient.RegisterQueryResolver("claimArguments", ta.claimArgumentsResolver)
+	ta.GraphQLClient.RegisterObjectResolver("ClaimArgument", Argument{}, map[string]interface{}{
+		"id":          func(_ context.Context, q Argument) int64 { return q.ID },
+		"claimId":     func(_ context.Context, q Argument) int64 { return q.ClaimID },
+		"vote":        func(_ context.Context, q Argument) bool { return q.Type == Backing },
+		"createdTime": func(_ context.Context, q Argument) string { return q.CreatedTime.String() },
+		"creator": func(ctx context.Context, q Argument) AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
+		},
+		"hasSlashed":      func(_ context.Context, q Argument) bool { return false },
+		"appAccountStake": func(_ context.Context, q Argument) Stake { return Stake{} },
+		"stakers": func(ctx context.Context, q Argument) []AppAccount {
+			return []AppAccount{ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})}
+		},
+	})
+
+	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
+
+	ta.GraphQLClient.RegisterQueryResolver("stakes", ta.stakesResolver)
+	ta.GraphQLClient.RegisterObjectResolver("Stake", Stake{}, map[string]interface{}{
+		"id": func(_ context.Context, q Stake) int64 { return q.ID },
+		"creator": func(ctx context.Context, q Stake) AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
+		},
 	})
 
 	ta.GraphQLClient.BuildSchema()

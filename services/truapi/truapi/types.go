@@ -1,6 +1,7 @@
 package truapi
 
 import (
+	"net/url"
 	"time"
 
 	app "github.com/TruStory/truchain/types"
@@ -58,3 +59,59 @@ type BaseAccount struct {
 	AccountNumber uint64
 	Sequence      uint64
 }
+
+// Community will be imported from truchain in the future
+type Community struct {
+	ID               int64
+	Name             string
+	Slug             string
+	Description      string
+	TotalEarnedStake sdk.Coin
+}
+
+// Claim will be imported from truchain in the future
+type Claim struct {
+	ID              int64
+	CommunityID     int64
+	Body            string
+	Creator         sdk.AccAddress
+	Source          url.URL
+	TotalBacked     sdk.Coin
+	TotalChallenged sdk.Coin
+	CreatedTime     time.Time
+}
+
+// Argument will be imported from truchain in the future
+type Argument struct {
+	Stake
+
+	ClaimID      int64
+	Summary      string
+	Body         string
+	UpvotedCount int64
+	UpvotedStake sdk.Coin
+	SlashCount   int
+	IsUnhelpful  bool
+	UpdatedTime  time.Time
+}
+
+// Stake will be imported from truchain in the future
+type Stake struct {
+	ID          int64
+	ArgumentID  int64
+	Type        StakeType
+	Stake       sdk.Coin
+	Creator     sdk.AccAddress
+	CreatedTime time.Time
+	EndTime     time.Time
+}
+
+// StakeType will be imported from truchain in the future
+type StakeType int
+
+// will be imported from truchain in the future
+const (
+	Backing   StakeType = iota // 0
+	Challenge                  // 1
+	Upvote                     // 2
+)

@@ -178,7 +178,6 @@ func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 			yUserMetric, ok := yMetrics.Users[address]
 			if ok {
 				dUserMetric.StakeBalance = tUserMetric.RunningBalance.Minus(yUserMetric.RunningBalance).Amount
-
 				yCategoryMetric, ok := yUserMetric.CategoryMetrics[categoryID]
 				if ok {
 					dUserMetric.TotalClaims = tCategoryMetric.Metrics.TotalClaims - yCategoryMetric.Metrics.TotalClaims

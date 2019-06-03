@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"path/filepath"
 	"regexp"
 	"strconv"
 
@@ -18,7 +19,7 @@ import (
 
 const (
 	defaultDescription = "TruStory is a social network to debate claims with skin in the game"
-	defaultImage       = "https://s3-us-west-1.amazonaws.com/trustory/assets/Image+from+iOS.jpg"
+	defaultImage       = "Image+from+iOS.jpg"
 )
 
 var (
@@ -122,7 +123,7 @@ func makeDefaultMetaTags(ta *TruAPI, route string) Tags {
 	return Tags{
 		Title:       ta.APIContext.Config.App.Name,
 		Description: defaultDescription,
-		Image:       defaultImage,
+		Image:       filepath.Join(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
 		URL:         ta.APIContext.Config.App.URL + route,
 	}
 }

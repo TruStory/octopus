@@ -25,6 +25,7 @@ const (
 	flagAppURL               = "app.url"
 	flagAppMockRegistration  = "app.mock.registration"
 	flagAppUploadURL         = "app.upload.url"
+	flagAppS3AssetsURL       = "app.s3.assets.url"
 	flagCookieHashKey        = "cookie.hash.key"
 	flagCookieEncryptKey     = "cookie.encrypt.key"
 	flagDatabaseHost         = "database.hostname"
@@ -154,6 +155,12 @@ func registerAppFlags(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().String(flagAppUploadURL, "http://ec2-18-144-34-125.us-west-1.compute.amazonaws.com:4000/v1/upload/aws", "S3 upload URL for app media")
 	err = viper.BindPFlag(flagAppUploadURL, cmd.Flags().Lookup(flagAppUploadURL))
+	if err != nil {
+		panic(err)
+	}
+
+	cmd.Flags().String(flagAppS3AssetsURL, "https://s3-us-west-1.amazonaws.com/trustory/assets", "S3 assets URL")
+	err = viper.BindPFlag(flagAppS3AssetsURL, cmd.Flags().Lookup(flagAppS3AssetsURL))
 	if err != nil {
 		panic(err)
 	}

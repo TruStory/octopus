@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/TruStory/octopus/services/truapi/db"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/category"
@@ -171,7 +169,6 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndF
 			return []Claim{}
 		}
 		res, err = ta.RunQuery("stories/category", story.QueryCategoryStoriesParams{CategoryID: community.ID})
-		spew.Dump(res, err)
 	}
 	if err != nil {
 		fmt.Println("Resolver err: ", res)
@@ -231,7 +228,6 @@ func (ta *TruAPI) getCommunityBySlug(ctx context.Context, slug string) (Communit
 
 	var cat category.Category
 	for _, category := range cs {
-		spew.Dump(category)
 		if category.Slug == slug {
 			cat = category
 			break

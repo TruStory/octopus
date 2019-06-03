@@ -2,6 +2,7 @@ module github.com/TruStory/octopus
 
 require (
 	github.com/BurntSushi/toml v0.3.1
+	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
 	github.com/TruStory/truchain v0.1.18-0.20190528001319-f956205a17e7
 	github.com/appleboy/gorush v1.11.1
@@ -11,6 +12,7 @@ require (
 	github.com/corpix/uarand v0.1.0 // indirect
 	github.com/cosmos/cosmos-sdk v0.34.4
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dghubble/go-twitter v0.0.0-20190305084156-0022a70e9bee
 	github.com/dghubble/gologin v2.1.0+incompatible
 	github.com/dghubble/oauth1 v0.5.0
@@ -30,6 +32,8 @@ require (
 	github.com/itskingori/go-wkhtml v0.0.0-20180226001954-aa8c15cb0496
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/joho/godotenv v1.3.0
+	github.com/julianshen/go-readability v0.0.0-20160929030430-accf5123e283 // indirect
+	github.com/julianshen/og v0.0.0-20170124022037-897162c55567
 	github.com/kelseyhightower/envconfig v1.3.0 // indirect
 	github.com/machinebox/graphql v0.2.3-0.20181106130121-3a9253180225
 	github.com/matryer/is v1.2.0 // indirect

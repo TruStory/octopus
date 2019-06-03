@@ -187,7 +187,7 @@ func makeCommentMetaTags(ta *TruAPI, route string, storyID int64, argumentID int
 			commentObj = comment
 		}
 	}
-	creatorObj, err := ta.DBClient.TwitterProfileByAddress(argumentObj.Creator.String())
+	creatorObj, err := ta.DBClient.TwitterProfileByAddress(commentObj.Creator)
 	if err != nil {
 		// if error, return default
 		return nil, err

@@ -166,9 +166,9 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 		}
 		if webVersionCookie != nil && webVersionCookie.Value == "2" {
 			fsV2.ServeHTTP(w, r)
-		} else {
-			fs.ServeHTTP(w, r)
+			return
 		}
+		fs.ServeHTTP(w, r)
 	}))
 }
 

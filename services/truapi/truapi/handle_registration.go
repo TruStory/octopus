@@ -31,11 +31,19 @@ type RegistrationRequest struct {
 
 // RegistrationResponse is a JSON response body representing the result of registering a key
 type RegistrationResponse struct {
-	UserID               string `json:"userId"`
-	Username             string `json:"username"`
-	Fullname             string `json:"fullname"`
-	Address              string `json:"address"`
-	AuthenticationCookie string `json:"authenticationCookie"`
+	UserID               string                             `json:"userId"`
+	Username             string                             `json:"username"` // deprecated. Use RegistrationTwitterProfileResponse.Username
+	Fullname             string                             `json:"fullname"` // deprecated. Use RegistrationTwitterProfileResponse.Fullname
+	Address              string                             `json:"address"`
+	AuthenticationCookie string                             `json:"authenticationCookie"`
+	TwitterProfile       RegistrationTwitterProfileResponse `json:"twitterProfile"`
+}
+
+// RegistrationTwitterProfileResponse is a JSON response body representing the TwitterProfile of a user
+type RegistrationTwitterProfileResponse struct {
+	Username  string `json:"username"`
+	Fullname  string `json:"fullname"`
+	AvatarURI string `json:"avatarURI"`
 }
 
 // HandleRegistration takes a `RegistrationRequest` and returns a `RegistrationResponse`
@@ -93,6 +101,11 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
 		Fullname:             twitterUser.Name,
 		Address:              addr,
 		AuthenticationCookie: cookieValue,
+		TwitterProfile: RegistrationTwitterProfileResponse{
+			Username:  twitterProfile.Username,
+			Fullname:  twitterProfile.FullName,
+			AvatarURI: twitterProfile.AvatarURI,
+		},
 	})
 
 	return chttp.SimpleResponse(201, responseBytes)

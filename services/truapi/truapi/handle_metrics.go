@@ -70,6 +70,7 @@ type Metrics struct {
 	TotalBackings             int64 `json:"total_backings"`
 	TotalChallenges           int64 `json:"total_challenges"`
 	TotalOpenedClaims         int64 `json:"total_opened_claims"`
+	TotalUniqueOpenedClaims   int64 `json:"total_unique_opened_claims"`
 
 	// StakeBased Metrics
 	TotalAmountStaked     sdk.Coin `json:"total_amount_staked"`
@@ -132,6 +133,11 @@ func (um *UserMetrics) increaseTotalChallenges(categoryID int64) {
 func (um *UserMetrics) setTotalOpenedClaims(categoryID, openedClaims int64) {
 	m := um.getMetricsByCategory(categoryID).Metrics
 	m.TotalOpenedClaims = openedClaims
+}
+
+func (um *UserMetrics) setTotalUniqueOpenedClaims(categoryID, uniqueOpenedClaims int64) {
+	m := um.getMetricsByCategory(categoryID).Metrics
+	m.TotalUniqueOpenedClaims = uniqueOpenedClaims
 }
 
 func (um *UserMetrics) addAmoutAtStake(categoryID int64, amount sdk.Coin) {
@@ -473,6 +479,7 @@ func (ta *TruAPI) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 	for _, userOpenedClaims := range openedClaims {
 		userMetrics := metricsSummary.GetUserMetrics(userOpenedClaims.Address)
 		userMetrics.setTotalOpenedClaims(userOpenedClaims.CategoryID, userOpenedClaims.OpenedClaims)
+		userMetrics.setTotalUniqueOpenedClaims(userOpenedClaims.CategoryID, userOpenedClaims.UniqueOpenedClaims)
 	}
 	render.JSON(w, r, metricsSummary, http.StatusOK)
 

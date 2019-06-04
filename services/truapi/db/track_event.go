@@ -19,15 +19,18 @@ type TrackEvent struct {
 
 // UserOpenedClaimsSummary represents a metric of opened claims by user.
 type UserOpenedClaimsSummary struct {
-	Address      string `json:"string"`
-	CategoryID   int64  `json:"category_id"`
-	OpenedClaims int64  `json:"opened_claims"`
+	Address            string `json:"string"`
+	CategoryID         int64  `json:"category_id"`
+	OpenedClaims       int64  `json:"opened_claims"`
+	UniqueOpenedClaims int64  `json:"unique_opened_claims"`
 }
 
 func (c *Client) OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error) {
 	openedClaimsSummary := make([]UserOpenedClaimsSummary, 0)
 	query := `
-		SELECT address, meta->'categoryId' category_id,  COUNT(DISTINCT meta->'claimId') opened_claims 
+		SELECT address, meta->'categoryId' category_id,  
+			COUNT(meta->'claimId') opened_claims ,
+			COUNT(DISTINCT meta->'claimId') unique_opened_claims
 		FROM track_events 
 		WHERE
 			created_at < ?

@@ -176,14 +176,14 @@ jobs: # basic units of work in a run
               mkdir ~/.ssh
               ssh-keyscan $VENICE4_HOST >> ~/.ssh/known_hosts
               ssh $VENICE4_USER@$VENICE4_HOST "cd $OCTOPUS_LOCATION && git pull"
-              ssh $VENICE4_USER@$VENICE4_HOST "cd $OCTOPUS_LOCATION && PG_ADDR=$PG_ADDR_PROD PG_USER=$PG_USER_PROD PG_USER_PW=$PG_USER_PW_PROD PG_DB_NAME=$PG_DB_NAME_PROD /usr/local/go/bin/go run ./actions/statistia/*.go"
+              ssh $VENICE4_USER@$VENICE4_HOST "cd $OCTOPUS_LOCATION && source ./actions/statistia/.env && /usr/local/go/bin/go run ./actions/statistia/*.go"
               echo "[DONE] Statistia Daily Job on Testnet"
             elif [ "${CIRCLE_BRANCH}" == "develop" ]
             then               
               mkdir ~/.ssh
               ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
               ssh $DEVNET_USER@$DEVNET_HOST "cd $OCTOPUS_LOCATION && git pull"
-              ssh $DEVNET_USER@$DEVNET_HOST "cd $OCTOPUS_LOCATION && PG_ADDR=$PG_ADDR_DEVNET PG_USER=$PG_USER_DEVNET PG_USER_PW=$PG_USER_PW_DEVNET PG_DB_NAME=$PG_DB_NAME_DEVNET /usr/local/go/bin/go run ./actions/statistia/*.go"
+              ssh $DEVNET_USER@$DEVNET_HOST "cd $OCTOPUS_LOCATION && source ./actions/statistia/.env && /usr/local/go/bin/go run ./actions/statistia/*.go"
               echo "[DONE] Statistia Daily Job on Devnet"
             fi
 workflows:

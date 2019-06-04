@@ -320,3 +320,18 @@ func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) [
 func (ta *TruAPI) stakesResolver(_ context.Context, q queryByArgumentID) []Stake {
 	return []Stake{}
 }
+
+func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
+	return Settings{
+		MinClaimLength:    25,
+		MaxClaimLength:    140,
+		MinArgumentLength: 25,
+		MaxArgumentLength: 1250,
+		MinSummaryLength:  25,
+		MaxSummaryLength:  140,
+		MinCommentLength:  5,
+		MaxCommentLength:  1000,
+		BlockIntervalTime: 5000,
+		DefaultStake:      sdk.NewCoin(app.StakeDenom, sdk.NewInt(30*app.Shanev)),
+	}
+}

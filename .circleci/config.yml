@@ -237,7 +237,7 @@ workflows:
   statistia:
     triggers:
       - schedule:
-          cron: "0,10,20,40 * * * *"
+          cron: "0 * * * *"
           filters:
             branches:
               only:

@@ -594,5 +594,8 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 	})
 
+	ta.GraphQLClient.RegisterQueryResolver("settings", ta.settingsResolver)
+	ta.GraphQLClient.RegisterObjectResolver("Settings", Settings{}, map[string]interface{}{})
+
 	ta.GraphQLClient.BuildSchema()
 }

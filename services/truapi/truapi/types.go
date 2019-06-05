@@ -115,3 +115,17 @@ const (
 	Challenge                  // 1
 	Upvote                     // 2
 )
+
+// Settings contains application specific settings
+type Settings struct {
+	MinClaimLength    int64    `json:"minClaimLength"`
+	MaxClaimLength    int64    `json:"maxClaimLength"`
+	MinArgumentLength int64    `json:"minArgumentLength"`
+	MaxArgumentLength int64    `json:"maxArgumentLength"`
+	MinSummaryLength  int64    `json:"minSummaryLength"`
+	MaxSummaryLength  int64    `json:"maxSummaryLength"`
+	MinCommentLength  int64    `json:"minCommentLength"`
+	MaxCommentLength  int64    `json:"maxCommentLength"`
+	BlockIntervalTime int64    `json:"blockIntervalTime"`
+	DefaultStake      sdk.Coin `json:"defaultStake"`
+}

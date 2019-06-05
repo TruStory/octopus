@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"html"
-	"path/filepath"
+	"path"
 	"regexp"
 	"strconv"
 
@@ -123,7 +123,7 @@ func makeDefaultMetaTags(ta *TruAPI, route string) Tags {
 	return Tags{
 		Title:       ta.APIContext.Config.App.Name,
 		Description: defaultDescription,
-		Image:       filepath.Join(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
+		Image:       path.Join(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
 		URL:         ta.APIContext.Config.App.URL + route,
 	}
 }
@@ -196,6 +196,6 @@ func makeCommentMetaTags(ta *TruAPI, route string, storyID int64, argumentID int
 		Title:       fmt.Sprintf("%s posted a comment in %s", creatorObj.FullName, categoryObj.Title),
 		Description: html.EscapeString(stripmd.Strip(commentObj.Body)),
 		Image:       defaultImage,
-		URL:         ta.APIContext.Config.App.URL + route,
+		URL:         path.Join(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

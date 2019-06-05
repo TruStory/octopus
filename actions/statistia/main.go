@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/go-pg/pg"
+	"github.com/joho/godotenv"
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	db "github.com/TruStory/octopus/services/truapi/db"
@@ -23,6 +25,10 @@ type service struct {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Error loading .env file", err)
+	}
 	dbConfig := truCtx.Config{
 		Database: truCtx.DatabaseConfig{
 			Host: getEnv("PG_ADDR", "localhost"),

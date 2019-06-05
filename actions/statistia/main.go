@@ -31,7 +31,7 @@ func main() {
 	}
 	dbConfig := truCtx.Config{
 		Database: truCtx.DatabaseConfig{
-			Host: getEnv("PG_ADDR", "localhost"),
+			Host: getEnv("PG_ADDR_NO_PORT", "localhost"),
 			Port: 5432,
 			User: getEnv("PG_USER", "postgres"),
 			Pass: getEnv("PG_USER_PW", ""),

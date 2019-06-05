@@ -52,6 +52,7 @@ type Queries interface {
 	InitialStakeBalanceByAddress(address string) (*InitialStakeBalance, error)
 	AreUserMetricsEmpty() (bool, error)
 	OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error)
+	ClaimOfTheDayIDByCommunitySlug(communitySlug string) (int64, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

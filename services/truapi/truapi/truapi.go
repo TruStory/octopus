@@ -551,18 +551,20 @@ func (ta *TruAPI) RegisterResolvers() {
 			}
 			return onImage.Url
 		},
-		"argumentCount": func(_ context.Context, q Claim) int64 { return 0 },
-		"topArgument":   ta.topArgumentResolver,
+		"argumentCount": func(ctx context.Context, q Claim) int {
+			return len(ta.claimArgumentsResolver(ctx, queryByClaimID{ID: q.ID}))
+		},
+		"topArgument": ta.topArgumentResolver,
 		"arguments": func(ctx context.Context, q Claim) []Argument {
 			return ta.claimArgumentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},
-		"stakerCount": func(_ context.Context, q Claim) int64 { return 0 },
-		"stakers": func(ctx context.Context, q Claim) []AppAccount {
-			return []AppAccount{ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})}
-		},
+		"stakerCount": func(ctx context.Context, q Claim) int { return len(ta.claimStakersResolver(ctx, q)) },
+		"stakers":     ta.claimStakersResolver,
 		"comments": func(ctx context.Context, q Claim) []db.Comment {
 			return ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},
+		"totalBacked":     ta.claimTotalBackedResolver,
+		"totalChallenged": ta.claimTotalChallengedResolver,
 		"creator": func(ctx context.Context, q Claim) AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},

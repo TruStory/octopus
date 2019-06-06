@@ -305,6 +305,37 @@ func (ta *TruAPI) topArgumentResolver(ctx context.Context, q Claim) *Argument {
 	return &arguments[0]
 }
 
+func (ta *TruAPI) claimTotalBackedResolver(ctx context.Context, q Claim) sdk.Coin {
+	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ID})
+	amount := sdk.NewCoin(app.StakeDenom, sdk.ZeroInt())
+	for _, backing := range backings {
+		amount = amount.Add(backing.Amount())
+	}
+	return amount
+}
+
+func (ta *TruAPI) claimTotalChallengedResolver(ctx context.Context, q Claim) sdk.Coin {
+	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ID})
+	amount := sdk.NewCoin(app.StakeDenom, sdk.ZeroInt())
+	for _, challenge := range challenges {
+		amount = amount.Add(challenge.Amount())
+	}
+	return amount
+}
+
+func (ta *TruAPI) claimStakersResolver(ctx context.Context, q Claim) []AppAccount {
+	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ID})
+	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ID})
+	appAccounts := make([]AppAccount, 0)
+	for _, backing := range backings {
+		appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: backing.Creator().String()}))
+	}
+	for _, challenge := range challenges {
+		appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: challenge.Creator().String()}))
+	}
+	return appAccounts
+}
+
 func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []db.Comment {
 	arguments := ta.claimArgumentsResolver(ctx, q)
 	comments := make([]db.Comment, 0)

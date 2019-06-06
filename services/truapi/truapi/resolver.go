@@ -365,6 +365,20 @@ func (ta *TruAPI) unreadNotificationsCountResolver(ctx context.Context, q struct
 	return response
 }
 
+func (ta *TruAPI) unseenNotificationsCountResolver(ctx context.Context, q struct{}) *db.NotificationsCountResponse {
+	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
+	if !ok {
+		return &db.NotificationsCountResponse{
+			Count: 0,
+		}
+	}
+	response, err := ta.DBClient.UnseenNotificationEventsCountByAddress(user.Address)
+	if err != nil {
+		panic(err)
+	}
+	return response
+}
+
 func (ta *TruAPI) notificationsResolver(ctx context.Context, q struct{}) []db.NotificationEvent {
 	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
 	if !ok {

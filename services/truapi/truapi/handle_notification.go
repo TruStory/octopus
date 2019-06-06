@@ -15,6 +15,7 @@ import (
 type UpdateNotificationEventRequest struct {
 	NotificationID int64 `json:"notification_id"`
 	Read           *bool `json:"read,omitempty"`
+	Seen           *bool `json:"seen,omitempty"`
 }
 
 // HandleNotificationEvent takes a `UpdateNotificationEventRequest` and returns a 200 response
@@ -39,13 +40,17 @@ func (ta *TruAPI) handleUpdateNotificationEvent(r *http.Request) chttp.Response 
 	if err != nil {
 		return chttp.SimpleErrorResponse(400, err)
 	}
-	if request.Read == nil {
+	if request.Read == nil && request.Seen == nil {
 		return chttp.SimpleErrorResponse(400, Err400MissingParameter)
 	}
 
 	// if request was made to mark all notification as read
-	if request.NotificationID == -1 && *request.Read {
+	if request.NotificationID == -1 && request.Read != nil && *request.Read {
 		return markAllAsRead(ta, r)
+	}
+
+	if request.NotificationID == -1 && request.Seen != nil && *request.Seen {
+		return markAllAsSeen(ta, r)
 	}
 
 	notificationEvent := &db.NotificationEvent{ID: request.NotificationID}
@@ -73,6 +78,20 @@ func markAllAsRead(ta *TruAPI, r *http.Request) chttp.Response {
 	}
 
 	err = ta.DBClient.MarkAllNotificationEventsAsReadByAddress(user.Address)
+	if err != nil {
+		return chttp.SimpleErrorResponse(500, Err500InternalServerError)
+	}
+
+	return chttp.SimpleResponse(200, nil)
+}
+
+func markAllAsSeen(ta *TruAPI, r *http.Request) chttp.Response {
+	user, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
+	if err != nil {
+		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
+	}
+
+	err = ta.DBClient.MarkAllNotificationEventsAsSeenByAddress(user.Address)
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, Err500InternalServerError)
 	}

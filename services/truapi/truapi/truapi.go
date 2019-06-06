@@ -119,6 +119,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
 	api.HandleFunc("/metrics", ta.HandleMetrics)
 	api.Handle("/track/", WithUser(apiCtx, http.HandlerFunc(ta.HandleTrackEvent)))
+	api.Handle("/claim_of_the_day", WithUser(apiCtx, WrapHandler(ta.HandleClaimOfTheDayID)))
 
 	if apiCtx.Config.App.MockRegistration {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))
@@ -538,8 +539,8 @@ func (ta *TruAPI) RegisterResolvers() {
 	})
 	ta.GraphQLClient.RegisterPaginatedObjectResolver("claims", "iD", Claim{}, map[string]interface{}{
 		"id": func(_ context.Context, q Claim) int64 { return q.ID },
-		"community": func(ctx context.Context, q Claim) Community {
-			return ta.communityResolver(ctx, queryByCommunityID{q.CommunityID})
+		"community": func(ctx context.Context, q Claim) *Community {
+			return ta.getCommunityByID(ctx, queryByCommunityID{ID: q.CommunityID})
 		},
 		"source": func(ctx context.Context, q Claim) string { return q.Source.String() },
 		"sourceImage": func(ctx context.Context, q Claim) string {
@@ -567,6 +568,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 	})
 	ta.GraphQLClient.RegisterQueryResolver("claim", ta.claimResolver)
+	ta.GraphQLClient.RegisterQueryResolver("claimOfTheDay", ta.claimOfTheDayResolver)
 
 	ta.GraphQLClient.RegisterQueryResolver("claimArguments", ta.claimArgumentsResolver)
 	ta.GraphQLClient.RegisterObjectResolver("ClaimArgument", Argument{}, map[string]interface{}{

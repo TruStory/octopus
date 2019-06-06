@@ -20,6 +20,10 @@ type queryByCommunityID struct {
 	ID int64 `graphql:"id"`
 }
 
+type queryByCommunitySlug struct {
+	CommunitySlug string `graphql:"communitySlug"`
+}
+
 type queryByClaimID struct {
 	ID int64 `graphql:"id"`
 }
@@ -140,22 +144,12 @@ func (ta *TruAPI) communitiesResolver(ctx context.Context) []Community {
 	return communities
 }
 
-func (ta *TruAPI) communityResolver(ctx context.Context, q queryByCommunityID) Community {
-	res, err := ta.RunQuery("categories/id", q)
+func (ta *TruAPI) communityResolver(ctx context.Context, q queryByCommunitySlug) *Community {
+	community, err := ta.getCommunityBySlug(ctx, q.CommunitySlug)
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
-		return Community{}
+		return nil
 	}
-
-	c := new(category.Category)
-	err = json.Unmarshal(res, c)
-	if err != nil {
-		panic(err)
-	}
-
-	community := convertCategoryToCommunity(*c)
-
-	return community
+	return &community
 }
 
 func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndFeedFilter) []Claim {
@@ -204,6 +198,21 @@ func (ta *TruAPI) claimResolver(ctx context.Context, q queryByClaimID) Claim {
 	return convertStoryToClaim(story)
 }
 
+func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunitySlug) *Claim {
+	slug := q.CommunitySlug
+	if slug == "" {
+		slug = "all"
+	}
+	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunitySlug(slug)
+	if err != nil {
+		return nil
+	}
+
+	story := ta.storyResolver(ctx, story.QueryStoryByIDParams{ID: claimOfTheDayID})
+	claim := convertStoryToClaim(story)
+	return &claim
+}
+
 func (ta *TruAPI) filterFlaggedClaims(claims []Claim) ([]Claim, error) {
 	unflaggedClaims := make([]Claim, 0)
 	for _, claim := range claims {
@@ -238,14 +247,14 @@ func (ta *TruAPI) getCommunityBySlug(ctx context.Context, slug string) (Communit
 		return Community{}, errors.New("Category not found")
 	}
 
-	community := Community{
-		ID:          cat.ID,
-		Name:        cat.Title,
-		Slug:        cat.Slug,
-		Description: cat.Description,
-	}
-
+	community := convertCategoryToCommunity(cat)
 	return community, nil
+}
+
+func (ta *TruAPI) getCommunityByID(ctx context.Context, q queryByCommunityID) *Community {
+	category := ta.categoryResolver(ctx, category.QueryCategoryByIDParams{ID: q.ID})
+	community := convertCategoryToCommunity(category)
+	return &community
 }
 
 func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryByClaimID) []Argument {

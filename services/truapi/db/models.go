@@ -26,6 +26,8 @@ type Mutations interface {
 	AddInvite(invite *Invite) error
 	ReactOnReactionable(addr string, reaction ReactionType, reactionable Reactionable) error
 	UnreactByAddressAndID(addr string, id int64) error
+	AddClaimOfTheDayID(claimOfTheDayID *ClaimOfTheDayID) error
+	DeleteClaimOfTheDayID(communitySlug string) error
 }
 
 // Queries read from the database

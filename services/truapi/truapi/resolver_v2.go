@@ -9,6 +9,7 @@ import (
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	app "github.com/TruStory/truchain/types"
+	"github.com/TruStory/truchain/x/argument"
 	"github.com/TruStory/truchain/x/category"
 	"github.com/TruStory/truchain/x/story"
 	"github.com/TruStory/truchain/x/users"
@@ -62,6 +63,24 @@ func convertStoryToClaim(story story.Story) Claim {
 		Source:      story.Source,
 		CreatedTime: story.Timestamp.CreatedTime,
 	}
+}
+
+func convertStoryArgumentToClaimArgument(storyArgument argument.Argument) Argument {
+	bodyLength := len(storyArgument.Body)
+	if bodyLength > SummaryLength {
+		bodyLength = SummaryLength
+	}
+	summary := storyArgument.Body[:bodyLength]
+	claimArgument := Argument{
+		Stake: Stake{
+			ID:          storyArgument.ID,
+			Creator:     storyArgument.Creator,
+			CreatedTime: storyArgument.Timestamp.CreatedTime,
+		},
+		Body:    storyArgument.Body,
+		Summary: summary,
+	}
+	return claimArgument
 }
 
 func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) AppAccount {
@@ -260,41 +279,18 @@ func (ta *TruAPI) getCommunityByID(ctx context.Context, q queryByCommunityID) *C
 func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryByClaimID) []Argument {
 	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ID})
 	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ID})
-	arguments := make([]Argument, 0)
+	argumentIDs := []int64{}
 	for _, backing := range backings {
-		argumentOld := ta.argumentResolver(ctx, app.QueryArgumentByID{ID: backing.ArgumentID})
-		bodyLength := len(argumentOld.Body)
-		if bodyLength > SummaryLength {
-			bodyLength = SummaryLength
-		}
-		summary := argumentOld.Body[:bodyLength]
-		argument := Argument{
-			Stake: Stake{
-				ID:          argumentOld.ID,
-				Creator:     argumentOld.Creator,
-				CreatedTime: argumentOld.Timestamp.CreatedTime,
-			},
-			Body:    argumentOld.Body,
-			Summary: summary,
-		}
-		arguments = append(arguments, argument)
+		argumentIDs = append(argumentIDs, backing.ArgumentID)
 	}
 	for _, challenge := range challenges {
-		argumentOld := ta.argumentResolver(ctx, app.QueryArgumentByID{ID: challenge.ArgumentID})
-		bodyLength := len(argumentOld.Body)
-		if bodyLength > SummaryLength {
-			bodyLength = SummaryLength
-		}
-		summary := argumentOld.Body[:bodyLength]
-		argument := Argument{
-			Stake: Stake{
-				ID:          argumentOld.ID,
-				Creator:     argumentOld.Creator,
-				CreatedTime: argumentOld.Timestamp.CreatedTime,
-			},
-			Body:    argumentOld.Body,
-			Summary: summary,
-		}
+		argumentIDs = append(argumentIDs, challenge.ArgumentID)
+	}
+	uniqueArgumentIDs := removeDuplicates(argumentIDs)
+	arguments := make([]Argument, 0)
+	for _, argumentID := range uniqueArgumentIDs {
+		storyArgument := ta.argumentResolver(ctx, app.QueryArgumentByID{ID: argumentID})
+		argument := convertStoryArgumentToClaimArgument(storyArgument)
 		arguments = append(arguments, argument)
 	}
 
@@ -310,16 +306,10 @@ func (ta *TruAPI) topArgumentResolver(ctx context.Context, q Claim) *Argument {
 }
 
 func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []db.Comment {
-	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ID})
-	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ID})
+	arguments := ta.claimArgumentsResolver(ctx, q)
 	comments := make([]db.Comment, 0)
-	for _, backing := range backings {
-		argument := ta.argumentResolver(ctx, app.QueryArgumentByID{ID: backing.ArgumentID})
-		argComments := ta.commentsResolver(ctx, argument)
-		comments = append(comments, argComments...)
-	}
-	for _, challenge := range challenges {
-		argument := ta.argumentResolver(ctx, app.QueryArgumentByID{ID: challenge.ArgumentID})
+	for _, argument := range arguments {
+		argument := ta.argumentResolver(ctx, app.QueryArgumentByID{ID: argument.ID})
 		argComments := ta.commentsResolver(ctx, argument)
 		comments = append(comments, argComments...)
 	}
@@ -343,4 +333,19 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 		BlockIntervalTime: 5000,
 		DefaultStake:      sdk.NewCoin(app.StakeDenom, sdk.NewInt(30*app.Shanev)),
 	}
+}
+
+func removeDuplicates(elements []int64) []int64 {
+	encountered := map[int64]bool{}
+	result := []int64{}
+
+	for v := range elements {
+		if encountered[elements[v]] == true {
+
+		} else {
+			encountered[elements[v]] = true
+			result = append(result, elements[v])
+		}
+	}
+	return result
 }

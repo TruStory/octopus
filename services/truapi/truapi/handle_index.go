@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"net/url"
 	"path"
 	"regexp"
 	"strconv"
@@ -123,9 +124,19 @@ func makeDefaultMetaTags(ta *TruAPI, route string) Tags {
 	return Tags{
 		Title:       ta.APIContext.Config.App.Name,
 		Description: defaultDescription,
-		Image:       path.Join(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
-		URL:         ta.APIContext.Config.App.URL + route,
+		Image:       joinPath(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}
+}
+
+func joinPath(baseURL, route string) string {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return ""
+	}
+	u.Path = path.Join(u.Path, route)
+	return u.String()
+
 }
 
 // meta tags for a story
@@ -152,8 +163,8 @@ func makeStoryMetaTags(ta *TruAPI, route string, storyID int64) (*Tags, error) {
 	return &Tags{
 		Title:       html.EscapeString(storyObj.Body),
 		Description: fmt.Sprintf("%s: %d participant%s and %s TruStake", storyState, totalParticipants, totalParticipantsPlural, totalStake),
-		Image:       defaultImage,
-		URL:         ta.APIContext.Config.App.URL + route,
+		Image:       joinPath(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }
 
@@ -170,8 +181,8 @@ func makeArgumentMetaTags(ta *TruAPI, route string, storyID int64, argumentID in
 	return &Tags{
 		Title:       fmt.Sprintf("%s made an argument in %s", creatorObj.FullName, categoryObj.Title),
 		Description: html.EscapeString(stripmd.Strip(argumentObj.Body)),
-		Image:       defaultImage,
-		URL:         ta.APIContext.Config.App.URL + route,
+		Image:       joinPath(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }
 
@@ -195,7 +206,7 @@ func makeCommentMetaTags(ta *TruAPI, route string, storyID int64, argumentID int
 	return &Tags{
 		Title:       fmt.Sprintf("%s posted a comment in %s", creatorObj.FullName, categoryObj.Title),
 		Description: html.EscapeString(stripmd.Strip(commentObj.Body)),
-		Image:       defaultImage,
-		URL:         path.Join(ta.APIContext.Config.App.URL, route),
+		Image:       joinPath(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

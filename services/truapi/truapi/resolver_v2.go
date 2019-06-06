@@ -42,6 +42,12 @@ type queryByCommunitySlugAndFeedFilter struct {
 	FeedFilter    FeedFilter `graphql:",optional"`
 }
 
+type argumentMeta struct {
+	Vote         bool
+	UpvotedCount int64
+	Stakers      []string
+}
+
 // SummaryLength is amount of characters allowed when summarizing an argument
 const SummaryLength = 140
 
@@ -65,20 +71,26 @@ func convertStoryToClaim(story story.Story) Claim {
 	}
 }
 
-func convertStoryArgumentToClaimArgument(storyArgument argument.Argument) Argument {
+func convertStoryArgumentToClaimArgument(storyArgument argument.Argument, argumentMeta argumentMeta) Argument {
 	bodyLength := len(storyArgument.Body)
 	if bodyLength > SummaryLength {
 		bodyLength = SummaryLength
 	}
 	summary := storyArgument.Body[:bodyLength]
+	stakeType := Backing
+	if argumentMeta.Vote == false {
+		stakeType = Challenge
+	}
 	claimArgument := Argument{
 		Stake: Stake{
 			ID:          storyArgument.ID,
 			Creator:     storyArgument.Creator,
 			CreatedTime: storyArgument.Timestamp.CreatedTime,
+			Type:        stakeType,
 		},
-		Body:    storyArgument.Body,
-		Summary: summary,
+		UpvotedCount: argumentMeta.UpvotedCount,
+		Body:         storyArgument.Body,
+		Summary:      summary,
 	}
 	return claimArgument
 }
@@ -279,18 +291,35 @@ func (ta *TruAPI) getCommunityByID(ctx context.Context, q queryByCommunityID) *C
 func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryByClaimID) []Argument {
 	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ID})
 	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ID})
-	argumentIDs := []int64{}
+	storyArguments := map[int64]*argumentMeta{}
 	for _, backing := range backings {
-		argumentIDs = append(argumentIDs, backing.ArgumentID)
+		if storyArguments[backing.ArgumentID] == nil {
+			storyArguments[backing.ArgumentID] = &argumentMeta{
+				Vote:         backing.VoteChoice(),
+				UpvotedCount: 0,
+				Stakers:      []string{backing.Creator().String()},
+			}
+		} else {
+			storyArguments[backing.ArgumentID].UpvotedCount++
+			storyArguments[backing.ArgumentID].Stakers = append(storyArguments[backing.ArgumentID].Stakers, backing.Creator().String())
+		}
 	}
 	for _, challenge := range challenges {
-		argumentIDs = append(argumentIDs, challenge.ArgumentID)
+		if storyArguments[challenge.ArgumentID] == nil {
+			storyArguments[challenge.ArgumentID] = &argumentMeta{
+				Vote:         challenge.VoteChoice(),
+				UpvotedCount: 0,
+				Stakers:      []string{challenge.Creator().String()},
+			}
+		} else {
+			storyArguments[challenge.ArgumentID].UpvotedCount++
+			storyArguments[challenge.ArgumentID].Stakers = append(storyArguments[challenge.ArgumentID].Stakers, challenge.Creator().String())
+		}
 	}
-	uniqueArgumentIDs := removeDuplicates(argumentIDs)
 	arguments := make([]Argument, 0)
-	for _, argumentID := range uniqueArgumentIDs {
+	for argumentID, argumentMeta := range storyArguments {
 		storyArgument := ta.argumentResolver(ctx, app.QueryArgumentByID{ID: argumentID})
-		argument := convertStoryArgumentToClaimArgument(storyArgument)
+		argument := convertStoryArgumentToClaimArgument(storyArgument, *argumentMeta)
 		arguments = append(arguments, argument)
 	}
 

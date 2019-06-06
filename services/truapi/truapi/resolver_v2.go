@@ -76,8 +76,10 @@ func convertStoryArgumentToClaimArgument(storyArgument argument.Argument, argume
 		bodyLength = SummaryLength
 	}
 	summary := storyArgument.Body[:bodyLength]
-	stakeType := Backing
-	if argumentMeta.Vote == false {
+	var stakeType StakeType
+	if argumentMeta.Vote {
+		stakeType = Backing
+	} else {
 		stakeType = Challenge
 	}
 	claimArgument := Argument{
@@ -406,19 +408,4 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 		BlockIntervalTime: 5000,
 		DefaultStake:      sdk.NewCoin(app.StakeDenom, sdk.NewInt(30*app.Shanev)),
 	}
-}
-
-func removeDuplicates(elements []int64) []int64 {
-	encountered := map[int64]bool{}
-	result := []int64{}
-
-	for v := range elements {
-		if encountered[elements[v]] == true {
-
-		} else {
-			encountered[elements[v]] = true
-			result = append(result, elements[v])
-		}
-	}
-	return result
 }

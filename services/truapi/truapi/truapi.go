@@ -583,9 +583,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"hasSlashed":      func(_ context.Context, q Argument) bool { return false },
 		"appAccountStake": func(_ context.Context, q Argument) Stake { return Stake{} },
-		"stakers": func(ctx context.Context, q Argument) []AppAccount {
-			return []AppAccount{ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})}
-		},
+		"stakers":         ta.claimArgumentStakersResolver,
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)

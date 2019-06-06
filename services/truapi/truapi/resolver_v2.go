@@ -45,7 +45,6 @@ type queryByCommunitySlugAndFeedFilter struct {
 type argumentMeta struct {
 	Vote         bool
 	UpvotedCount int64
-	Stakers      []string
 }
 
 // SummaryLength is amount of characters allowed when summarizing an argument
@@ -88,6 +87,7 @@ func convertStoryArgumentToClaimArgument(storyArgument argument.Argument, argume
 			CreatedTime: storyArgument.Timestamp.CreatedTime,
 			Type:        stakeType,
 		},
+		ClaimID:      storyArgument.StoryID,
 		UpvotedCount: argumentMeta.UpvotedCount,
 		Body:         storyArgument.Body,
 		Summary:      summary,
@@ -297,11 +297,9 @@ func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryByClaimID) 
 			storyArguments[backing.ArgumentID] = &argumentMeta{
 				Vote:         backing.VoteChoice(),
 				UpvotedCount: 0,
-				Stakers:      []string{backing.Creator().String()},
 			}
 		} else {
 			storyArguments[backing.ArgumentID].UpvotedCount++
-			storyArguments[backing.ArgumentID].Stakers = append(storyArguments[backing.ArgumentID].Stakers, backing.Creator().String())
 		}
 	}
 	for _, challenge := range challenges {
@@ -309,11 +307,9 @@ func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryByClaimID) 
 			storyArguments[challenge.ArgumentID] = &argumentMeta{
 				Vote:         challenge.VoteChoice(),
 				UpvotedCount: 0,
-				Stakers:      []string{challenge.Creator().String()},
 			}
 		} else {
 			storyArguments[challenge.ArgumentID].UpvotedCount++
-			storyArguments[challenge.ArgumentID].Stakers = append(storyArguments[challenge.ArgumentID].Stakers, challenge.Creator().String())
 		}
 	}
 	arguments := make([]Argument, 0)
@@ -361,6 +357,23 @@ func (ta *TruAPI) claimStakersResolver(ctx context.Context, q Claim) []AppAccoun
 	}
 	for _, challenge := range challenges {
 		appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: challenge.Creator().String()}))
+	}
+	return appAccounts
+}
+
+func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q Argument) []AppAccount {
+	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
+	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
+	appAccounts := make([]AppAccount, 0)
+	for _, backing := range backings {
+		if backing.ArgumentID == q.ID && !backing.Creator().Equals(q.Creator) {
+			appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: backing.Creator().String()}))
+		}
+	}
+	for _, challenge := range challenges {
+		if challenge.ArgumentID == q.ID && !challenge.Creator().Equals(q.Creator) {
+			appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: challenge.Creator().String()}))
+		}
 	}
 	return appAccounts
 }

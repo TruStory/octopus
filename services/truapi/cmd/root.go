@@ -153,7 +153,7 @@ func registerAppFlags(cmd *cobra.Command) *cobra.Command {
 		panic(err)
 	}
 
-	cmd.Flags().String(flagAppUploadURL, "http://ec2-18-144-34-125.us-west-1.compute.amazonaws.com:4000/v1/upload/aws", "S3 upload URL for app media")
+	cmd.Flags().String(flagAppUploadURL, "http://ec2-54-183-49-244.us-west-1.compute.amazonaws.com:4000/v1/upload/aws", "S3 upload URL for app media")
 	err = viper.BindPFlag(flagAppUploadURL, cmd.Flags().Lookup(flagAppUploadURL))
 	if err != nil {
 		panic(err)

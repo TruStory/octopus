@@ -57,4 +57,5 @@ require (
 )
 
 replace golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
+
 replace github.com/appleboy/gorush => github.com/jhernandezb/gorush v1.11.2-0.20190607192845-ca316b6313df

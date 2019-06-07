@@ -69,6 +69,12 @@ type Community struct {
 	TotalEarnedStake sdk.Coin
 }
 
+// CommunityIconImage contains regular and active icon images
+type CommunityIconImage struct {
+	Regular string
+	Active  string
+}
+
 // Claim will be imported from truchain in the future
 type Claim struct {
 	ID              int64

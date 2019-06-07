@@ -42,7 +42,7 @@ type RegistrationResponse struct {
 // RegistrationTwitterProfileResponse is a JSON response body representing the TwitterProfile of a user
 type RegistrationTwitterProfileResponse struct {
 	Username  string `json:"username"`
-	Fullname  string `json:"fullname"`
+	FullName  string `json:"fullName"`
 	AvatarURI string `json:"avatarURI"`
 }
 
@@ -103,7 +103,7 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
 		AuthenticationCookie: cookieValue,
 		TwitterProfile: RegistrationTwitterProfileResponse{
 			Username:  twitterProfile.Username,
-			Fullname:  twitterProfile.FullName,
+			FullName:  twitterProfile.FullName,
 			AvatarURI: twitterProfile.AvatarURI,
 		},
 	})

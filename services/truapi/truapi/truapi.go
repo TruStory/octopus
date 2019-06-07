@@ -527,10 +527,10 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterObjectResolver("Community", Community{}, map[string]interface{}{
 		"id": func(_ context.Context, q Community) int64 { return q.ID },
 		"iconImage": func(_ context.Context, q Community) string {
-			return filepath.Join(ta.APIContext.Config.App.S3AssetsURL, "communities/default_icon_normal.png")
+			return joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_normal.png", q.Slug))
 		},
 		"heroImage": func(_ context.Context, q Community) string {
-			return filepath.Join(ta.APIContext.Config.App.S3AssetsURL, "communities/default_hero.png")
+			return joinPath(ta.APIContext.Config.App.S3AssetsURL, "communities/default_hero.png")
 		},
 	})
 
@@ -547,22 +547,24 @@ func (ta *TruAPI) RegisterResolvers() {
 			onImage := og.OgImage{}
 			err := og.GetPageDataFromUrl(q.Source.String(), &onImage)
 			if err != nil || onImage.Url == "" {
-				return filepath.Join(ta.APIContext.Config.App.S3AssetsURL, "sourceImage_default.jpg")
+				return joinPath(ta.APIContext.Config.App.S3AssetsURL, "sourceImage_default.jpg")
 			}
 			return onImage.Url
 		},
-		"argumentCount": func(_ context.Context, q Claim) int64 { return 0 },
-		"topArgument":   ta.topArgumentResolver,
+		"argumentCount": func(ctx context.Context, q Claim) int {
+			return len(ta.claimArgumentsResolver(ctx, queryByClaimID{ID: q.ID}))
+		},
+		"topArgument": ta.topArgumentResolver,
 		"arguments": func(ctx context.Context, q Claim) []Argument {
 			return ta.claimArgumentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},
-		"stakerCount": func(_ context.Context, q Claim) int64 { return 0 },
-		"stakers": func(ctx context.Context, q Claim) []AppAccount {
-			return []AppAccount{ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})}
-		},
+		"stakerCount": func(ctx context.Context, q Claim) int { return len(ta.claimStakersResolver(ctx, q)) },
+		"stakers":     ta.claimStakersResolver,
 		"comments": func(ctx context.Context, q Claim) []db.Comment {
 			return ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},
+		"totalBacked":     ta.claimTotalBackedResolver,
+		"totalChallenged": ta.claimTotalChallengedResolver,
 		"creator": func(ctx context.Context, q Claim) AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
@@ -581,9 +583,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"hasSlashed":      func(_ context.Context, q Argument) bool { return false },
 		"appAccountStake": func(_ context.Context, q Argument) Stake { return Stake{} },
-		"stakers": func(ctx context.Context, q Argument) []AppAccount {
-			return []AppAccount{ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})}
-		},
+		"stakers":         ta.claimArgumentStakersResolver,
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)

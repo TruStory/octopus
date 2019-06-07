@@ -523,10 +523,8 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterQueryResolver("communities", ta.communitiesResolver)
 	ta.GraphQLClient.RegisterQueryResolver("community", ta.communityResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Community", Community{}, map[string]interface{}{
-		"id": func(_ context.Context, q Community) int64 { return q.ID },
-		"iconImage": func(_ context.Context, q Community) string {
-			return joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_normal.png", q.Slug))
-		},
+		"id":        func(_ context.Context, q Community) int64 { return q.ID },
+		"iconImage": ta.communityIconImageResolver,
 		"heroImage": func(_ context.Context, q Community) string {
 			return joinPath(ta.APIContext.Config.App.S3AssetsURL, "communities/default_hero.png")
 		},

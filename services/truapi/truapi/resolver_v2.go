@@ -185,6 +185,13 @@ func (ta *TruAPI) communityResolver(ctx context.Context, q queryByCommunitySlug)
 	return &community
 }
 
+func (ta *TruAPI) communityIconImageResolver(ctx context.Context, q Community) CommunityIconImage {
+	return CommunityIconImage{
+		Regular: joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_normal.png", q.Slug)),
+		Active:  joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_active.png", q.Slug)),
+	}
+}
+
 func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndFeedFilter) []Claim {
 	var res []byte
 	var err error

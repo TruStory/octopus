@@ -51,6 +51,7 @@ type NotificationEvent struct {
 	Type             NotificationType `json:"type" sql:",notnull"`
 	Meta             NotificationMeta `json:"meta"`
 	Read             bool             `json:"read"`
+	Seen             bool             `json:"seen"`
 }
 
 // NotificationEventsByAddress retrieves all notifications sent to an user.
@@ -85,7 +86,25 @@ func (c *Client) UnreadNotificationEventsCountByAddress(addr string) (*Notificat
 	}, nil
 }
 
-// MarkAllNotificationEventsAsReadByAddress retrieves the number of unread notifications sent to an user.
+// UnseenNotificationEventsCountByAddress retrieves the number of unseen notifications sent to an user.
+func (c *Client) UnseenNotificationEventsCountByAddress(addr string) (*NotificationsCountResponse, error) {
+	notificationEvent := new(NotificationEvent)
+
+	count, err := c.Model(notificationEvent).
+		Where("notification_event.address = ?", addr).
+		Where("seen is NULL or seen is FALSE").Count()
+	if err != nil {
+		return &NotificationsCountResponse{
+			Count: 0,
+		}, err
+	}
+
+	return &NotificationsCountResponse{
+		Count: int64(count),
+	}, nil
+}
+
+// MarkAllNotificationEventsAsReadByAddress marks all notifications read for a given user.
 func (c *Client) MarkAllNotificationEventsAsReadByAddress(addr string) error {
 	notificationEvent := new(NotificationEvent)
 
@@ -93,6 +112,22 @@ func (c *Client) MarkAllNotificationEventsAsReadByAddress(addr string) error {
 		Where("notification_event.address = ?", addr).
 		Where("read is NULL or read is FALSE").
 		Set("read = ?", true).
+		Update()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MarkAllNotificationEventsAsSeenByAddress marks all notifications seen for a given user.
+func (c *Client) MarkAllNotificationEventsAsSeenByAddress(addr string) error {
+	notificationEvent := new(NotificationEvent)
+
+	_, err := c.Model(notificationEvent).
+		Where("notification_event.address = ?", addr).
+		Where("seen is NULL or seen is FALSE").
+		Set("seen = ?", true).
 		Update()
 	if err != nil {
 		return err

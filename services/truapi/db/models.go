@@ -22,6 +22,7 @@ type Mutations interface {
 	RemoveDeviceToken(address, token, platform string) error
 	UpsertFlaggedStory(flaggedStory *FlaggedStory) error
 	MarkAllNotificationEventsAsReadByAddress(addr string) error
+	MarkAllNotificationEventsAsSeenByAddress(addr string) error
 	AddComment(comment *Comment) error
 	AddInvite(invite *Invite) error
 	ReactOnReactionable(addr string, reaction ReactionType, reactionable Reactionable) error
@@ -41,6 +42,7 @@ type Queries interface {
 	DeviceTokensByAddress(addr string) ([]DeviceToken, error)
 	NotificationEventsByAddress(addr string) ([]NotificationEvent, error)
 	UnreadNotificationEventsCountByAddress(addr string) (*NotificationsCountResponse, error)
+	UnseenNotificationEventsCountByAddress(addr string) (*NotificationsCountResponse, error)
 	FlaggedStoriesByStoryID(storyID int64) ([]FlaggedStory, error)
 	CommentsByArgumentID(argumentID int64) ([]Comment, error)
 	Invites() ([]Invite, error)

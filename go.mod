@@ -20,10 +20,9 @@ require (
 	github.com/go-pg/migrations v6.7.3+incompatible
 	github.com/go-pg/pg v8.0.3+incompatible
 	github.com/gogo/protobuf v1.2.1 // indirect
-	github.com/golang/protobuf v1.3.0 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/gorilla/handlers v1.4.0
-	github.com/gorilla/mux v1.7.0
+	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/securecookie v1.1.1
 	github.com/graphql-go/graphql v0.7.8 // indirect
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
@@ -52,9 +51,10 @@ require (
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
-	golang.org/x/net v0.0.0-20190313082753-5c2c250b6a70 // indirect
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4
+	google.golang.org/genproto v0.0.0-20180831171423-11092d34479b // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )
 
 replace golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
+replace github.com/appleboy/gorush => github.com/jhernandezb/gorush v1.11.2-0.20190607192845-ca316b6313df

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"path"
@@ -543,7 +544,8 @@ func (ta *TruAPI) RegisterResolvers() {
 			onImage := og.OgImage{}
 			err := og.GetPageDataFromUrl(q.Source.String(), &onImage)
 			if err != nil || onImage.Url == "" {
-				return joinPath(ta.APIContext.Config.App.S3AssetsURL, "sourceImage_default.jpg")
+				n := rand.Intn(5)
+				return joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("sourceImage_default_%d.png", n))
 			}
 			return onImage.Url
 		},

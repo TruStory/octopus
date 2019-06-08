@@ -15,7 +15,8 @@ import (
 	"strings"
 	"time"
 
-	db "github.com/TruStory/truchain/x/db"
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
+	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/icrowley/fake"
 )
 
@@ -44,10 +45,22 @@ func (m *Mockery) mock() {
 
 func main() {
 
+	config := truCtx.Config{
+		Database: truCtx.DatabaseConfig{
+			Host: getEnv("PG_ADDR", "localhost"),
+			Port: 5432,
+			User: getEnv("PG_USER", "postgres"),
+			Pass: getEnv("PG_USER_PW", ""),
+			Name: getEnv("PG_DB_NAME", "trudb"),
+			Pool: 25,
+		},
+	}
+	dbClient := db.NewDBClient(config)
+
 	mockery := &Mockery{
 		httpClient:  &http.Client{},
-		dbClient:    db.NewDBClient(),
-		apiEndpoint: mustEnv("SEED_API_ENDPOINT"),
+		dbClient:    dbClient,
+		apiEndpoint: getEnv("SEED_API_ENDPOINT", "http://localhost:1337/api/v1"),
 	}
 
 	mockery.authenticatedAPICall = func(user User, method string, route string, body io.Reader) []byte {
@@ -201,10 +214,10 @@ func processHTTPRequest(m *Mockery, request *http.Request) ([]byte, error) {
 	return body, nil
 }
 
-func mustEnv(env string) string {
+func getEnv(env, defaultValue string) string {
 	val := os.Getenv(env)
-	if val == "" {
-		panic(fmt.Sprintf("must provide %s variable", env))
+	if val != "" {
+		return val
 	}
-	return val
+	return defaultValue
 }

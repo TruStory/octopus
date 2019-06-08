@@ -309,8 +309,6 @@ func (ta *TruAPI) twitterProfileResolver(ctx context.Context, addr string) db.Tw
 }
 
 func (ta *TruAPI) usersResolver(ctx context.Context, q users.QueryUsersByAddressesParams) []users.User {
-	fmt.Printf("users query: %+v\n", q)
-
 	res, err := ta.RunQuery("users/addresses", q)
 	if err != nil {
 		fmt.Println("Resolver err: ", res)
@@ -322,8 +320,6 @@ func (ta *TruAPI) usersResolver(ctx context.Context, q users.QueryUsersByAddress
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Printf("user: %+v\n", u)
 
 	return *u
 }

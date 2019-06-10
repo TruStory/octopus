@@ -39,8 +39,7 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(422, errors.New("Invalid email address"))
 	}
 
-	user := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
-
+	user := r.Context().Value(userContextKey)
 	if user == nil {
 		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
 	}
@@ -54,7 +53,7 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 	}
 
 	invite := &db.Invite{
-		Creator:               user.Address,
+		Creator:               user.(*cookies.AuthenticatedUser).Address,
 		FriendTwitterUsername: request.TwitterUsername,
 		FriendEmail:           request.Email,
 	}

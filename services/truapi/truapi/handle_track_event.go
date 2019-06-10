@@ -26,7 +26,7 @@ const (
 )
 
 func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
+	user := r.Context().Value(userContextKey)
 	// ignore not logged in users for now
 	if user == nil {
 		w.WriteHeader(http.StatusOK)
@@ -59,8 +59,8 @@ func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		dbEvent := db.TrackEvent{
-			Address:          user.Address,
-			TwitterProfileID: user.TwitterProfileID,
+			Address:          user.(*cookies.AuthenticatedUser).Address,
+			TwitterProfileID: user.(*cookies.AuthenticatedUser).TwitterProfileID,
 			Event:            TrackEventClaimOpened,
 			Meta: db.TrackEventMeta{
 				ClaimID:    &story.ID,

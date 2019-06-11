@@ -23,15 +23,15 @@ func (ta *TruAPI) HandleFlagStory(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(400, err)
 	}
 
-	user := r.Context().Value(userContextKey)
-	if user == nil {
-		return chttp.SimpleErrorResponse(401, err)
+	user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
+	if !ok || user == nil {
+		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
 	}
 
 	// add data to table
 	flaggedStory := &db.FlaggedStory{
 		StoryID:   request.StoryID,
-		Creator:   user.(*cookies.AuthenticatedUser).Address,
+		Creator:   user.Address,
 		CreatedOn: time.Now(),
 	}
 	err = ta.DBClient.UpsertFlaggedStory(flaggedStory)

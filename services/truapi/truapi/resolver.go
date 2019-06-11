@@ -470,9 +470,7 @@ func (ta *TruAPI) invitesResolver(ctx context.Context) []db.Invite {
 
 func (ta *TruAPI) reactionsCountResolver(ctx context.Context, rxnable db.Reactionable) []db.ReactionsCount {
 	reactionsCount, err := ta.DBClient.ReactionsCountByReactionable(rxnable)
-	fmt.Printf("\n\nReactions Count -- %v - %v\n\n", rxnable, reactionsCount)
 	if err != nil {
-		fmt.Printf("\n\n ERROR -- %v\n\n", err)
 		panic(err)
 	}
 	return reactionsCount
@@ -480,9 +478,7 @@ func (ta *TruAPI) reactionsCountResolver(ctx context.Context, rxnable db.Reactio
 
 func (ta *TruAPI) reactionsResolver(ctx context.Context, rxnable db.Reactionable) []db.Reaction {
 	reactions, err := ta.DBClient.ReactionsByReactionable(rxnable)
-	fmt.Printf("\n\nReactions -- %v - %v\n\n", rxnable, reactions)
 	if err != nil {
-		fmt.Printf("\n\n ERROR -- %v\n\n", err)
 		panic(err)
 	}
 	return reactions

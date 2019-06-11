@@ -36,8 +36,8 @@ func (ta *TruAPI) handleCreateComment(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(400, err)
 	}
 
-	user := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
-	if user == nil {
+	user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
+	if !ok || user == nil {
 		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
 	}
 

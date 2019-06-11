@@ -26,9 +26,9 @@ const (
 )
 
 func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
+	user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
 	// ignore not logged in users for now
-	if user == nil {
+	if !ok || user == nil {
 		w.WriteHeader(http.StatusOK)
 		return
 	}

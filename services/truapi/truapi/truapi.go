@@ -521,6 +521,12 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 	})
 
+	ta.GraphQLClient.RegisterObjectResolver("EarnedCoin", EarnedCoin{}, map[string]interface{}{
+		"community": func(ctx context.Context, q EarnedCoin) *Community {
+			return ta.getCommunityByID(ctx, queryByCommunityID{ID: q.CommunityID})
+		},
+	})
+
 	ta.GraphQLClient.RegisterQueryResolver("communities", ta.communitiesResolver)
 	ta.GraphQLClient.RegisterQueryResolver("community", ta.communityResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Community", Community{}, map[string]interface{}{

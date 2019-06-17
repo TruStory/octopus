@@ -84,6 +84,7 @@ type Claim struct {
 	Source          url.URL
 	TotalBacked     sdk.Coin
 	TotalChallenged sdk.Coin
+	TotalStakers    int64
 	CreatedTime     time.Time
 }
 

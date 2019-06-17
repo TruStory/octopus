@@ -561,13 +561,10 @@ func (ta *TruAPI) RegisterResolvers() {
 		"arguments": func(ctx context.Context, q Claim) []Argument {
 			return ta.claimArgumentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},
-		"stakerCount": func(ctx context.Context, q Claim) int { return len(ta.claimStakersResolver(ctx, q)) },
-		"stakers":     ta.claimStakersResolver,
+		"stakers": ta.claimStakersResolver,
 		"comments": func(ctx context.Context, q Claim) []db.Comment {
 			return ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},
-		"totalBacked":     ta.claimTotalBackedResolver,
-		"totalChallenged": ta.claimTotalChallengedResolver,
 		"creator": func(ctx context.Context, q Claim) AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},

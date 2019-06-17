@@ -32,6 +32,7 @@ const (
 	Trending
 	Latest
 	Completed
+	Best
 )
 
 // QueryByCategoryIDAndFeedFilter is query params for filtering a story feed by category and FeedFilter

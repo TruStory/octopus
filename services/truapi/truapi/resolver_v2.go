@@ -403,6 +403,24 @@ func (ta *TruAPI) claimStakersResolver(ctx context.Context, q Claim) []AppAccoun
 	return appAccounts
 }
 
+func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q Claim) []AppAccount {
+	participants := ta.claimStakersResolver(ctx, q)
+	comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
+	for _, comment := range comments {
+		found := false
+		for _, participant := range participants {
+			if comment.Creator == participant.Address {
+				found = true
+			}
+		}
+		if !found {
+			participants = append(participants, ta.appAccountResolver(ctx, queryByAddress{ID: comment.Creator}))
+		}
+	}
+	participants = append(participants, ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()}))
+	return participants
+}
+
 func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q Argument) []AppAccount {
 	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
 	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})

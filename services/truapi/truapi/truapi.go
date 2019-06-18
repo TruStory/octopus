@@ -561,7 +561,9 @@ func (ta *TruAPI) RegisterResolvers() {
 		"arguments": func(ctx context.Context, q Claim) []Argument {
 			return ta.claimArgumentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},
-		"stakers": ta.claimStakersResolver,
+		"stakers":           ta.claimStakersResolver,
+		"participants":      ta.claimParticipantsResolver,
+		"participantsCount": func(ctx context.Context, q Claim) int { return len(ta.claimParticipantsResolver(ctx, q)) },
 		"comments": func(ctx context.Context, q Claim) []db.Comment {
 			return ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},

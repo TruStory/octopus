@@ -231,7 +231,7 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndF
 	var res []byte
 	var err error
 	var community Community
-	if q.CommunitySlug == "" {
+	if q.CommunitySlug == "all" {
 		res, err = ta.RunQuery("stories/all", struct{}{})
 	} else {
 		community, err = ta.getCommunityBySlug(ctx, q.CommunitySlug)
@@ -274,11 +274,7 @@ func (ta *TruAPI) claimResolver(ctx context.Context, q queryByClaimID) Claim {
 }
 
 func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunitySlug) *Claim {
-	slug := q.CommunitySlug
-	if slug == "" {
-		slug = "all"
-	}
-	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunitySlug(slug)
+	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunitySlug(q.CommunitySlug)
 	if err != nil {
 		return nil
 	}
@@ -309,10 +305,9 @@ func (ta *TruAPI) filterFlaggedClaims(claims []Claim) ([]Claim, error) {
 }
 
 func (ta *TruAPI) getCommunityBySlug(ctx context.Context, slug string) (Community, error) {
-	// Client displays claims under each community AND all claims on the homepage
-	// When querying claims for the homepage the client sends no community slug
-	// In this case we create a empty string community with the title "All" which is rendered on client
-	if slug == "" {
+	// client pages require all claims to live under a community
+	// "all" is a community for the homepage which shows all the claims
+	if slug == "all" {
 		return Community{
 			ID:   -1,
 			Slug: "all",

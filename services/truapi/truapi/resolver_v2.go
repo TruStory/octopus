@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	app "github.com/TruStory/truchain/types"
@@ -47,6 +48,23 @@ type argumentMeta struct {
 	UpvotedCount int64
 }
 
+// claimMetricsBest represents all-time claim metrics
+type claimMetricsBest struct {
+	Claim                 Claim
+	TotalAmountStaked     sdk.Int
+	TotalStakers          int64
+	TotalComments         int
+	BackingChallengeDelta sdk.Int
+}
+
+// claimMetricsTrending represents claim metrics within last 24 hours
+type claimMetricsTrending struct {
+	Claim          Claim
+	TotalArguments int64
+	TotalComments  int
+	TotalStakes    int64
+}
+
 // SummaryLength is amount of characters allowed when summarizing an argument
 const SummaryLength = 140
 
@@ -59,14 +77,18 @@ func convertCategoryToCommunity(category category.Category) Community {
 	}
 }
 
-func convertStoryToClaim(story story.Story) Claim {
+func (ta *TruAPI) convertStoryToClaim(ctx context.Context, story story.Story) Claim {
+	totalStakers := len(ta.claimStakersResolver(ctx, Claim{ID: story.ID}))
 	return Claim{
-		ID:          story.ID,
-		CommunityID: story.CategoryID,
-		Body:        story.Body,
-		Creator:     story.Creator,
-		Source:      story.Source,
-		CreatedTime: story.Timestamp.CreatedTime,
+		ID:              story.ID,
+		CommunityID:     story.CategoryID,
+		Body:            story.Body,
+		Creator:         story.Creator,
+		Source:          story.Source,
+		TotalBacked:     ta.totalBackingStakeByStoryID(ctx, story.ID),
+		TotalChallenged: ta.totalChallengeStakeByStoryID(ctx, story.ID),
+		TotalStakers:    int64(totalStakers),
+		CreatedTime:     story.Timestamp.CreatedTime,
 	}
 }
 
@@ -95,6 +117,19 @@ func convertStoryArgumentToClaimArgument(storyArgument argument.Argument, argume
 		Summary:      summary,
 	}
 	return claimArgument
+}
+
+func convertCommentToClaimComment(comment db.Comment) ClaimComment {
+	return ClaimComment{
+		ID:         comment.ID,
+		ParentID:   comment.ParentID,
+		ArgumentID: comment.ArgumentID,
+		Body:       comment.Body,
+		Creator:    comment.Creator,
+		CreatedAt:  comment.CreatedAt,
+		UpdatedAt:  comment.UpdatedAt,
+		DeletedAt:  comment.DeletedAt,
+	}
 }
 
 func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) AppAccount {
@@ -218,7 +253,7 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndF
 
 	claims := make([]Claim, 0)
 	for _, story := range *stories {
-		claim := convertStoryToClaim(story)
+		claim := ta.convertStoryToClaim(ctx, story)
 		claims = append(claims, claim)
 	}
 
@@ -228,14 +263,14 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndF
 		panic(err)
 	}
 
-	filteredClaims := unflaggedClaims
+	filteredClaims := ta.filterFeedClaims(ctx, unflaggedClaims, q.FeedFilter)
 
 	return filteredClaims
 }
 
 func (ta *TruAPI) claimResolver(ctx context.Context, q queryByClaimID) Claim {
 	story := ta.storyResolver(ctx, story.QueryStoryByIDParams{ID: q.ID})
-	return convertStoryToClaim(story)
+	return ta.convertStoryToClaim(ctx, story)
 }
 
 func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunitySlug) *Claim {
@@ -249,7 +284,7 @@ func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunityS
 	}
 
 	story := ta.storyResolver(ctx, story.QueryStoryByIDParams{ID: claimOfTheDayID})
-	claim := convertStoryToClaim(story)
+	claim := ta.convertStoryToClaim(ctx, story)
 	return &claim
 }
 
@@ -350,8 +385,8 @@ func (ta *TruAPI) topArgumentResolver(ctx context.Context, q Claim) *Argument {
 	return &arguments[0]
 }
 
-func (ta *TruAPI) claimTotalBackedResolver(ctx context.Context, q Claim) sdk.Coin {
-	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ID})
+func (ta *TruAPI) totalBackingStakeByStoryID(ctx context.Context, ID int64) sdk.Coin {
+	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: ID})
 	amount := sdk.NewCoin(app.StakeDenom, sdk.ZeroInt())
 	for _, backing := range backings {
 		amount = amount.Add(backing.Amount())
@@ -359,8 +394,8 @@ func (ta *TruAPI) claimTotalBackedResolver(ctx context.Context, q Claim) sdk.Coi
 	return amount
 }
 
-func (ta *TruAPI) claimTotalChallengedResolver(ctx context.Context, q Claim) sdk.Coin {
-	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ID})
+func (ta *TruAPI) totalChallengeStakeByStoryID(ctx context.Context, ID int64) sdk.Coin {
+	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: ID})
 	amount := sdk.NewCoin(app.StakeDenom, sdk.ZeroInt())
 	for _, challenge := range challenges {
 		amount = amount.Add(challenge.Amount())
@@ -381,6 +416,29 @@ func (ta *TruAPI) claimStakersResolver(ctx context.Context, q Claim) []AppAccoun
 	return appAccounts
 }
 
+func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q Claim) []AppAccount {
+	participants := ta.claimStakersResolver(ctx, q)
+	comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
+	for _, comment := range comments {
+		if !participantExists(participants, comment.Creator) {
+			participants = append(participants, ta.appAccountResolver(ctx, queryByAddress{ID: comment.Creator}))
+		}
+	}
+	if !participantExists(participants, q.Creator.String()) {
+		participants = append(participants, ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()}))
+	}
+	return participants
+}
+
+func participantExists(participants []AppAccount, participantToAdd string) bool {
+	for _, participant := range participants {
+		if participantToAdd == participant.Address {
+			return true
+		}
+	}
+	return false
+}
+
 func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q Argument) []AppAccount {
 	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
 	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
@@ -398,7 +456,7 @@ func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q Argument) 
 	return appAccounts
 }
 
-func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []db.Comment {
+func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []ClaimComment {
 	arguments := ta.claimArgumentsResolver(ctx, q)
 	comments := make([]db.Comment, 0)
 	for _, argument := range arguments {
@@ -406,7 +464,11 @@ func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) [
 		argComments := ta.commentsResolver(ctx, argument)
 		comments = append(comments, argComments...)
 	}
-	return comments
+	claimComments := make([]ClaimComment, 0)
+	for _, comment := range comments {
+		claimComments = append(claimComments, convertCommentToClaimComment(comment))
+	}
+	return claimComments
 }
 
 func (ta *TruAPI) stakesResolver(_ context.Context, q queryByArgumentID) []Stake {
@@ -426,4 +488,115 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 		BlockIntervalTime: 5000,
 		DefaultStake:      sdk.NewCoin(app.StakeDenom, sdk.NewInt(30*app.Shanev)),
 	}
+}
+
+func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []Claim, filter FeedFilter) []Claim {
+	if filter == Latest {
+		// Reverse chronological order, up to 1 week
+		latestClaims := make([]Claim, 0)
+		for _, claim := range claims {
+			if claim.CreatedTime.Before(time.Now().AddDate(0, 0, -7)) {
+				latestClaims = append(latestClaims, claim)
+			}
+		}
+		sort.Slice(latestClaims, func(i, j int) bool {
+			return latestClaims[j].CreatedTime.Before(latestClaims[i].CreatedTime)
+		})
+		return latestClaims
+	} else if filter == Best {
+		// Total amount staked
+		// Total stakers
+		// Total comments
+		// Smallest delta between Backing vs Challenge stake
+		metrics := make([]claimMetricsBest, 0)
+		for _, claim := range claims {
+			totalAmountStaked := claim.TotalBacked.Add(claim.TotalChallenged).Amount
+			totalStakers := claim.TotalStakers
+			totalComments := len(ta.claimCommentsResolver(ctx, queryByClaimID{ID: claim.ID}))
+			var backingChallengeDelta sdk.Int
+			if claim.TotalBacked.IsGTE(claim.TotalChallenged) {
+				backingChallengeDelta = claim.TotalBacked.Sub(claim.TotalChallenged).Amount
+			} else {
+				backingChallengeDelta = claim.TotalChallenged.Sub(claim.TotalBacked).Amount
+			}
+			metric := claimMetricsBest{
+				Claim:                 claim,
+				TotalAmountStaked:     totalAmountStaked,
+				TotalStakers:          totalStakers,
+				TotalComments:         totalComments,
+				BackingChallengeDelta: backingChallengeDelta,
+			}
+			metrics = append(metrics, metric)
+		}
+		sort.Slice(metrics, func(i, j int) bool {
+			if metrics[i].TotalAmountStaked.GT(metrics[j].TotalAmountStaked) {
+				return true
+			}
+			if metrics[i].TotalAmountStaked.LT(metrics[j].TotalAmountStaked) {
+				return false
+			}
+			if metrics[i].TotalStakers > metrics[j].TotalStakers {
+				return true
+			}
+			if metrics[i].TotalStakers < metrics[j].TotalStakers {
+				return false
+			}
+			if metrics[i].TotalComments > metrics[j].TotalComments {
+				return true
+			}
+			if metrics[i].TotalComments < metrics[j].TotalComments {
+				return false
+			}
+			if metrics[i].BackingChallengeDelta.GT(metrics[j].BackingChallengeDelta) {
+				return true
+			}
+			return false
+		})
+		bestClaims := make([]Claim, 0)
+		for _, metric := range metrics {
+			bestClaims = append(bestClaims, metric.Claim)
+		}
+		return bestClaims
+	} else if filter == Trending {
+		// highest volume of activity in last 24 hours
+		// # of new arguments       TODO: need tendermint tags
+		// # of new comments
+		// # of new agree stakes    TODO: need tendermint tags
+		metrics := make([]claimMetricsTrending, 0)
+		for _, claim := range claims {
+			comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: claim.ID})
+			totalComments := 0
+			for _, comment := range comments {
+				if comment.CreatedAt.Before(time.Now().AddDate(0, 0, -1)) {
+					totalComments++
+				}
+			}
+			metric := claimMetricsTrending{
+				Claim:         claim,
+				TotalComments: totalComments,
+			}
+			metrics = append(metrics, metric)
+		}
+		sort.Slice(metrics, func(i, j int) bool {
+			if metrics[i].TotalArguments > metrics[j].TotalArguments {
+				return true
+			}
+			if metrics[i].TotalArguments < metrics[j].TotalArguments {
+				return false
+			}
+			if metrics[i].TotalComments > metrics[j].TotalComments {
+				return true
+			}
+			if metrics[i].TotalComments < metrics[j].TotalComments {
+				return false
+			}
+			return metrics[j].TotalStakes-metrics[i].TotalStakes > 0
+		})
+		trendingClaims := make([]Claim, 0)
+		for _, metric := range metrics {
+			trendingClaims = append(trendingClaims, metric.Claim)
+		}
+		return trendingClaims
+	}
+	return claims
 }

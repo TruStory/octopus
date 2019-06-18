@@ -84,6 +84,7 @@ type Claim struct {
 	Source          url.URL
 	TotalBacked     sdk.Coin
 	TotalChallenged sdk.Coin
+	TotalStakers    int64
 	CreatedTime     time.Time
 }
 
@@ -134,4 +135,16 @@ type Settings struct {
 	MaxCommentLength  int64    `json:"maxCommentLength"`
 	BlockIntervalTime int64    `json:"blockIntervalTime"`
 	DefaultStake      sdk.Coin `json:"defaultStake"`
+}
+
+// ClaimComment contains claim level comments
+type ClaimComment struct {
+	ID         int64
+	ParentID   int64
+	ArgumentID int64
+	Body       string
+	Creator    string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  *time.Time
 }

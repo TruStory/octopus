@@ -12,19 +12,23 @@ import (
 	"github.com/TruStory/truchain/x/story"
 )
 
+// EventProperties holds tracking event information
 type EventProperties struct {
 	ClaimID *int64 `json:"claimId,omitempty"`
 }
 
+// TrackEvent represents an event that is tracked
 type TrackEvent struct {
 	Event      string          `json:"event"`
 	Properties EventProperties `json:"properties"`
 }
 
+// TrackEventClaimOpened event tracks opened claims
 const (
 	TrackEventClaimOpened = "claim_opened"
 )
 
+// HandleTrackEvent records an event in the database
 func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
 	user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
 	// ignore not logged in users for now

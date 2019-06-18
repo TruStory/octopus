@@ -119,6 +119,19 @@ func convertStoryArgumentToClaimArgument(storyArgument argument.Argument, argume
 	return claimArgument
 }
 
+func convertCommentToClaimComment(comment db.Comment) ClaimComment {
+	return ClaimComment{
+		ID:         comment.ID,
+		ParentID:   comment.ParentID,
+		ArgumentID: comment.ArgumentID,
+		Body:       comment.Body,
+		Creator:    comment.Creator,
+		CreatedAt:  comment.CreatedAt,
+		UpdatedAt:  comment.UpdatedAt,
+		DeletedAt:  comment.DeletedAt,
+	}
+}
+
 func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) AppAccount {
 	addresses := users.QueryUsersByAddressesParams{
 		Addresses: []string{q.ID},
@@ -443,7 +456,7 @@ func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q Argument) 
 	return appAccounts
 }
 
-func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []db.Comment {
+func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []ClaimComment {
 	arguments := ta.claimArgumentsResolver(ctx, q)
 	comments := make([]db.Comment, 0)
 	for _, argument := range arguments {
@@ -451,7 +464,11 @@ func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) [
 		argComments := ta.commentsResolver(ctx, argument)
 		comments = append(comments, argComments...)
 	}
-	return comments
+	claimComments := make([]ClaimComment, 0)
+	for _, comment := range comments {
+		claimComments = append(claimComments, convertCommentToClaimComment(comment))
+	}
+	return claimComments
 }
 
 func (ta *TruAPI) stakesResolver(_ context.Context, q queryByArgumentID) []Stake {

@@ -274,6 +274,17 @@ func (ta *TruAPI) filterFlaggedClaims(claims []Claim) ([]Claim, error) {
 }
 
 func (ta *TruAPI) getCommunityBySlug(ctx context.Context, slug string) (Community, error) {
+	// Client displays claims under each community AND all claims on the homepage
+	// When querying claims for the homepage the client sends no community slug
+	// In this case we create a empty string community with the title "All" which is rendered on client
+	if slug == "" {
+		return Community{
+			ID:   -1,
+			Slug: "all",
+			Name: "All",
+		}, nil
+	}
+
 	cs := ta.allCategoriesResolver(ctx, struct{}{})
 
 	var cat category.Category

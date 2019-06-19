@@ -18,6 +18,16 @@ import (
 	amino "github.com/tendermint/go-amino"
 )
 
+// ArgumentFilter defines filters for claimArguments
+type ArgumentFilter int64
+
+// List of ArgumentFilter types
+const (
+	ArgumentAll ArgumentFilter = iota
+	ArgumentCreated
+	ArgumentAgreed
+)
+
 type queryByCommunityID struct {
 	ID int64 `graphql:"id"`
 }
@@ -36,6 +46,12 @@ type queryByArgumentID struct {
 
 type queryByAddress struct {
 	ID string `graphql:"id"`
+}
+
+type queryClaimArgumentParams struct {
+	ClaimID int64          `graphql:"id,optional"`
+	Address *string        `graphql:"address,optional"`
+	Filter  ArgumentFilter `graphql:"filter,optional"`
 }
 
 type queryByCommunitySlugAndFeedFilter struct {
@@ -338,9 +354,9 @@ func (ta *TruAPI) getCommunityByID(ctx context.Context, q queryByCommunityID) *C
 	return &community
 }
 
-func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryByClaimID) []Argument {
-	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ID})
-	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ID})
+func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgumentParams) []Argument {
+	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
+	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
 	storyArguments := map[int64]*argumentMeta{}
 	for _, backing := range backings {
 		if storyArguments[backing.ArgumentID] == nil {
@@ -362,18 +378,32 @@ func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryByClaimID) 
 			storyArguments[challenge.ArgumentID].UpvotedCount++
 		}
 	}
-	arguments := make([]Argument, 0)
+	claimArguments := make([]Argument, 0)
 	for argumentID, argumentMeta := range storyArguments {
 		storyArgument := ta.argumentResolver(ctx, app.QueryArgumentByID{ID: argumentID})
-		argument := convertStoryArgumentToClaimArgument(storyArgument, *argumentMeta)
-		arguments = append(arguments, argument)
+		claimArgument := convertStoryArgumentToClaimArgument(storyArgument, *argumentMeta)
+		if q.Filter == ArgumentCreated {
+			if *q.Address == claimArgument.Creator.String() {
+				claimArguments = append(claimArguments, claimArgument)
+			}
+		} else if q.Filter == ArgumentAgreed {
+			stakers := ta.claimArgumentStakersResolver(ctx, claimArgument)
+			for _, staker := range stakers {
+				if *q.Address == staker.Address && staker.Address != claimArgument.Creator.String() {
+					claimArguments = append(claimArguments, claimArgument)
+					break
+				}
+			}
+		} else {
+			claimArguments = append(claimArguments, claimArgument)
+		}
 	}
 
-	return arguments
+	return claimArguments
 }
 
 func (ta *TruAPI) topArgumentResolver(ctx context.Context, q Claim) *Argument {
-	arguments := ta.claimArgumentsResolver(ctx, queryByClaimID{ID: q.ID})
+	arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID})
 	if len(arguments) == 0 {
 		return nil
 	}
@@ -452,7 +482,7 @@ func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q Argument) 
 }
 
 func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []ClaimComment {
-	arguments := ta.claimArgumentsResolver(ctx, q)
+	arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID})
 	comments := make([]db.Comment, 0)
 	for _, argument := range arguments {
 		argument := ta.argumentResolver(ctx, app.QueryArgumentByID{ID: argument.ID})
@@ -468,6 +498,41 @@ func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) [
 
 func (ta *TruAPI) stakesResolver(_ context.Context, q queryByArgumentID) []Stake {
 	return []Stake{}
+}
+
+func (ta *TruAPI) appAccountClaimsCreatedResolver(ctx context.Context, q queryByAddress) []Claim {
+	allClaims := ta.claimsResolver(ctx, queryByCommunitySlugAndFeedFilter{CommunitySlug: "all"})
+	claimsCreated := make([]Claim, 0)
+	for _, claim := range allClaims {
+		if claim.Creator.String() == q.ID {
+			claimsCreated = append(claimsCreated, claim)
+		}
+	}
+	return claimsCreated
+}
+
+func (ta *TruAPI) appAccountClaimsWithArgumentsResolver(ctx context.Context, q queryByAddress) []Claim {
+	allClaims := ta.claimsResolver(ctx, queryByCommunitySlugAndFeedFilter{CommunitySlug: "all"})
+	claimsWithArguments := make([]Claim, 0)
+	for _, claim := range allClaims {
+		arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claim.ID, Address: &q.ID, Filter: ArgumentCreated})
+		if len(arguments) > 0 {
+			claimsWithArguments = append(claimsWithArguments, claim)
+		}
+	}
+	return claimsWithArguments
+}
+
+func (ta *TruAPI) appAccountClaimsWithAgreesResolver(ctx context.Context, q queryByAddress) []Claim {
+	allClaims := ta.claimsResolver(ctx, queryByCommunitySlugAndFeedFilter{CommunitySlug: "all"})
+	claimsWithAgrees := make([]Claim, 0)
+	for _, claim := range allClaims {
+		arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claim.ID, Address: &q.ID, Filter: ArgumentAgreed})
+		if len(arguments) > 0 {
+			claimsWithAgrees = append(claimsWithAgrees, claim)
+		}
+	}
+	return claimsWithAgrees
 }
 
 func (ta *TruAPI) settingsResolver(_ context.Context) Settings {

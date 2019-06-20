@@ -95,7 +95,10 @@ func recreate(ctx context.Context, table *bigquery.Table) {
 	if err != nil {
 		log.Fatal("schema error", err)
 	}
-	table.Delete(ctx)
+	err = table.Delete(ctx)
+	if err != nil {
+		log.Fatal("delete table error", err)
+	}
 	if err := table.Create(ctx, &bigquery.TableMetadata{Schema: schema}); err != nil {
 		log.Fatal("error creating table", err)
 	}

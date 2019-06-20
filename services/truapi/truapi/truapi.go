@@ -501,7 +501,8 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 	})
 
-	// V2 resolvers
+	// ########## V2 resolvers ################
+
 	getEarnedBalance := func(q AppAccount) sdk.Coin {
 		amount := sdk.NewCoin(app.StakeDenom, sdk.ZeroInt())
 		for _, earned := range q.EarnedStake {
@@ -538,7 +539,7 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterQueryResolver("communities", ta.communitiesResolver)
 	ta.GraphQLClient.RegisterQueryResolver("community", ta.communityResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Community", Community{}, map[string]interface{}{
-		"id":        func(_ context.Context, q Community) int64 { return q.ID },
+		"id":        func(_ context.Context, q Community) uint64 { return q.ID },
 		"iconImage": ta.communityIconImageResolver,
 		"heroImage": func(_ context.Context, q Community) string {
 			return joinPath(ta.APIContext.Config.App.S3AssetsURL, "communities/default_hero.png")
@@ -549,7 +550,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		"body": func(_ context.Context, q Claim) string { return q.Body },
 	})
 	ta.GraphQLClient.RegisterPaginatedObjectResolver("claims", "iD", Claim{}, map[string]interface{}{
-		"id": func(_ context.Context, q Claim) int64 { return q.ID },
+		"id": func(_ context.Context, q Claim) uint64 { return q.ID },
 		"community": func(ctx context.Context, q Claim) *Community {
 			return ta.getCommunityByID(ctx, queryByCommunityID{ID: q.CommunityID})
 		},
@@ -584,8 +585,8 @@ func (ta *TruAPI) RegisterResolvers() {
 
 	ta.GraphQLClient.RegisterQueryResolver("claimArguments", ta.claimArgumentsResolver)
 	ta.GraphQLClient.RegisterObjectResolver("ClaimArgument", Argument{}, map[string]interface{}{
-		"id":          func(_ context.Context, q Argument) int64 { return q.ID },
-		"claimId":     func(_ context.Context, q Argument) int64 { return q.ClaimID },
+		"id":          func(_ context.Context, q Argument) uint64 { return q.ID },
+		"claimId":     func(_ context.Context, q Argument) uint64 { return q.ClaimID },
 		"vote":        func(_ context.Context, q Argument) bool { return q.Type == Backing },
 		"createdTime": func(_ context.Context, q Argument) string { return q.CreatedTime.String() },
 		"creator": func(ctx context.Context, q Argument) AppAccount {
@@ -609,13 +610,15 @@ func (ta *TruAPI) RegisterResolvers() {
 
 	ta.GraphQLClient.RegisterQueryResolver("stakes", ta.stakesResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Stake", Stake{}, map[string]interface{}{
-		"id": func(_ context.Context, q Stake) int64 { return q.ID },
+		"id": func(_ context.Context, q Stake) uint64 { return q.ID },
 		"creator": func(ctx context.Context, q Stake) AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
 	})
 
 	ta.GraphQLClient.RegisterObjectResolver("Slash", Slash{}, map[string]interface{}{
+		"id":      func(_ context.Context, q Slash) uint64 { return q.ID },
+		"stakeId": func(_ context.Context, q Slash) uint64 { return q.StakeID },
 		"creator": func(ctx context.Context, q Slash) AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},

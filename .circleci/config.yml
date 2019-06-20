@@ -258,7 +258,7 @@ workflows:
   metrics:
     triggers:
       - schedule:
-          cron: '40 14 * * *'
+          cron: '50 * * * *'
           filters:
             branches:
               only:

@@ -32,6 +32,7 @@ const (
 	Trending
 	Latest
 	Completed
+	Best
 )
 
 // QueryByCategoryIDAndFeedFilter is query params for filtering a story feed by category and FeedFilter
@@ -309,8 +310,6 @@ func (ta *TruAPI) twitterProfileResolver(ctx context.Context, addr string) db.Tw
 }
 
 func (ta *TruAPI) usersResolver(ctx context.Context, q users.QueryUsersByAddressesParams) []users.User {
-	fmt.Printf("users query: %+v\n", q)
-
 	res, err := ta.RunQuery("users/addresses", q)
 	if err != nil {
 		fmt.Println("Resolver err: ", res)
@@ -322,8 +321,6 @@ func (ta *TruAPI) usersResolver(ctx context.Context, q users.QueryUsersByAddress
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Printf("user: %+v\n", u)
 
 	return *u
 }
@@ -474,9 +471,7 @@ func (ta *TruAPI) invitesResolver(ctx context.Context) []db.Invite {
 
 func (ta *TruAPI) reactionsCountResolver(ctx context.Context, rxnable db.Reactionable) []db.ReactionsCount {
 	reactionsCount, err := ta.DBClient.ReactionsCountByReactionable(rxnable)
-	fmt.Printf("\n\nReactions Count -- %v - %v\n\n", rxnable, reactionsCount)
 	if err != nil {
-		fmt.Printf("\n\n ERROR -- %v\n\n", err)
 		panic(err)
 	}
 	return reactionsCount
@@ -484,9 +479,7 @@ func (ta *TruAPI) reactionsCountResolver(ctx context.Context, rxnable db.Reactio
 
 func (ta *TruAPI) reactionsResolver(ctx context.Context, rxnable db.Reactionable) []db.Reaction {
 	reactions, err := ta.DBClient.ReactionsByReactionable(rxnable)
-	fmt.Printf("\n\nReactions -- %v - %v\n\n", rxnable, reactions)
 	if err != nil {
-		fmt.Printf("\n\n ERROR -- %v\n\n", err)
 		panic(err)
 	}
 	return reactions

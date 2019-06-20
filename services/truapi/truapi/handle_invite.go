@@ -39,9 +39,8 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(422, errors.New("Invalid email address"))
 	}
 
-	user := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
-
-	if user == nil {
+	user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
+	if !ok || user == nil {
 		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
 	}
 

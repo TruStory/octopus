@@ -34,8 +34,8 @@ func (ta *TruAPI) HandleReaction(r *http.Request) chttp.Response {
 }
 
 func (ta *TruAPI) createReaction(r *http.Request) chttp.Response {
-	creator := r.Context().Value(userContextKey)
-	if creator == nil {
+	user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
+	if !ok || user == nil {
 		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
 	}
 
@@ -50,7 +50,7 @@ func (ta *TruAPI) createReaction(r *http.Request) chttp.Response {
 		ID:   request.ReactionableID,
 	}
 	err = ta.DBClient.ReactOnReactionable(
-		creator.(*cookies.AuthenticatedUser).Address,
+		user.Address,
 		request.ReactionType,
 		rxnable,
 	)

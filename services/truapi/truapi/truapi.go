@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"path"
@@ -519,6 +518,21 @@ func (ta *TruAPI) RegisterResolvers() {
 		"twitterProfile": func(ctx context.Context, q AppAccount) db.TwitterProfile {
 			return ta.twitterProfileResolver(ctx, q.Address)
 		},
+		"totalClaims": func(ctx context.Context, q AppAccount) int {
+			return len(ta.appAccountClaimsCreatedResolver(ctx, queryByAddress{ID: q.Address}))
+		},
+		"totalArguments": func(ctx context.Context, q AppAccount) int {
+			return len(ta.appAccountClaimsWithArgumentsResolver(ctx, queryByAddress{ID: q.Address}))
+		},
+		"totalAgrees": func(ctx context.Context, q AppAccount) int {
+			return len(ta.appAccountClaimsWithAgreesResolver(ctx, queryByAddress{ID: q.Address}))
+		},
+	})
+
+	ta.GraphQLClient.RegisterObjectResolver("EarnedCoin", EarnedCoin{}, map[string]interface{}{
+		"community": func(ctx context.Context, q EarnedCoin) *Community {
+			return ta.getCommunityByID(ctx, queryByCommunityID{ID: q.CommunityID})
+		},
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("communities", ta.communitiesResolver)
@@ -544,25 +558,24 @@ func (ta *TruAPI) RegisterResolvers() {
 			onImage := og.OgImage{}
 			err := og.GetPageDataFromUrl(q.Source.String(), &onImage)
 			if err != nil || onImage.Url == "" {
-				n := rand.Intn(5)
+				n := (q.ID % 5) // random but deterministic placeholder image 0-4
 				return joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("sourceImage_default_%d.png", n))
 			}
 			return onImage.Url
 		},
 		"argumentCount": func(ctx context.Context, q Claim) int {
-			return len(ta.claimArgumentsResolver(ctx, queryByClaimID{ID: q.ID}))
+			return len(ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID}))
 		},
 		"topArgument": ta.topArgumentResolver,
-		"arguments": func(ctx context.Context, q Claim) []Argument {
-			return ta.claimArgumentsResolver(ctx, queryByClaimID{ID: q.ID})
+		"arguments": func(ctx context.Context, q Claim, a queryClaimArgumentParams) []Argument {
+			return ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID, Address: a.Address, Filter: a.Filter})
 		},
-		"stakerCount": func(ctx context.Context, q Claim) int { return len(ta.claimStakersResolver(ctx, q)) },
-		"stakers":     ta.claimStakersResolver,
-		"comments": func(ctx context.Context, q Claim) []db.Comment {
+		"stakers":           ta.claimStakersResolver,
+		"participants":      ta.claimParticipantsResolver,
+		"participantsCount": func(ctx context.Context, q Claim) int { return len(ta.claimParticipantsResolver(ctx, q)) },
+		"comments": func(ctx context.Context, q Claim) []ClaimComment {
 			return ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},
-		"totalBacked":     ta.claimTotalBackedResolver,
-		"totalChallenged": ta.claimTotalChallengedResolver,
 		"creator": func(ctx context.Context, q Claim) AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
@@ -585,6 +598,14 @@ func (ta *TruAPI) RegisterResolvers() {
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
+	ta.GraphQLClient.RegisterObjectResolver("ClaimComment", ClaimComment{}, map[string]interface{}{
+		"id":         func(_ context.Context, q ClaimComment) int64 { return q.ID },
+		"parentId":   func(_ context.Context, q ClaimComment) int64 { return q.ParentID },
+		"argumentId": func(_ context.Context, q ClaimComment) int64 { return q.ArgumentID },
+		"creator": func(ctx context.Context, q ClaimComment) AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
+		},
+	})
 
 	ta.GraphQLClient.RegisterQueryResolver("stakes", ta.stakesResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Stake", Stake{}, map[string]interface{}{
@@ -593,6 +614,10 @@ func (ta *TruAPI) RegisterResolvers() {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
 	})
+
+	ta.GraphQLClient.RegisterPaginatedQueryResolver("appAccountClaimsCreated", ta.appAccountClaimsCreatedResolver)
+	ta.GraphQLClient.RegisterPaginatedQueryResolver("appAccountClaimsWithArguments", ta.appAccountClaimsWithArgumentsResolver)
+	ta.GraphQLClient.RegisterPaginatedQueryResolver("appAccountClaimsWithAgrees", ta.appAccountClaimsWithAgreesResolver)
 
 	ta.GraphQLClient.RegisterQueryResolver("settings", ta.settingsResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Settings", Settings{}, map[string]interface{}{})

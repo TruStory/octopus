@@ -9,9 +9,12 @@ import (
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/argument"
+	"github.com/TruStory/truchain/x/backing"
 	"github.com/TruStory/truchain/x/category"
+	"github.com/TruStory/truchain/x/challenge"
 	"github.com/TruStory/truchain/x/story"
 	"github.com/TruStory/truchain/x/users"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -29,7 +32,7 @@ const (
 )
 
 type queryByCommunityID struct {
-	ID int64 `graphql:"id"`
+	ID uint64 `graphql:"id"`
 }
 
 type queryByCommunitySlug struct {
@@ -37,11 +40,11 @@ type queryByCommunitySlug struct {
 }
 
 type queryByClaimID struct {
-	ID int64 `graphql:"id"`
+	ID uint64 `graphql:"id"`
 }
 
 type queryByArgumentID struct {
-	ID int64 `graphql:"id"`
+	ID uint64 `graphql:"id"`
 }
 
 type queryByAddress struct {
@@ -49,7 +52,7 @@ type queryByAddress struct {
 }
 
 type queryClaimArgumentParams struct {
-	ClaimID int64          `graphql:"id,optional"`
+	ClaimID uint64         `graphql:"id,optional"`
 	Address *string        `graphql:"address,optional"`
 	Filter  ArgumentFilter `graphql:"filter,optional"`
 }
@@ -61,14 +64,14 @@ type queryByCommunitySlugAndFeedFilter struct {
 
 type argumentMeta struct {
 	Vote         bool
-	UpvotedCount int64
+	UpvotedCount uint64
 }
 
 // claimMetricsBest represents all-time claim metrics
 type claimMetricsBest struct {
 	Claim                 Claim
 	TotalAmountStaked     sdk.Int
-	TotalStakers          int64
+	TotalStakers          uint64
 	TotalComments         int
 	BackingChallengeDelta sdk.Int
 }
@@ -86,7 +89,7 @@ const SummaryLength = 140
 
 func convertCategoryToCommunity(category category.Category) Community {
 	return Community{
-		ID:          category.ID,
+		ID:          uint64(category.ID),
 		Name:        category.Title,
 		Slug:        category.Slug,
 		Description: category.Description,
@@ -94,16 +97,16 @@ func convertCategoryToCommunity(category category.Category) Community {
 }
 
 func (ta *TruAPI) convertStoryToClaim(ctx context.Context, story story.Story) Claim {
-	totalStakers := len(ta.claimStakersResolver(ctx, Claim{ID: story.ID}))
+	totalStakers := len(ta.claimStakersResolver(ctx, Claim{ID: uint64(story.ID)}))
 	return Claim{
-		ID:              story.ID,
-		CommunityID:     story.CategoryID,
+		ID:              uint64(story.ID),
+		CommunityID:     uint64(story.CategoryID),
 		Body:            story.Body,
 		Creator:         story.Creator,
 		Source:          story.Source,
 		TotalBacked:     ta.totalBackingStakeByStoryID(ctx, story.ID),
 		TotalChallenged: ta.totalChallengeStakeByStoryID(ctx, story.ID),
-		TotalStakers:    int64(totalStakers),
+		TotalStakers:    uint64(totalStakers),
 		CreatedTime:     story.Timestamp.CreatedTime,
 	}
 }
@@ -122,12 +125,12 @@ func convertStoryArgumentToClaimArgument(storyArgument argument.Argument, argume
 	}
 	claimArgument := Argument{
 		Stake: Stake{
-			ID:          storyArgument.ID,
+			ID:          uint64(storyArgument.ID),
 			Creator:     storyArgument.Creator,
 			CreatedTime: storyArgument.Timestamp.CreatedTime,
 			Type:        stakeType,
 		},
-		ClaimID:      storyArgument.StoryID,
+		ClaimID:      uint64(storyArgument.StoryID),
 		UpvotedCount: argumentMeta.UpvotedCount,
 		Body:         storyArgument.Body,
 		Summary:      summary,
@@ -145,6 +148,30 @@ func convertCommentToClaimComment(comment db.Comment) ClaimComment {
 		CreatedAt:  comment.CreatedAt,
 		UpdatedAt:  comment.UpdatedAt,
 		DeletedAt:  comment.DeletedAt,
+	}
+}
+
+func convertBackingToStake(backing backing.Backing) Stake {
+	return Stake{
+		ID:          uint64(backing.ID()),
+		ArgumentID:  uint64(backing.ArgumentID),
+		Type:        Upvote,
+		Stake:       backing.Amount(),
+		Creator:     backing.Creator(),
+		CreatedTime: backing.Timestamp().CreatedTime,
+		EndTime:     backing.Timestamp().UpdatedTime,
+	}
+}
+
+func convertChallengeToStake(challenge challenge.Challenge) Stake {
+	return Stake{
+		ID:          uint64(challenge.ID()),
+		ArgumentID:  uint64(challenge.ArgumentID),
+		Type:        Upvote,
+		Stake:       challenge.Amount(),
+		Creator:     challenge.Creator(),
+		CreatedTime: challenge.Timestamp().CreatedTime,
+		EndTime:     challenge.Timestamp().UpdatedTime,
 	}
 }
 
@@ -180,7 +207,7 @@ func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) AppA
 			earnedCoin := sdk.NewCoin(app.StakeDenom, coin.Amount)
 			earned := EarnedCoin{
 				Coin:        earnedCoin,
-				CommunityID: communityID,
+				CommunityID: uint64(communityID),
 			}
 			earnedStake = append(earnedStake, earned)
 			communityID++
@@ -254,7 +281,7 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndF
 		if err != nil {
 			return []Claim{}
 		}
-		res, err = ta.RunQuery("stories/category", story.QueryCategoryStoriesParams{CategoryID: community.ID})
+		res, err = ta.RunQuery("stories/category", story.QueryCategoryStoriesParams{CategoryID: int64(community.ID)})
 	}
 	if err != nil {
 		fmt.Println("Resolver err: ", res)
@@ -285,7 +312,7 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndF
 }
 
 func (ta *TruAPI) claimResolver(ctx context.Context, q queryByClaimID) Claim {
-	story := ta.storyResolver(ctx, story.QueryStoryByIDParams{ID: q.ID})
+	story := ta.storyResolver(ctx, story.QueryStoryByIDParams{ID: int64(q.ID)})
 	return ta.convertStoryToClaim(ctx, story)
 }
 
@@ -303,7 +330,7 @@ func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunityS
 func (ta *TruAPI) filterFlaggedClaims(claims []Claim) ([]Claim, error) {
 	unflaggedClaims := make([]Claim, 0)
 	for _, claim := range claims {
-		claimFlags, err := ta.DBClient.FlaggedStoriesByStoryID(claim.ID)
+		claimFlags, err := ta.DBClient.FlaggedStoriesByStoryID(int64(claim.ID))
 		if err != nil {
 			return nil, err
 		}
@@ -325,7 +352,7 @@ func (ta *TruAPI) getCommunityBySlug(ctx context.Context, slug string) (Communit
 	// "all" is a community for the homepage which shows all the claims
 	if slug == "all" {
 		return Community{
-			ID:   -1,
+			ID:   0,
 			Slug: "all",
 			Name: "All",
 		}, nil
@@ -349,14 +376,14 @@ func (ta *TruAPI) getCommunityBySlug(ctx context.Context, slug string) (Communit
 }
 
 func (ta *TruAPI) getCommunityByID(ctx context.Context, q queryByCommunityID) *Community {
-	category := ta.categoryResolver(ctx, category.QueryCategoryByIDParams{ID: q.ID})
+	category := ta.categoryResolver(ctx, category.QueryCategoryByIDParams{ID: int64(q.ID)})
 	community := convertCategoryToCommunity(category)
 	return &community
 }
 
 func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgumentParams) []Argument {
-	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
-	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
+	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: int64(q.ClaimID)})
+	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: int64(q.ClaimID)})
 	storyArguments := map[int64]*argumentMeta{}
 	for _, backing := range backings {
 		if storyArguments[backing.ArgumentID] == nil {
@@ -429,8 +456,8 @@ func (ta *TruAPI) totalChallengeStakeByStoryID(ctx context.Context, ID int64) sd
 }
 
 func (ta *TruAPI) claimStakersResolver(ctx context.Context, q Claim) []AppAccount {
-	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ID})
-	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ID})
+	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: int64(q.ID)})
+	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: int64(q.ID)})
 	appAccounts := make([]AppAccount, 0)
 	for _, backing := range backings {
 		appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: backing.Creator().String()}))
@@ -464,28 +491,53 @@ func participantExists(participants []AppAccount, participantToAdd string) bool 
 	return false
 }
 
-func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q Argument) []AppAccount {
-	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
-	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
-	appAccounts := make([]AppAccount, 0)
+func (ta *TruAPI) claimArgumentStakesResolver(ctx context.Context, q Argument) []Stake {
+	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: int64(q.ClaimID)})
+	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: int64(q.ClaimID)})
+	stakes := make([]Stake, 0)
 	for _, backing := range backings {
-		if backing.ArgumentID == q.ID && !backing.Creator().Equals(q.Creator) {
-			appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: backing.Creator().String()}))
+		if uint64(backing.ArgumentID) == q.ID && !backing.Creator().Equals(q.Creator) {
+			stakes = append(stakes, convertBackingToStake(backing))
 		}
 	}
 	for _, challenge := range challenges {
-		if challenge.ArgumentID == q.ID && !challenge.Creator().Equals(q.Creator) {
-			appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: challenge.Creator().String()}))
+		if uint64(challenge.ArgumentID) == q.ID && !challenge.Creator().Equals(q.Creator) {
+			stakes = append(stakes, convertChallengeToStake(challenge))
 		}
 	}
+	return stakes
+}
+
+func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q Argument) []AppAccount {
+	stakes := ta.claimArgumentStakesResolver(ctx, q)
+	appAccounts := make([]AppAccount, 0)
+	for _, stake := range stakes {
+		appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: stake.Creator.String()}))
+	}
 	return appAccounts
+}
+
+func (ta *TruAPI) appAccountStakeResolver(ctx context.Context, q Argument) *Stake {
+	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
+	if ok {
+		if user.Address == q.Creator.String() {
+			return &q.Stake
+		}
+		stakes := ta.claimArgumentStakesResolver(ctx, q)
+		for _, stake := range stakes {
+			if user.Address == stake.Creator.String() {
+				return &stake
+			}
+		}
+	}
+	return nil
 }
 
 func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []ClaimComment {
 	arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID})
 	comments := make([]db.Comment, 0)
 	for _, argument := range arguments {
-		argument := ta.argumentResolver(ctx, app.QueryArgumentByID{ID: argument.ID})
+		argument := ta.argumentResolver(ctx, app.QueryArgumentByID{ID: int64(argument.ID)})
 		argComments := ta.commentsResolver(ctx, argument)
 		comments = append(comments, argComments...)
 	}
@@ -555,7 +607,7 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []Claim, filter F
 		// Reverse chronological order, up to 1 week
 		latestClaims := make([]Claim, 0)
 		for _, claim := range claims {
-			if claim.CreatedTime.Before(time.Now().AddDate(0, 0, -7)) {
+			if claim.CreatedTime.After(time.Now().AddDate(0, 0, -7)) {
 				latestClaims = append(latestClaims, claim)
 			}
 		}

@@ -90,8 +90,7 @@ func (cm *ChainMetric) Save() (map[string]bigquery.Value, string, error) {
 	}, "", nil
 }
 
-// Recreate recreates table
-func Recreate(ctx context.Context, table *bigquery.Table) {
+func recreate(ctx context.Context, table *bigquery.Table) {
 	schema, err := bigquery.InferSchema(ChainMetric{})
 	if err != nil {
 		log.Fatal("schema error", err)
@@ -104,23 +103,22 @@ func Recreate(ctx context.Context, table *bigquery.Table) {
 func main() {
 	metricsEndpoint := mustEnv("METRICS_ENDPOINT")
 	metricsTable := mustEnv("METRICS_TABLE")
+	metricsRecreateTable := getEnv("METRICS_RECREATE_TABLE", "false")
 	ctx := context.Background()
 	client, err := bigquery.NewClient(ctx, "metrics-240714")
 	if err != nil {
 		log.Fatal("error creating client", err)
 	}
 	table := client.Dataset("trustory_metrics").Table(metricsTable)
-	// recreate(ctx, table)
-	// date, err := time.Parse("2006-01-02", "2019-05-23")
-	// if err != nil {
-	// 	log.Fatalf("error parsing %s", err)
-	// }
+	if metricsRecreateTable == "true" {
+		recreate(ctx, table)
+	}
 	u := table.Inserter()
 	items := make([]*ChainMetric, 0)
 
 	defaultDate := time.Now().Format("2006-01-02")
 	date := getEnv("METRICS_DATE", defaultDate)
-	fmt.Println("running for date", date)
+	fmt.Printf("Running metrics date %s table %s", date, metricsTable)
 	metricsSummary, err := fetchMetrics(metricsEndpoint, date)
 	if err != nil {
 		log.Fatal(err)

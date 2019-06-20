@@ -186,6 +186,16 @@ jobs: # basic units of work in a run
               ssh $DEVNET_USER@$DEVNET_HOST "cd $OCTOPUS_LOCATION && /usr/local/go/bin/go run ./actions/statistia/*.go"
               echo "[DONE] Statistia Daily Job on Devnet"
             fi
+  metrics:
+    executor: go
+    setps:
+      - checkout
+      - run:
+          name: run metrics
+          command: |
+            cd actions/metrics
+            make decrypt_secret
+            go run *.go
 workflows:
   version: 2
   build-workflow:
@@ -245,3 +255,13 @@ workflows:
                 - develop
     jobs:
       - statistia_dump
+  metrics:
+    triggers:
+      - schedule:
+          cron: '30 14 * * *'
+          filters:
+            branches:
+              only:
+                - feature/metrics-query
+    jobs:
+      - metrics

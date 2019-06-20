@@ -6,6 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
 	github.com/TruStory/truchain v0.1.18-0.20190528001319-f956205a17e7
+	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32
@@ -22,7 +23,6 @@ require (
 	github.com/go-pg/pg v8.0.3+incompatible
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
-	github.com/googleapis/gax-go v2.0.2+incompatible // indirect
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/securecookie v1.1.1
@@ -55,10 +55,8 @@ require (
 	go.opencensus.io v0.22.0 // indirect
 	golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
 	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	google.golang.org/api v0.6.0
-	gopkg.in/Iwark/spreadsheet.v2 v2.0.0-20190213044300-aa3ac0c59139
+	google.golang.org/api v0.6.0 // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )
 

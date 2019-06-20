@@ -570,7 +570,6 @@ func (ta *TruAPI) RegisterResolvers() {
 		"arguments": func(ctx context.Context, q Claim, a queryClaimArgumentParams) []Argument {
 			return ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID, Address: a.Address, Filter: a.Filter})
 		},
-		"stakers":           ta.claimStakersResolver,
 		"participants":      ta.claimParticipantsResolver,
 		"participantsCount": func(ctx context.Context, q Claim) int { return len(ta.claimParticipantsResolver(ctx, q)) },
 		"comments": func(ctx context.Context, q Claim) []ClaimComment {
@@ -593,7 +592,8 @@ func (ta *TruAPI) RegisterResolvers() {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
 		"hasSlashed":      func(_ context.Context, q Argument) bool { return false },
-		"appAccountStake": func(_ context.Context, q Argument) Stake { return Stake{} },
+		"appAccountStake": ta.appAccountStakeResolver,
+		"appAccountSlash": func(_ context.Context, q Argument) *Slash { return nil },
 		"stakers":         ta.claimArgumentStakersResolver,
 	})
 
@@ -611,6 +611,12 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterObjectResolver("Stake", Stake{}, map[string]interface{}{
 		"id": func(_ context.Context, q Stake) int64 { return q.ID },
 		"creator": func(ctx context.Context, q Stake) AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
+		},
+	})
+
+	ta.GraphQLClient.RegisterObjectResolver("Slash", Slash{}, map[string]interface{}{
+		"creator": func(ctx context.Context, q Slash) AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
 	})

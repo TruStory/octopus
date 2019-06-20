@@ -9,9 +9,12 @@ import (
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/argument"
+	"github.com/TruStory/truchain/x/backing"
 	"github.com/TruStory/truchain/x/category"
+	"github.com/TruStory/truchain/x/challenge"
 	"github.com/TruStory/truchain/x/story"
 	"github.com/TruStory/truchain/x/users"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -145,6 +148,30 @@ func convertCommentToClaimComment(comment db.Comment) ClaimComment {
 		CreatedAt:  comment.CreatedAt,
 		UpdatedAt:  comment.UpdatedAt,
 		DeletedAt:  comment.DeletedAt,
+	}
+}
+
+func convertBackingToStake(backing backing.Backing) Stake {
+	return Stake{
+		ID:          backing.ID(),
+		ArgumentID:  backing.ArgumentID,
+		Type:        Upvote,
+		Stake:       backing.Amount(),
+		Creator:     backing.Creator(),
+		CreatedTime: backing.Timestamp().CreatedTime,
+		EndTime:     backing.Timestamp().UpdatedTime,
+	}
+}
+
+func convertChallengeToStake(challenge challenge.Challenge) Stake {
+	return Stake{
+		ID:          challenge.ID(),
+		ArgumentID:  challenge.ArgumentID,
+		Type:        Upvote,
+		Stake:       challenge.Amount(),
+		Creator:     challenge.Creator(),
+		CreatedTime: challenge.Timestamp().CreatedTime,
+		EndTime:     challenge.Timestamp().UpdatedTime,
 	}
 }
 
@@ -464,21 +491,46 @@ func participantExists(participants []AppAccount, participantToAdd string) bool 
 	return false
 }
 
-func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q Argument) []AppAccount {
+func (ta *TruAPI) claimArgumentStakesResolver(ctx context.Context, q Argument) []Stake {
 	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
 	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: q.ClaimID})
-	appAccounts := make([]AppAccount, 0)
+	stakes := make([]Stake, 0)
 	for _, backing := range backings {
 		if backing.ArgumentID == q.ID && !backing.Creator().Equals(q.Creator) {
-			appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: backing.Creator().String()}))
+			stakes = append(stakes, convertBackingToStake(backing))
 		}
 	}
 	for _, challenge := range challenges {
 		if challenge.ArgumentID == q.ID && !challenge.Creator().Equals(q.Creator) {
-			appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: challenge.Creator().String()}))
+			stakes = append(stakes, convertChallengeToStake(challenge))
 		}
 	}
+	return stakes
+}
+
+func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q Argument) []AppAccount {
+	stakes := ta.claimArgumentStakesResolver(ctx, q)
+	appAccounts := make([]AppAccount, 0)
+	for _, stake := range stakes {
+		appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: stake.Creator.String()}))
+	}
 	return appAccounts
+}
+
+func (ta *TruAPI) appAccountStakeResolver(ctx context.Context, q Argument) *Stake {
+	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
+	if ok {
+		if user.Address == q.Creator.String() {
+			return &q.Stake
+		}
+		stakes := ta.claimArgumentStakesResolver(ctx, q)
+		for _, stake := range stakes {
+			if user.Address == stake.Creator.String() {
+				return &stake
+			}
+		}
+	}
+	return nil
 }
 
 func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []ClaimComment {
@@ -555,7 +607,7 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []Claim, filter F
 		// Reverse chronological order, up to 1 week
 		latestClaims := make([]Claim, 0)
 		for _, claim := range claims {
-			if claim.CreatedTime.Before(time.Now().AddDate(0, 0, -7)) {
+			if claim.CreatedTime.After(time.Now().AddDate(0, 0, -7)) {
 				latestClaims = append(latestClaims, claim)
 			}
 		}

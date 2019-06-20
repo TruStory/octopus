@@ -123,6 +123,14 @@ const (
 	Upvote                     // 2
 )
 
+// Slash will be imported from truchain in the future
+type Slash struct {
+	ID          int64 `graphql:"id"`
+	StakeID     int64 `graphql:"stakeId"`
+	Creator     sdk.AccAddress
+	CreatedTime time.Time
+}
+
 // Settings contains application specific settings
 type Settings struct {
 	MinClaimLength    int64    `json:"minClaimLength"`

@@ -19,6 +19,8 @@ type Metrics struct {
 	TotalArguments            int64 `json:"total_arguments"`
 	TotalEndorsementsReceived int64 `json:"total_endorsements_received"`
 	TotalEndorsementsGiven    int64 `json:"total_endorsements_given"`
+	TotalOpenedClaims         int64 `json:"total_opened_claims"`
+	TotalUniqueOpenedClaims   int64 `json:"total_unique_opened_claims"`
 
 	// StakeBased Metrics
 	TotalAmountStaked     sdk.Coin `json:"total_amount_staked"`
@@ -40,8 +42,9 @@ type CategoryMetrics struct {
 
 // UserMetrics a summary of different metrics per user
 type UserMetrics struct {
-	UserName string   `json:"username"`
-	Balance  sdk.Coin `json:"balance"`
+	UserName       string   `json:"username"`
+	Balance        sdk.Coin `json:"balance"`
+	RunningBalance sdk.Coin `json:"running_balance"`
 
 	// ByCategoryID
 	CategoryMetrics map[int64]*CategoryMetrics `json:"category_metrics"`

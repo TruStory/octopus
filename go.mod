@@ -1,6 +1,7 @@
 module github.com/TruStory/octopus
 
 require (
+	cloud.google.com/go v0.38.0
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
@@ -21,6 +22,7 @@ require (
 	github.com/go-pg/pg v8.0.3+incompatible
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/googleapis/gax-go v2.0.2+incompatible // indirect
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/securecookie v1.1.1
@@ -50,9 +52,13 @@ require (
 	github.com/tendermint/tendermint v0.31.4
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
+	go.opencensus.io v0.22.0 // indirect
 	golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
-	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4
-	google.golang.org/genproto v0.0.0-20180831171423-11092d34479b // indirect
+	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
+	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
+	google.golang.org/api v0.6.0
+	gopkg.in/Iwark/spreadsheet.v2 v2.0.0-20190213044300-aa3ac0c59139
 	mellium.im/sasl v0.2.1 // indirect
 )
 

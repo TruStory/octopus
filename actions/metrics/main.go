@@ -5,21 +5,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"net/http"
+	"os"
 	"time"
 
-	truchain "github.com/TruStory/truchain/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"golang.org/x/net/context"
-	"golang.org/x/oauth2/google"
-	option "google.golang.org/api/option"
-	sheets "google.golang.org/api/sheets/v4"
-	"gopkg.in/Iwark/spreadsheet.v2"
+
+	"cloud.google.com/go/bigquery"
 )
 
 func fetchMetrics(endpoint, date string) (*MetricsSummary, error) {
 	client := &http.Client{
-		Timeout: time.Second * 5,
+		Timeout: time.Second * 30,
 	}
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s?date=%s", endpoint, date), nil)
 	if err != nil {
@@ -48,69 +46,121 @@ func fetchMetrics(endpoint, date string) (*MetricsSummary, error) {
 	return metricsSummary, nil
 }
 
-var decShanev = sdk.NewDecFromInt(sdk.NewInt(truchain.Shanev))
+// ChainMetric ..
+type ChainMetric struct {
+	Date                 time.Time `bigquery:"date"`
+	Address              string    `bigquery:"address"`
+	Username             string    `bigquery:"username"`
+	Category             string    `bigquery:"category"`
+	TruStakeBalance      *big.Rat  `bigquery:"balance"`
+	CredEarned           *big.Rat  `bigquery:"cred_earned"`
+	Claims               int64     `bigquery:"claims_created"`
+	ClaimsOpened         int64     `bigquery:"claims_opened"`
+	UniqueClaimsOpened   int64     `bigquery:"unique_claims_opened"`
+	Arguments            int64     `bigquery:"arguments_created"`
+	EndorsementsGiven    int64     `bigquery:"endorsements_given"`
+	EndorsementsReceived int64     `bigquery:"endorsements_received"`
+	AmountEarned         *big.Rat  `bigquery:"amount_earned"`
+	InterestEarned       *big.Rat  `bigquery:"interest_earned"`
+	AmountLost           *big.Rat  `bigquery:"amount_lost"`
+	AmountStaked         *big.Rat  `bigquery:"amount_staked"`
+	AmountAtStake        *big.Rat  `bigquery:"amount_at_stake"`
+}
 
-func toShanev(coin sdk.Coin) sdk.Dec {
-	return sdk.NewDecFromInt(coin.Amount).Quo(decShanev)
+// Save implements the ValueSaver interface.
+func (cm *ChainMetric) Save() (map[string]bigquery.Value, string, error) {
+	return map[string]bigquery.Value{
+		"date":                  cm.Date,
+		"address":               cm.Address,
+		"username":              cm.Username,
+		"category":              cm.Category,
+		"balance":               cm.TruStakeBalance,
+		"cred_earned":           cm.CredEarned,
+		"claims_created":        cm.Claims,
+		"claims_opened":         cm.ClaimsOpened,
+		"unique_claims_opened":  cm.UniqueClaimsOpened,
+		"arguments_created":     cm.Arguments,
+		"endorsements_given":    cm.EndorsementsGiven,
+		"endorsements_received": cm.EndorsementsReceived,
+		"amount_earned":         cm.AmountEarned,
+		"interest_earned":       cm.InterestEarned,
+		"amount_lost":           cm.AmountLost,
+		"amount_staked":         cm.AmountStaked,
+		"amount_at_stake":       cm.AmountAtStake,
+	}, "", nil
+}
+
+// Recreate recreates table
+func Recreate(ctx context.Context, table *bigquery.Table) {
+	schema, err := bigquery.InferSchema(ChainMetric{})
+	if err != nil {
+		log.Fatal("schema error", err)
+	}
+	table.Delete(ctx)
+	if err := table.Create(ctx, &bigquery.TableMetadata{Schema: schema}); err != nil {
+		log.Fatal("error creating table", err)
+	}
 }
 func main() {
 	metricsEndpoint := mustEnv("METRICS_ENDPOINT")
-	secretFile := mustEnv("METRICS_SECRET_FILE")
-	spreadsheetID := mustEnv("METRICS_SPREADSHEET_ID")
-	spreadsheetRange := mustEnv("METRICS_SPREADSHEET_RANGE")
-	data, err := ioutil.ReadFile(secretFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	conf, err := google.JWTConfigFromJSON(data, spreadsheet.Scope)
-	if err != nil {
-		log.Fatal(err)
-	}
+	metricsTable := mustEnv("METRICS_TABLE")
 	ctx := context.Background()
-	client := conf.Client(ctx)
-
-	srv, err := sheets.NewService(ctx, option.WithHTTPClient(client))
+	client, err := bigquery.NewClient(ctx, "metrics-240714")
 	if err != nil {
-		log.Fatalf("Unable to retrieve Sheets client: %v", err)
+		log.Fatal("error creating client", err)
 	}
+	table := client.Dataset("trustory_metrics").Table(metricsTable)
+	// recreate(ctx, table)
+	// date, err := time.Parse("2006-01-02", "2019-05-23")
+	// if err != nil {
+	// 	log.Fatalf("error parsing %s", err)
+	// }
+	u := table.Inserter()
+	items := make([]*ChainMetric, 0)
 
 	defaultDate := time.Now().Format("2006-01-02")
 	date := getEnv("METRICS_DATE", defaultDate)
+	fmt.Println("running for date", date)
 	metricsSummary, err := fetchMetrics(metricsEndpoint, date)
 	if err != nil {
 		log.Fatal(err)
 	}
-	values := make([][]interface{}, 0)
+
+	timestamp, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		log.Fatalf("error parsing %s", err)
+	}
+
 	for user, userMetrics := range metricsSummary.Users {
 		for _, categoryMetrics := range userMetrics.CategoryMetrics {
-			row := []interface{}{
-				date,
-				user,
-				userMetrics.UserName,
-				toShanev(userMetrics.Balance),
-				categoryMetrics.CategoryName,
-				toShanev(categoryMetrics.CredEarned),
-				categoryMetrics.Metrics.TotalClaims,
-				categoryMetrics.Metrics.TotalArguments,
-				categoryMetrics.Metrics.TotalEndorsementsGiven,
-				categoryMetrics.Metrics.TotalEndorsementsReceived,
-				toShanev(categoryMetrics.Metrics.TotalAmountStaked),
-				toShanev(categoryMetrics.Metrics.StakeEarned),
-				toShanev(categoryMetrics.Metrics.InterestEarned),
-				toShanev(categoryMetrics.Metrics.StakeLost),
-				toShanev(categoryMetrics.Metrics.TotalAmountAtStake),
-				toShanev(categoryMetrics.Metrics.TotalAmountBacked),
-				toShanev(categoryMetrics.Metrics.TotalAmountChallenged),
+			m := &ChainMetric{
+				Date:                 timestamp.UTC(),
+				Address:              user,
+				Username:             userMetrics.UserName,
+				Category:             categoryMetrics.CategoryName,
+				TruStakeBalance:      new(big.Rat).SetInt(userMetrics.Balance.Amount.BigInt()),
+				CredEarned:           new(big.Rat).SetInt(categoryMetrics.CredEarned.Amount.BigInt()),
+				Claims:               categoryMetrics.Metrics.TotalClaims,
+				ClaimsOpened:         categoryMetrics.Metrics.TotalOpenedClaims,
+				UniqueClaimsOpened:   categoryMetrics.Metrics.TotalUniqueOpenedClaims,
+				Arguments:            categoryMetrics.Metrics.TotalArguments,
+				EndorsementsGiven:    categoryMetrics.Metrics.TotalEndorsementsGiven,
+				EndorsementsReceived: categoryMetrics.Metrics.TotalEndorsementsReceived,
+				AmountEarned:         new(big.Rat).SetInt(categoryMetrics.Metrics.StakeEarned.Amount.BigInt()),
+				InterestEarned:       new(big.Rat).SetInt(categoryMetrics.Metrics.InterestEarned.Amount.BigInt()),
+				AmountLost:           new(big.Rat).SetInt(categoryMetrics.Metrics.StakeLost.Amount.BigInt()),
+				AmountStaked:         new(big.Rat).SetInt(categoryMetrics.Metrics.TotalAmountStaked.Amount.BigInt()),
+				AmountAtStake:        new(big.Rat).SetInt(categoryMetrics.Metrics.TotalAmountAtStake.Amount.BigInt()),
 			}
-			values = append(values, row)
+			items = append(items, m)
 		}
+	}
 
-	}
-	_, err = srv.Spreadsheets.Values.Append(spreadsheetID, spreadsheetRange, &sheets.ValueRange{
-		MajorDimension: "ROWS",
-		Values:         values,
-	}).ValueInputOption("USER_ENTERED").InsertDataOption("INSERT_ROWS").Do()
+	err = u.Put(ctx, items)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("error", err)
+		os.Exit(1)
 	}
+
+	fmt.Println("no error inserted rows", len(items))
 }

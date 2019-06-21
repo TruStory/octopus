@@ -18,7 +18,7 @@ import (
 
 func fetchMetrics(endpoint, date string) (*MetricsSummary, error) {
 	client := &http.Client{
-		Timeout: time.Second * 30,
+		Timeout: time.Minute * 5,
 	}
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s?date=%s", endpoint, date), nil)
 	if err != nil {

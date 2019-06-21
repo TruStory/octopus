@@ -1,10 +1,12 @@
 module github.com/TruStory/octopus
 
 require (
+	cloud.google.com/go v0.38.0
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
 	github.com/TruStory/truchain v0.1.18-0.20190528001319-f956205a17e7
+	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32
@@ -50,9 +52,11 @@ require (
 	github.com/tendermint/tendermint v0.31.4
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
+	go.opencensus.io v0.22.0 // indirect
 	golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
-	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4
-	google.golang.org/genproto v0.0.0-20180831171423-11092d34479b // indirect
+	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
+	google.golang.org/api v0.6.0 // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )
 

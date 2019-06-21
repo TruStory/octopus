@@ -21,6 +21,8 @@ import (
 	"github.com/TruStory/truchain/x/backing"
 	"github.com/TruStory/truchain/x/category"
 	"github.com/TruStory/truchain/x/challenge"
+	"github.com/TruStory/truchain/x/claim"
+	"github.com/TruStory/truchain/x/community"
 	"github.com/TruStory/truchain/x/params"
 	"github.com/TruStory/truchain/x/story"
 	trubank "github.com/TruStory/truchain/x/trubank"
@@ -531,31 +533,31 @@ func (ta *TruAPI) RegisterResolvers() {
 	})
 
 	ta.GraphQLClient.RegisterObjectResolver("EarnedCoin", EarnedCoin{}, map[string]interface{}{
-		"community": func(ctx context.Context, q EarnedCoin) *Community {
-			return ta.getCommunityByID(ctx, queryByCommunityID{ID: q.CommunityID})
+		"community": func(ctx context.Context, q EarnedCoin) *community.Community {
+			return ta.getCommunityByID(ctx, queryByID{ID: q.CommunityID})
 		},
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("communities", ta.communitiesResolver)
 	ta.GraphQLClient.RegisterQueryResolver("community", ta.communityResolver)
-	ta.GraphQLClient.RegisterObjectResolver("Community", Community{}, map[string]interface{}{
-		"id":        func(_ context.Context, q Community) uint64 { return q.ID },
+	ta.GraphQLClient.RegisterObjectResolver("Community", community.Community{}, map[string]interface{}{
+		"id":        func(_ context.Context, q community.Community) uint64 { return q.ID },
 		"iconImage": ta.communityIconImageResolver,
-		"heroImage": func(_ context.Context, q Community) string {
+		"heroImage": func(_ context.Context, q community.Community) string {
 			return joinPath(ta.APIContext.Config.App.S3AssetsURL, "communities/default_hero.png")
 		},
 	})
 
 	ta.GraphQLClient.RegisterPaginatedQueryResolverWithFilter("claims", ta.claimsResolver, map[string]interface{}{
-		"body": func(_ context.Context, q Claim) string { return q.Body },
+		"body": func(_ context.Context, q claim.Claim) string { return q.Body },
 	})
-	ta.GraphQLClient.RegisterPaginatedObjectResolver("claims", "iD", Claim{}, map[string]interface{}{
-		"id": func(_ context.Context, q Claim) uint64 { return q.ID },
-		"community": func(ctx context.Context, q Claim) *Community {
-			return ta.getCommunityByID(ctx, queryByCommunityID{ID: q.CommunityID})
+	ta.GraphQLClient.RegisterPaginatedObjectResolver("claims", "iD", claim.Claim{}, map[string]interface{}{
+		"id": func(_ context.Context, q claim.Claim) uint64 { return q.ID },
+		"community": func(ctx context.Context, q claim.Claim) *community.Community {
+			return ta.getCommunityByID(ctx, queryByID{ID: q.CommunityID})
 		},
-		"source": func(ctx context.Context, q Claim) string { return q.Source.String() },
-		"sourceImage": func(ctx context.Context, q Claim) string {
+		"source": func(ctx context.Context, q claim.Claim) string { return q.Source.String() },
+		"sourceImage": func(ctx context.Context, q claim.Claim) string {
 			onImage := og.OgImage{}
 			err := og.GetPageDataFromUrl(q.Source.String(), &onImage)
 			if err != nil || onImage.Url == "" {
@@ -564,19 +566,19 @@ func (ta *TruAPI) RegisterResolvers() {
 			}
 			return onImage.Url
 		},
-		"argumentCount": func(ctx context.Context, q Claim) int {
+		"argumentCount": func(ctx context.Context, q claim.Claim) int {
 			return len(ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID}))
 		},
 		"topArgument": ta.topArgumentResolver,
-		"arguments": func(ctx context.Context, q Claim, a queryClaimArgumentParams) []Argument {
+		"arguments": func(ctx context.Context, q claim.Claim, a queryClaimArgumentParams) []Argument {
 			return ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID, Address: a.Address, Filter: a.Filter})
 		},
 		"participants":      ta.claimParticipantsResolver,
-		"participantsCount": func(ctx context.Context, q Claim) int { return len(ta.claimParticipantsResolver(ctx, q)) },
-		"comments": func(ctx context.Context, q Claim) []ClaimComment {
+		"participantsCount": func(ctx context.Context, q claim.Claim) int { return len(ta.claimParticipantsResolver(ctx, q)) },
+		"comments": func(ctx context.Context, q claim.Claim) []ClaimComment {
 			return ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},
-		"creator": func(ctx context.Context, q Claim) AppAccount {
+		"creator": func(ctx context.Context, q claim.Claim) AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
 	})

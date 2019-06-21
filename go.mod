@@ -5,24 +5,22 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
-	github.com/TruStory/truchain v0.1.18-0.20190528001319-f956205a17e7
+	github.com/TruStory/truchain v0.1.26-0.20190621182342-9b1aabb08cd0
 	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32
-	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
 	github.com/corpix/uarand v0.1.0 // indirect
-	github.com/cosmos/cosmos-sdk v0.34.4
+	github.com/cosmos/cosmos-sdk v0.28.2-0.20190601143109-dcdabc7e6e20
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d // indirect
-	github.com/dghubble/go-twitter v0.0.0-20190305084156-0022a70e9bee
+	github.com/dghubble/go-twitter v0.0.0-20190512073027-53f972dc4b06
 	github.com/dghubble/gologin v2.1.0+incompatible
 	github.com/dghubble/oauth1 v0.5.0
-	github.com/dghubble/sling v1.2.0 // indirect
 	github.com/gernest/mention v2.0.0+incompatible
 	github.com/go-pg/migrations v6.7.3+incompatible
 	github.com/go-pg/pg v8.0.3+incompatible
 	github.com/gogo/protobuf v1.2.1 // indirect
-	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/golang/mock v1.3.1-0.20190508161146-9fa652df1129 // indirect
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/securecookie v1.1.1
@@ -37,7 +35,6 @@ require (
 	github.com/machinebox/graphql v0.2.3-0.20181106130121-3a9253180225
 	github.com/matryer/is v1.2.0 // indirect
 	github.com/oklog/ulid v1.3.1
-	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
 	github.com/samsarahq/go v0.0.0-20190126203740-720caea591c9 // indirect
 	github.com/samsarahq/thunder v0.5.0
@@ -47,14 +44,13 @@ require (
 	github.com/spf13/viper v1.0.3
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.0 // indirect
-	github.com/tendermint/go-amino v0.14.1
-	github.com/tendermint/iavl v0.12.2 // indirect
-	github.com/tendermint/tendermint v0.31.4
+	github.com/tendermint/go-amino v0.15.0
+	github.com/tendermint/tendermint v0.31.5
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	go.opencensus.io v0.22.0 // indirect
-	golang.org/x/crypto v0.0.0-20190313024323-a1f597ede03a
-	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
+	golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
+	golang.org/x/net v0.0.0-20190522155817-f3200d17e092
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	google.golang.org/api v0.6.0 // indirect
 	mellium.im/sasl v0.2.1 // indirect

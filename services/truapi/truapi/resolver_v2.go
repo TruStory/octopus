@@ -2,7 +2,6 @@ package truapi
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -13,9 +12,9 @@ import (
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/argument"
 	"github.com/TruStory/truchain/x/backing"
-	"github.com/TruStory/truchain/x/category"
 	"github.com/TruStory/truchain/x/challenge"
-	"github.com/TruStory/truchain/x/story"
+	"github.com/TruStory/truchain/x/claim"
+	"github.com/TruStory/truchain/x/community"
 	"github.com/TruStory/truchain/x/users"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	amino "github.com/tendermint/go-amino"
@@ -31,8 +30,12 @@ const (
 	ArgumentAgreed
 )
 
+type queryByID struct {
+	ID uint64 `json:"id"`
+}
+
 type queryByCommunityID struct {
-	ID uint64 `graphql:"id"`
+	CommunityID uint64 `json:"community_id"`
 }
 
 type queryByCommunitySlug struct {
@@ -69,7 +72,7 @@ type argumentMeta struct {
 
 // claimMetricsBest represents all-time claim metrics
 type claimMetricsBest struct {
-	Claim                 Claim
+	Claim                 claim.Claim
 	TotalAmountStaked     sdk.Int
 	TotalStakers          uint64
 	TotalComments         int
@@ -78,7 +81,7 @@ type claimMetricsBest struct {
 
 // claimMetricsTrending represents claim metrics within last 24 hours
 type claimMetricsTrending struct {
-	Claim          Claim
+	Claim          claim.Claim
 	TotalArguments int64
 	TotalComments  int
 	TotalStakes    int64
@@ -86,30 +89,6 @@ type claimMetricsTrending struct {
 
 // SummaryLength is amount of characters allowed when summarizing an argument
 const SummaryLength = 140
-
-func convertCategoryToCommunity(category category.Category) Community {
-	return Community{
-		ID:          uint64(category.ID),
-		Name:        category.Title,
-		Slug:        category.Slug,
-		Description: category.Description,
-	}
-}
-
-func (ta *TruAPI) convertStoryToClaim(ctx context.Context, story story.Story) Claim {
-	totalStakers := len(ta.claimStakersResolver(ctx, Claim{ID: uint64(story.ID)}))
-	return Claim{
-		ID:              uint64(story.ID),
-		CommunityID:     uint64(story.CategoryID),
-		Body:            story.Body,
-		Creator:         story.Creator,
-		Source:          story.Source,
-		TotalBacked:     ta.totalBackingStakeByStoryID(ctx, story.ID),
-		TotalChallenged: ta.totalChallengeStakeByStoryID(ctx, story.ID),
-		TotalStakers:    uint64(totalStakers),
-		CreatedTime:     story.Timestamp.CreatedTime,
-	}
-}
 
 func convertStoryArgumentToClaimArgument(storyArgument argument.Argument, argumentMeta argumentMeta) Argument {
 	bodyLength := len(storyArgument.Body)
@@ -228,34 +207,29 @@ func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) AppA
 	return appAccount
 }
 
-func (ta *TruAPI) communitiesResolver(ctx context.Context) []Community {
-	res, err := ta.RunQuery("categories/all", struct{}{})
+func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community {
+	res, err := ta.Query("community/all", struct{}{}, community.ModuleCodec)
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
-		return []Community{}
+		fmt.Println("Resolver err: ", err)
+		return []community.Community{}
 	}
 
-	cs := new([]category.Category)
-	err = json.Unmarshal(res, cs)
+	cs := new([]community.Community)
+	err = community.ModuleCodec.UnmarshalJSON(res, cs)
 	if err != nil {
-		return []Community{}
+		fmt.Println("Resolver err: ", err)
+		return []community.Community{}
 	}
 
 	// sort in alphabetical order
 	sort.Slice(*cs, func(i, j int) bool {
-		return (*cs)[j].Title > (*cs)[i].Title
+		return (*cs)[j].Name > (*cs)[i].Name
 	})
 
-	communities := make([]Community, 0)
-	for _, category := range *cs {
-		community := convertCategoryToCommunity(category)
-		communities = append(communities, community)
-	}
-
-	return communities
+	return *cs
 }
 
-func (ta *TruAPI) communityResolver(ctx context.Context, q queryByCommunitySlug) *Community {
+func (ta *TruAPI) communityResolver(ctx context.Context, q queryByCommunitySlug) *community.Community {
 	community, err := ta.getCommunityBySlug(ctx, q.CommunitySlug)
 	if err != nil {
 		return nil
@@ -263,44 +237,38 @@ func (ta *TruAPI) communityResolver(ctx context.Context, q queryByCommunitySlug)
 	return &community
 }
 
-func (ta *TruAPI) communityIconImageResolver(ctx context.Context, q Community) CommunityIconImage {
+func (ta *TruAPI) communityIconImageResolver(ctx context.Context, q community.Community) CommunityIconImage {
 	return CommunityIconImage{
 		Regular: joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_normal.png", q.Slug)),
 		Active:  joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_active.png", q.Slug)),
 	}
 }
 
-func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndFeedFilter) []Claim {
+func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndFeedFilter) []claim.Claim {
 	var res []byte
 	var err error
-	var community Community
+	var community community.Community
 	if q.CommunitySlug == "all" {
-		res, err = ta.RunQuery("stories/all", struct{}{})
+		res, err = ta.Query("claim/claims", struct{}{}, claim.ModuleCodec)
 	} else {
 		community, err = ta.getCommunityBySlug(ctx, q.CommunitySlug)
 		if err != nil {
-			return []Claim{}
+			return []claim.Claim{}
 		}
-		res, err = ta.RunQuery("stories/category", story.QueryCategoryStoriesParams{CategoryID: int64(community.ID)})
+		res, err = ta.Query("claim/community_claims", queryByCommunityID{CommunityID: community.ID}, claim.ModuleCodec)
 	}
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
-		return []Claim{}
+		fmt.Println("Resolver err: ", err)
+		return []claim.Claim{}
 	}
 
-	stories := new([]story.Story)
-	err = json.Unmarshal(res, stories)
+	claims := new([]claim.Claim)
+	err = claim.ModuleCodec.UnmarshalJSON(res, claims)
 	if err != nil {
 		panic(err)
 	}
 
-	claims := make([]Claim, 0)
-	for _, story := range *stories {
-		claim := ta.convertStoryToClaim(ctx, story)
-		claims = append(claims, claim)
-	}
-
-	unflaggedClaims, err := ta.filterFlaggedClaims(claims)
+	unflaggedClaims, err := ta.filterFlaggedClaims(*claims)
 	if err != nil {
 		fmt.Println("Resolver err: ", err)
 		panic(err)
@@ -311,24 +279,35 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndF
 	return filteredClaims
 }
 
-func (ta *TruAPI) claimResolver(ctx context.Context, q queryByClaimID) Claim {
-	story := ta.storyResolver(ctx, story.QueryStoryByIDParams{ID: int64(q.ID)})
-	return ta.convertStoryToClaim(ctx, story)
+func (ta *TruAPI) claimResolver(ctx context.Context, q queryByClaimID) claim.Claim {
+	res, err := ta.Query("claim/claim", claim.QueryClaimParams{ID: q.ID}, claim.ModuleCodec)
+	if err != nil {
+		fmt.Println("Resolver err: ", err)
+		return claim.Claim{}
+	}
+
+	var c claim.Claim
+	err = claim.ModuleCodec.UnmarshalJSON(res, &c)
+	if err != nil {
+		fmt.Println("Resolver err: ", err)
+		return claim.Claim{}
+	}
+
+	return c
 }
 
-func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunitySlug) *Claim {
+func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunitySlug) *claim.Claim {
 	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunitySlug(q.CommunitySlug)
 	if err != nil {
 		return nil
 	}
 
-	story := ta.storyResolver(ctx, story.QueryStoryByIDParams{ID: claimOfTheDayID})
-	claim := ta.convertStoryToClaim(ctx, story)
+	claim := ta.claimResolver(ctx, queryByClaimID{ID: uint64(claimOfTheDayID)})
 	return &claim
 }
 
-func (ta *TruAPI) filterFlaggedClaims(claims []Claim) ([]Claim, error) {
-	unflaggedClaims := make([]Claim, 0)
+func (ta *TruAPI) filterFlaggedClaims(claims []claim.Claim) ([]claim.Claim, error) {
+	unflaggedClaims := make([]claim.Claim, 0)
 	for _, claim := range claims {
 		claimFlags, err := ta.DBClient.FlaggedStoriesByStoryID(int64(claim.ID))
 		if err != nil {
@@ -347,38 +326,44 @@ func (ta *TruAPI) filterFlaggedClaims(claims []Claim) ([]Claim, error) {
 	return unflaggedClaims, nil
 }
 
-func (ta *TruAPI) getCommunityBySlug(ctx context.Context, slug string) (Community, error) {
+func (ta *TruAPI) getCommunityBySlug(ctx context.Context, slug string) (community.Community, error) {
 	// client pages require all claims to live under a community
 	// "all" is a community for the homepage which shows all the claims
 	if slug == "all" {
-		return Community{
+		return community.Community{
 			ID:   0,
 			Slug: "all",
 			Name: "All",
 		}, nil
 	}
-
-	cs := ta.allCategoriesResolver(ctx, struct{}{})
-
-	var cat category.Category
-	for _, category := range cs {
-		if category.Slug == slug {
-			cat = category
+	communities := ta.communitiesResolver(ctx)
+	var comm community.Community
+	for _, community := range communities {
+		if community.Slug == slug {
+			comm = community
 			break
 		}
 	}
-	if cat.ID == 0 {
-		return Community{}, errors.New("Category not found")
+	if comm.ID == 0 {
+		return community.Community{}, errors.New("Category not found")
 	}
 
-	community := convertCategoryToCommunity(cat)
-	return community, nil
+	return comm, nil
 }
 
-func (ta *TruAPI) getCommunityByID(ctx context.Context, q queryByCommunityID) *Community {
-	category := ta.categoryResolver(ctx, category.QueryCategoryByIDParams{ID: int64(q.ID)})
-	community := convertCategoryToCommunity(category)
-	return &community
+func (ta *TruAPI) getCommunityByID(ctx context.Context, q queryByID) *community.Community {
+	res, err := ta.Query("community/id", community.QueryCommunityParams{ID: q.ID}, community.ModuleCodec)
+	if err != nil {
+		fmt.Println("Resolver err: ", err)
+		return nil
+	}
+
+	c := new(community.Community)
+	err = community.ModuleCodec.UnmarshalJSON(res, c)
+	if err != nil {
+		return nil
+	}
+	return c
 }
 
 func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgumentParams) []Argument {
@@ -429,7 +414,7 @@ func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgume
 	return claimArguments
 }
 
-func (ta *TruAPI) topArgumentResolver(ctx context.Context, q Claim) *Argument {
+func (ta *TruAPI) topArgumentResolver(ctx context.Context, q claim.Claim) *Argument {
 	arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID})
 	if len(arguments) == 0 {
 		return nil
@@ -437,25 +422,7 @@ func (ta *TruAPI) topArgumentResolver(ctx context.Context, q Claim) *Argument {
 	return &arguments[0]
 }
 
-func (ta *TruAPI) totalBackingStakeByStoryID(ctx context.Context, ID int64) sdk.Coin {
-	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: ID})
-	amount := sdk.NewCoin(app.StakeDenom, sdk.ZeroInt())
-	for _, backing := range backings {
-		amount = amount.Add(backing.Amount())
-	}
-	return amount
-}
-
-func (ta *TruAPI) totalChallengeStakeByStoryID(ctx context.Context, ID int64) sdk.Coin {
-	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: ID})
-	amount := sdk.NewCoin(app.StakeDenom, sdk.ZeroInt())
-	for _, challenge := range challenges {
-		amount = amount.Add(challenge.Amount())
-	}
-	return amount
-}
-
-func (ta *TruAPI) claimStakersResolver(ctx context.Context, q Claim) []AppAccount {
+func (ta *TruAPI) claimStakersResolver(ctx context.Context, q claim.Claim) []AppAccount {
 	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: int64(q.ID)})
 	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: int64(q.ID)})
 	appAccounts := make([]AppAccount, 0)
@@ -468,7 +435,7 @@ func (ta *TruAPI) claimStakersResolver(ctx context.Context, q Claim) []AppAccoun
 	return appAccounts
 }
 
-func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q Claim) []AppAccount {
+func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q claim.Claim) []AppAccount {
 	participants := ta.claimStakersResolver(ctx, q)
 	comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 	for _, comment := range comments {
@@ -552,9 +519,9 @@ func (ta *TruAPI) stakesResolver(_ context.Context, q queryByArgumentID) []Stake
 	return []Stake{}
 }
 
-func (ta *TruAPI) appAccountClaimsCreatedResolver(ctx context.Context, q queryByAddress) []Claim {
+func (ta *TruAPI) appAccountClaimsCreatedResolver(ctx context.Context, q queryByAddress) []claim.Claim {
 	allClaims := ta.claimsResolver(ctx, queryByCommunitySlugAndFeedFilter{CommunitySlug: "all"})
-	claimsCreated := make([]Claim, 0)
+	claimsCreated := make([]claim.Claim, 0)
 	for _, claim := range allClaims {
 		if claim.Creator.String() == q.ID {
 			claimsCreated = append(claimsCreated, claim)
@@ -563,9 +530,9 @@ func (ta *TruAPI) appAccountClaimsCreatedResolver(ctx context.Context, q queryBy
 	return claimsCreated
 }
 
-func (ta *TruAPI) appAccountClaimsWithArgumentsResolver(ctx context.Context, q queryByAddress) []Claim {
+func (ta *TruAPI) appAccountClaimsWithArgumentsResolver(ctx context.Context, q queryByAddress) []claim.Claim {
 	allClaims := ta.claimsResolver(ctx, queryByCommunitySlugAndFeedFilter{CommunitySlug: "all"})
-	claimsWithArguments := make([]Claim, 0)
+	claimsWithArguments := make([]claim.Claim, 0)
 	for _, claim := range allClaims {
 		arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claim.ID, Address: &q.ID, Filter: ArgumentCreated})
 		if len(arguments) > 0 {
@@ -575,9 +542,9 @@ func (ta *TruAPI) appAccountClaimsWithArgumentsResolver(ctx context.Context, q q
 	return claimsWithArguments
 }
 
-func (ta *TruAPI) appAccountClaimsWithAgreesResolver(ctx context.Context, q queryByAddress) []Claim {
+func (ta *TruAPI) appAccountClaimsWithAgreesResolver(ctx context.Context, q queryByAddress) []claim.Claim {
 	allClaims := ta.claimsResolver(ctx, queryByCommunitySlugAndFeedFilter{CommunitySlug: "all"})
-	claimsWithAgrees := make([]Claim, 0)
+	claimsWithAgrees := make([]claim.Claim, 0)
 	for _, claim := range allClaims {
 		arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claim.ID, Address: &q.ID, Filter: ArgumentAgreed})
 		if len(arguments) > 0 {
@@ -602,10 +569,10 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 	}
 }
 
-func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []Claim, filter FeedFilter) []Claim {
+func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, filter FeedFilter) []claim.Claim {
 	if filter == Latest {
 		// Reverse chronological order, up to 1 week
-		latestClaims := make([]Claim, 0)
+		latestClaims := make([]claim.Claim, 0)
 		for _, claim := range claims {
 			if claim.CreatedTime.After(time.Now().AddDate(0, 0, -7)) {
 				latestClaims = append(latestClaims, claim)
@@ -664,7 +631,7 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []Claim, filter F
 			}
 			return false
 		})
-		bestClaims := make([]Claim, 0)
+		bestClaims := make([]claim.Claim, 0)
 		for _, metric := range metrics {
 			bestClaims = append(bestClaims, metric.Claim)
 		}
@@ -704,7 +671,7 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []Claim, filter F
 			}
 			return metrics[j].TotalStakes-metrics[i].TotalStakes > 0
 		})
-		trendingClaims := make([]Claim, 0)
+		trendingClaims := make([]claim.Claim, 0)
 		for _, metric := range metrics {
 			trendingClaims = append(trendingClaims, metric.Claim)
 		}

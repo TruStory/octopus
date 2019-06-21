@@ -13,6 +13,7 @@ import (
 	"github.com/TruStory/truchain/x/users"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/utils"
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
@@ -219,8 +220,23 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 }
 
 // RunQuery dispatches a query (path + params) to the Tendermint node
+// deprecated: use Amino encoded Query() instead
 func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
 	paramBytes, err := json.Marshal(params)
+	if err != nil {
+		return nil, err
+	}
+	res, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
+	if err != nil {
+		return res, err
+	}
+
+	return res, nil
+}
+
+// Query dispatches a query to the Tendermint node with Amino encoded params
+func (a *API) Query(path string, params interface{}, cdc *codec.Codec) ([]byte, error) {
+	paramBytes, err := cdc.MarshalJSON(params)
 	if err != nil {
 		return nil, err
 	}

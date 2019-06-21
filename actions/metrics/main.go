@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -103,33 +104,62 @@ func recreate(ctx context.Context, table *bigquery.Table) {
 		log.Fatal("error creating table", err)
 	}
 }
+
+func appendDaily(client *bigquery.Client, timestamp time.Time, sourceTable, destinationTable, dataset string) error {
+	ctx := context.Background()
+	yesterday := timestamp.Add(time.Duration(-1) * time.Hour * 24)
+	query := strings.ReplaceAll(appendDailyQuery, ":source_table:", fmt.Sprintf("%s.%s", dataset, sourceTable))
+	query = strings.Replace(query, ":end_date:", timestamp.Format("2006-01-02"), 1)
+	query = strings.Replace(query, ":start_date:", yesterday.Format("2006-01-02"), 1)
+
+	q := client.Query(query)
+	q.QueryConfig.Dst = client.Dataset(dataset).Table(destinationTable)
+	q.Location = "US"
+	q.WriteDisposition = bigquery.WriteAppend
+	fmt.Printf("Append daily results from %s to %s \n", sourceTable, destinationTable)
+	fmt.Printf("Query:\n%s\n", query)
+	job, err := q.Run(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = job.Wait(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	metricsEndpoint := mustEnv("METRICS_ENDPOINT")
 	metricsTable := mustEnv("METRICS_TABLE")
+	metricsDailyTable := mustEnv("METRICS_DAILY_TABLE")
 	metricsRecreateTable := getEnv("METRICS_RECREATE_TABLE", "false")
 	ctx := context.Background()
 	client, err := bigquery.NewClient(ctx, "metrics-240714")
 	if err != nil {
 		log.Fatal("error creating client", err)
 	}
-	table := client.Dataset("trustory_metrics").Table(metricsTable)
+	datasetID := "trustory_metrics"
+	table := client.Dataset(datasetID).Table(metricsTable)
 	if metricsRecreateTable == "true" {
 		recreate(ctx, table)
 	}
+
 	u := table.Inserter()
 	items := make([]*ChainMetric, 0)
 
+	// date
 	defaultDate := time.Now().Format("2006-01-02")
 	date := getEnv("METRICS_DATE", defaultDate)
-	fmt.Printf("Running metrics date %s table %s", date, metricsTable)
-	metricsSummary, err := fetchMetrics(metricsEndpoint, date)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	timestamp, err := time.Parse("2006-01-02", date)
 	if err != nil {
 		log.Fatalf("error parsing %s", err)
+	}
+
+	fmt.Printf("Running metrics date %s table %s\n", date, metricsTable)
+	metricsSummary, err := fetchMetrics(metricsEndpoint, date)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	for user, userMetrics := range metricsSummary.Users {
@@ -163,5 +193,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("no error inserted rows", len(items))
+	fmt.Println("no error, inserted rows", len(items))
+	err = appendDaily(client, timestamp, metricsTable, metricsDailyTable, datasetID)
+	if err != nil {
+		fmt.Println("error", err)
+		os.Exit(1)
+	}
 }

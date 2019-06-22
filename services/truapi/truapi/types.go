@@ -1,7 +1,6 @@
 package truapi
 
 import (
-	"net/url"
 	"time"
 
 	app "github.com/TruStory/truchain/types"
@@ -60,32 +59,10 @@ type BaseAccount struct {
 	Sequence      uint64
 }
 
-// Community will be imported from truchain in the future
-type Community struct {
-	ID               uint64
-	Name             string
-	Slug             string
-	Description      string
-	TotalEarnedStake sdk.Coin
-}
-
 // CommunityIconImage contains regular and active icon images
 type CommunityIconImage struct {
 	Regular string
 	Active  string
-}
-
-// Claim will be imported from truchain in the future
-type Claim struct {
-	ID              uint64
-	CommunityID     uint64
-	Body            string
-	Creator         sdk.AccAddress
-	Source          url.URL
-	TotalBacked     sdk.Coin
-	TotalChallenged sdk.Coin
-	TotalStakers    uint64
-	CreatedTime     time.Time
 }
 
 // Argument will be imported from truchain in the future

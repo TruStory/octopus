@@ -117,16 +117,18 @@ func convertStoryArgumentToClaimArgument(storyArgument argument.Argument, argume
 	return claimArgument
 }
 
-func convertCommentToClaimComment(comment db.Comment) ClaimComment {
-	return ClaimComment{
-		ID:         comment.ID,
-		ParentID:   comment.ParentID,
-		ArgumentID: comment.ArgumentID,
-		Body:       comment.Body,
-		Creator:    comment.Creator,
-		CreatedAt:  comment.CreatedAt,
-		UpdatedAt:  comment.UpdatedAt,
-		DeletedAt:  comment.DeletedAt,
+func convertCommentToClaimComment(comment db.Comment) db.ClaimComment {
+	return db.ClaimComment{
+		ID:       comment.ID,
+		ParentID: comment.ParentID,
+		ClaimID:  0,
+		Body:     comment.Body,
+		Creator:  comment.Creator,
+		Timestamps: db.Timestamps{
+			CreatedAt: comment.CreatedAt,
+			UpdatedAt: comment.UpdatedAt,
+			DeletedAt: comment.DeletedAt,
+		},
 	}
 }
 
@@ -500,7 +502,7 @@ func (ta *TruAPI) appAccountStakeResolver(ctx context.Context, q Argument) *Stak
 	return nil
 }
 
-func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []ClaimComment {
+func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []db.ClaimComment {
 	arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID})
 	comments := make([]db.Comment, 0)
 	for _, argument := range arguments {
@@ -508,10 +510,18 @@ func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) [
 		argComments := ta.commentsResolver(ctx, argument)
 		comments = append(comments, argComments...)
 	}
-	claimComments := make([]ClaimComment, 0)
+	claimComments := make([]db.ClaimComment, 0)
 	for _, comment := range comments {
 		claimComments = append(claimComments, convertCommentToClaimComment(comment))
 	}
+	ccs, err := ta.DBClient.ClaimCommentsByClaimID(int64(q.ID))
+	if err != nil {
+		panic(err)
+	}
+	for _, comment := range ccs {
+		claimComments = append(claimComments, comment)
+	}
+
 	return claimComments
 }
 

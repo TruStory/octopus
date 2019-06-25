@@ -18,6 +18,13 @@ func (ta *TruAPI) sendCommentNotification(n CommentNotificationRequest) {
 	ta.commentsNotificationsCh <- n
 }
 
+func (ta *TruAPI) sendClaimCommentNotification(n ClaimCommentNotificationRequest) {
+	if !ta.notificationsInitialized || ta.claimCommentsNotificationsCh == nil {
+		return
+	}
+	ta.claimCommentsNotificationsCh <- n
+}
+
 func (ta *TruAPI) runCommentNotificationSender(notifications <-chan CommentNotificationRequest, endpoint string) {
 	url := fmt.Sprintf("%s/%s", strings.TrimRight(strings.TrimSpace(endpoint), "/"), "sendCommentNotification")
 

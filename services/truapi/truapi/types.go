@@ -30,6 +30,17 @@ type CommentNotificationRequest struct {
 	Timestamp       time.Time `json:"timestamp"`
 }
 
+// ClaimCommentNotificationRequest is the payload sent to pushd for sending claim comment notifications.
+type ClaimCommentNotificationRequest struct {
+	// ID is the comment id.
+	ID              int64     `json:"id"`
+	ArgumentCreator string    `json:"argument_creator"`
+	ClaimID         int64     `json:"claimId"`
+	StoryID         int64     `json:"storyId"`
+	Creator         string    `json:"creator"`
+	Timestamp       time.Time `json:"timestamp"`
+}
+
 // V2 Truchain structs
 
 // AppAccount will be imported from truchain in the future
@@ -120,16 +131,4 @@ type Settings struct {
 	MaxCommentLength  int64    `json:"maxCommentLength"`
 	BlockIntervalTime int64    `json:"blockIntervalTime"`
 	DefaultStake      sdk.Coin `json:"defaultStake"`
-}
-
-// ClaimComment contains claim level comments
-type ClaimComment struct {
-	ID         int64
-	ParentID   int64
-	ArgumentID int64
-	Body       string
-	Creator    string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	DeletedAt  *time.Time
 }

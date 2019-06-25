@@ -50,9 +50,10 @@ type TruAPI struct {
 	DBClient      db.Datastore
 
 	// notifications
-	notificationsInitialized bool
-	commentsNotificationsCh  chan CommentNotificationRequest
-	httpClient               *http.Client
+	notificationsInitialized     bool
+	commentsNotificationsCh      chan CommentNotificationRequest
+	claimCommentsNotificationsCh chan ClaimCommentNotificationRequest
+	httpClient                   *http.Client
 }
 
 // NewTruAPI returns a `TruAPI` instance populated with the existing app and a new GraphQL client
@@ -116,6 +117,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/upload", ta.HandleUpload)
 	api.Handle("/flagStory", WithUser(apiCtx, WrapHandler(ta.HandleFlagStory)))
 	api.Handle("/comments", WithUser(apiCtx, WrapHandler(ta.HandleComment)))
+	api.Handle("/claim_comments", WithUser(apiCtx, WrapHandler(ta.HandleClaimComment)))
 	api.Handle("/invite", WithUser(apiCtx, WrapHandler(ta.HandleInvite)))
 	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
@@ -575,7 +577,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"participants":      ta.claimParticipantsResolver,
 		"participantsCount": func(ctx context.Context, q claim.Claim) int { return len(ta.claimParticipantsResolver(ctx, q)) },
-		"comments": func(ctx context.Context, q claim.Claim) []ClaimComment {
+		"comments": func(ctx context.Context, q claim.Claim) []db.ClaimComment {
 			return ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},
 		"creator": func(ctx context.Context, q claim.Claim) AppAccount {
@@ -601,13 +603,14 @@ func (ta *TruAPI) RegisterResolvers() {
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("ClaimComment", ClaimComment{}, map[string]interface{}{
-		"id":         func(_ context.Context, q ClaimComment) int64 { return q.ID },
-		"parentId":   func(_ context.Context, q ClaimComment) int64 { return q.ParentID },
-		"argumentId": func(_ context.Context, q ClaimComment) int64 { return q.ArgumentID },
-		"creator": func(ctx context.Context, q ClaimComment) AppAccount {
+	ta.GraphQLClient.RegisterObjectResolver("ClaimComment", db.ClaimComment{}, map[string]interface{}{
+		"id":       func(_ context.Context, q db.ClaimComment) int64 { return q.ID },
+		"parentId": func(_ context.Context, q db.ClaimComment) int64 { return q.ParentID },
+		"claimId":  func(_ context.Context, q db.ClaimComment) int64 { return q.ClaimID },
+		"creator": func(ctx context.Context, q db.ClaimComment) AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
 		},
+		"createdAt": func(_ context.Context, q db.ClaimComment) time.Time { return q.CreatedAt },
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("stakes", ta.stakesResolver)

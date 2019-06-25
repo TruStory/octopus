@@ -24,6 +24,7 @@ type Mutations interface {
 	MarkAllNotificationEventsAsReadByAddress(addr string) error
 	MarkAllNotificationEventsAsSeenByAddress(addr string) error
 	AddComment(comment *Comment) error
+	AddClaimComment(comment *ClaimComment) error
 	AddInvite(invite *Invite) error
 	ReactOnReactionable(addr string, reaction ReactionType, reactionable Reactionable) error
 	UnreactByAddressAndID(addr string, id int64) error
@@ -45,6 +46,7 @@ type Queries interface {
 	UnseenNotificationEventsCountByAddress(addr string) (*NotificationsCountResponse, error)
 	FlaggedStoriesByStoryID(storyID int64) ([]FlaggedStory, error)
 	CommentsByArgumentID(argumentID int64) ([]Comment, error)
+	ClaimCommentsByClaimID(claimID int64) ([]ClaimComment, error)
 	Invites() ([]Invite, error)
 	InvitesByAddress(addr string) ([]Invite, error)
 	ReactionsByReactionable(reactionable Reactionable) ([]Reaction, error)

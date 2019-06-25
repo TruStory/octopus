@@ -48,6 +48,8 @@ type UserMetricsFilter struct {
 }
 
 func (ta *TruAPI) allCategoriesResolver(ctx context.Context, q struct{}) []category.Category {
+	categoryBlacklist := []string{"sports", "tech", "entertainment"}
+
 	res, err := ta.RunQuery("categories/all", struct{}{})
 	if err != nil {
 		fmt.Println("Resolver err: ", res)
@@ -65,7 +67,15 @@ func (ta *TruAPI) allCategoriesResolver(ctx context.Context, q struct{}) []categ
 		return (*cs)[j].Title > (*cs)[i].Title
 	})
 
-	return *cs
+	// exclude blacklisted categories
+	filteredCategories := make([]category.Category, 0)
+	for _, c := range *cs {
+		if !contains(categoryBlacklist, c.Slug) {
+			filteredCategories = append(filteredCategories, c)
+		}
+	}
+
+	return filteredCategories
 }
 
 func (ta *TruAPI) storiesResolver(ctx context.Context, q QueryByCategoryIDAndFeedFilter) []story.Story {
@@ -495,4 +505,13 @@ func (ta *TruAPI) userMetricsResolver(ctx context.Context, q UserMetricsFilter) 
 		panic(err)
 	}
 	return response
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }

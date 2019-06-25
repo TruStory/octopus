@@ -21,7 +21,6 @@ github.com/Sereal/Sereal v0.0.0-20190203221631-e99c7e10fca4 h1:6Tu8RZRaWkHeTPk6T
 github.com/Sereal/Sereal v0.0.0-20190203221631-e99c7e10fca4/go.mod h1:D0JMgToj/WdxCgd30Kc1UcA9E+WdZoJqeVOuYW7iTBM=
 github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 h1:3trCIB5GsAOIY8NxlfMztCYIhVsW9V5sZ+brsecjaiI=
 github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56/go.mod h1:D0JMgToj/WdxCgd30Kc1UcA9E+WdZoJqeVOuYW7iTBM=
-github.com/TruStory/truchain v0.1.18-0.20190528001319-f956205a17e7 h1:cD7pnXJA29iglZeBQmVI+WgfLV5PqApjrXdatHThedg=
 github.com/TruStory/truchain v0.1.18-0.20190528001319-f956205a17e7/go.mod h1:viiDx7eXo/uSXehdIyHoHccA2yDlaKTj4N33ezmFfPM=
 github.com/TruStory/truchain v0.1.25 h1:TdTeds4ELVnHUQnZ6i//q2VwLUkwv2NMc6BiNOrnZow=
 github.com/TruStory/truchain v0.1.26-0.20190620235030-63c1945eec5f h1:psEnKVSwzgpKJ7n4oYnDOGCWXqsJOOSa/X3lgfTH78I=

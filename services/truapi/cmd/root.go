@@ -14,7 +14,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	sdkContext "github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tmlibs/cli"
@@ -79,7 +78,7 @@ func Execute() {
 		panic(err)
 	}
 
-	rootCmd.AddCommand(startCmd(codec), version.VersionCmd)
+	rootCmd.AddCommand(startCmd(codec))
 
 	err = rootCmd.Execute()
 	if err != nil {

@@ -1,7 +1,6 @@
 package truapi
 
 import (
-	"net/url"
 	"time"
 
 	app "github.com/TruStory/truchain/types"
@@ -48,7 +47,7 @@ type AppAccount struct {
 type EarnedCoin struct {
 	sdk.Coin
 
-	CommunityID int64
+	CommunityID uint64
 }
 
 // BaseAccount will be imported from truchain in the future
@@ -60,42 +59,20 @@ type BaseAccount struct {
 	Sequence      uint64
 }
 
-// Community will be imported from truchain in the future
-type Community struct {
-	ID               int64
-	Name             string
-	Slug             string
-	Description      string
-	TotalEarnedStake sdk.Coin
-}
-
 // CommunityIconImage contains regular and active icon images
 type CommunityIconImage struct {
 	Regular string
 	Active  string
 }
 
-// Claim will be imported from truchain in the future
-type Claim struct {
-	ID              int64
-	CommunityID     int64
-	Body            string
-	Creator         sdk.AccAddress
-	Source          url.URL
-	TotalBacked     sdk.Coin
-	TotalChallenged sdk.Coin
-	TotalStakers    int64
-	CreatedTime     time.Time
-}
-
 // Argument will be imported from truchain in the future
 type Argument struct {
 	Stake
 
-	ClaimID      int64
+	ClaimID      uint64
 	Summary      string
 	Body         string
-	UpvotedCount int64
+	UpvotedCount uint64
 	UpvotedStake sdk.Coin
 	SlashCount   int
 	IsUnhelpful  bool
@@ -104,8 +81,8 @@ type Argument struct {
 
 // Stake will be imported from truchain in the future
 type Stake struct {
-	ID          int64
-	ArgumentID  int64
+	ID          uint64
+	ArgumentID  uint64
 	Type        StakeType
 	Stake       sdk.Coin
 	Creator     sdk.AccAddress
@@ -122,6 +99,14 @@ const (
 	Challenge                  // 1
 	Upvote                     // 2
 )
+
+// Slash will be imported from truchain in the future
+type Slash struct {
+	ID          uint64
+	StakeID     uint64
+	Creator     sdk.AccAddress
+	CreatedTime time.Time
+}
 
 // Settings contains application specific settings
 type Settings struct {

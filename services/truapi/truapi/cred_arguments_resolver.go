@@ -22,7 +22,7 @@ func (ta *TruAPI) credArguments(
 
 	res, err := ta.RunQuery(path.Join(trubank.QueryPath, trubank.QueryLikeTransactionsByCreator), q)
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("credArgumentsResolver err: ", err)
 		return credArguments
 	}
 

@@ -210,14 +210,14 @@ func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) AppA
 func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community {
 	res, err := ta.Query("community/all", struct{}{}, community.ModuleCodec)
 	if err != nil {
-		fmt.Println("Resolver err: ", err)
+		fmt.Println("communitiesResolver err: ", err)
 		return []community.Community{}
 	}
 
 	cs := new([]community.Community)
 	err = community.ModuleCodec.UnmarshalJSON(res, cs)
 	if err != nil {
-		fmt.Println("Resolver err: ", err)
+		fmt.Println("community UnmarshalJSON err: ", err)
 		return []community.Community{}
 	}
 
@@ -258,7 +258,7 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndF
 		res, err = ta.Query("claim/community_claims", queryByCommunityID{CommunityID: community.ID}, claim.ModuleCodec)
 	}
 	if err != nil {
-		fmt.Println("Resolver err: ", err)
+		fmt.Println("claimsResolver err: ", err)
 		return []claim.Claim{}
 	}
 
@@ -270,7 +270,7 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndF
 
 	unflaggedClaims, err := ta.filterFlaggedClaims(*claims)
 	if err != nil {
-		fmt.Println("Resolver err: ", err)
+		fmt.Println("filterFlaggedClaims err: ", err)
 		panic(err)
 	}
 
@@ -282,14 +282,14 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndF
 func (ta *TruAPI) claimResolver(ctx context.Context, q queryByClaimID) claim.Claim {
 	res, err := ta.Query("claim/claim", claim.QueryClaimParams{ID: q.ID}, claim.ModuleCodec)
 	if err != nil {
-		fmt.Println("Resolver err: ", err)
+		fmt.Println("claimResolver err: ", err)
 		return claim.Claim{}
 	}
 
 	var c claim.Claim
 	err = claim.ModuleCodec.UnmarshalJSON(res, &c)
 	if err != nil {
-		fmt.Println("Resolver err: ", err)
+		fmt.Println("claim UnmarshalJSON err: ", err)
 		return claim.Claim{}
 	}
 
@@ -354,7 +354,7 @@ func (ta *TruAPI) getCommunityBySlug(ctx context.Context, slug string) (communit
 func (ta *TruAPI) getCommunityByID(ctx context.Context, q queryByID) *community.Community {
 	res, err := ta.Query("community/id", community.QueryCommunityParams{ID: q.ID}, community.ModuleCodec)
 	if err != nil {
-		fmt.Println("Resolver err: ", err)
+		fmt.Println("getCommunityByIDResolver err: ", err)
 		return nil
 	}
 

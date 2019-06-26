@@ -18,17 +18,10 @@ func (c *Client) CommentsByArgumentID(argumentID int64) ([]Comment, error) {
 	if err != nil {
 		return nil, err
 	}
-	transformedComments := make([]Comment, 0)
-	for _, comment := range comments {
-		transformedComment := comment
-		transformedBody, err := c.replaceAddressesWithProfileURLs(comment.Body)
-		if err != nil {
-			return transformedComments, err
-		}
-		transformedComment.Body = transformedBody
-		transformedComments = append(transformedComments, transformedComment)
+	transformedComments, subErr := c.replaceAddressesWithProfileURLsInComments(comments)
+	if subErr != nil {
+		return nil, err
 	}
-
 	return transformedComments, nil
 }
 
@@ -39,17 +32,10 @@ func (c *Client) CommentsByClaimID(claimID int64) ([]Comment, error) {
 	if err != nil {
 		return nil, err
 	}
-	transformedComments := make([]Comment, 0)
-	for _, comment := range comments {
-		transformedComment := comment
-		transformedBody, err := c.replaceAddressesWithProfileURLs(comment.Body)
-		if err != nil {
-			return transformedComments, err
-		}
-		transformedComment.Body = transformedBody
-		transformedComments = append(transformedComments, transformedComment)
+	transformedComments, subErr := c.replaceAddressesWithProfileURLsInComments(comments)
+	if subErr != nil {
+		return nil, err
 	}
-
 	return transformedComments, nil
 }
 
@@ -90,4 +76,18 @@ func (c *Client) CommentByID(id int64) (*Comment, error) {
 		return comment, err
 	}
 	return comment, nil
+}
+
+func (c *Client) replaceAddressesWithProfileURLsInComments(comments []Comment) ([]Comment, error) {
+	transformedComments := make([]Comment, 0)
+	for _, comment := range comments {
+		transformedComment := comment
+		transformedBody, err := c.replaceAddressesWithProfileURLs(comment.Body)
+		if err != nil {
+			return transformedComments, err
+		}
+		transformedComment.Body = transformedBody
+		transformedComments = append(transformedComments, transformedComment)
+	}
+	return transformedComments, nil
 }

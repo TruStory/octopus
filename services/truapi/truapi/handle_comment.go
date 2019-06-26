@@ -12,9 +12,9 @@ import (
 
 // AddCommentRequest represents the JSON request for adding a comment
 type AddCommentRequest struct {
-	ParentID   int64  `json:"parent_id,omitonempty"`
-	ClaimID    int64  `json:"claim_id,omitonempty"`
-	ArgumentID int64  `json:"argument_id,omitonempty"`
+	ParentID   int64  `json:"parent_id,omitempty"`
+	ClaimID    int64  `json:"claim_id,omitempty"`
+	ArgumentID int64  `json:"argument_id,omitempty"`
 	Body       string `json:"body"`
 }
 

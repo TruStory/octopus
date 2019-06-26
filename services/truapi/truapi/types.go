@@ -24,6 +24,7 @@ type CommentNotificationRequest struct {
 	// ID is the comment id.
 	ID              int64     `json:"id"`
 	ArgumentCreator string    `json:"argument_creator"`
+	ClaimID         int64     `json:"claimId"`
 	ArgumentID      int64     `json:"argumentId"`
 	StoryID         int64     `json:"storyId"`
 	Creator         string    `json:"creator"`

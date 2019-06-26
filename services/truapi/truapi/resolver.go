@@ -52,7 +52,7 @@ func (ta *TruAPI) allCategoriesResolver(ctx context.Context, q struct{}) []categ
 
 	res, err := ta.RunQuery("categories/all", struct{}{})
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("allCategoriesResolver err: ", err)
 		return []category.Category{}
 	}
 
@@ -87,7 +87,7 @@ func (ta *TruAPI) storiesResolver(ctx context.Context, q QueryByCategoryIDAndFee
 		res, err = ta.RunQuery("stories/category", story.QueryCategoryStoriesParams{CategoryID: q.CategoryID})
 	}
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("storiesResolver err: ", err)
 		return []story.Story{}
 	}
 
@@ -99,13 +99,13 @@ func (ta *TruAPI) storiesResolver(ctx context.Context, q QueryByCategoryIDAndFee
 
 	unflaggedStories, err := ta.filterFlaggedStories(stories)
 	if err != nil {
-		fmt.Println("Resolver err: ", err)
+		fmt.Println("filterFlaggedStories err: ", err)
 		panic(err)
 	}
 
 	filteredStories, err := ta.filterFeedStories(ctx, unflaggedStories, q.FeedFilter)
 	if err != nil {
-		fmt.Println("Resolver err: ", err)
+		fmt.Println("filterFeedStories err: ", err)
 		panic(err)
 	}
 
@@ -118,7 +118,7 @@ func (ta *TruAPI) argumentResolver(_ context.Context, q app.QueryArgumentByID) a
 		app.QueryByIDParams{ID: q.ID},
 	)
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("argumentResolver err: ", err)
 		return argument.Argument{}
 	}
 
@@ -145,7 +145,7 @@ func (ta *TruAPI) likesObjectResolver(_ context.Context, q app.QueryByIDParams) 
 	query := path.Join(argument.QueryPath, argument.QueryLikesByArgumentID)
 	res, err := ta.RunQuery(query, app.QueryByIDParams{ID: q.ID})
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("likesObjectResolver err: ", err)
 		return []argument.Like{}
 	}
 
@@ -162,7 +162,7 @@ func (ta *TruAPI) backingResolver(
 	_ context.Context, q app.QueryByIDParams) backing.Backing {
 	res, err := ta.RunQuery("backings/id", app.QueryByIDParams{ID: q.ID})
 	if err != nil {
-		fmt.Println("error getting backing", res)
+		fmt.Println("error getting backing", err)
 		return backing.Backing{}
 	}
 	backing := backing.Backing{}
@@ -177,7 +177,7 @@ func (ta *TruAPI) backingResolver(
 func (ta *TruAPI) backingsResolver(_ context.Context, q app.QueryByIDParams) []backing.Backing {
 	res, err := ta.RunQuery("backings/storyID", q)
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("backingsResolver err: ", err)
 		return []backing.Backing{}
 	}
 
@@ -193,7 +193,7 @@ func (ta *TruAPI) backingsResolver(_ context.Context, q app.QueryByIDParams) []b
 func (ta *TruAPI) backingPoolResolver(_ context.Context, q story.Story) sdk.Coin {
 	res, err := ta.RunQuery(path.Join(backing.QueryPath, backing.QueryBackingAmountByStoryID), app.QueryByIDParams{ID: q.ID})
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("backingPoolResolver err: ", err)
 		return sdk.Coin{}
 	}
 
@@ -209,7 +209,7 @@ func (ta *TruAPI) backingPoolResolver(_ context.Context, q story.Story) sdk.Coin
 func (ta *TruAPI) challengePoolResolver(_ context.Context, q story.Story) sdk.Coin {
 	res, err := ta.RunQuery(path.Join(challenge.QueryPath, challenge.QueryChallengeAmountByStoryID), app.QueryByIDParams{ID: q.ID})
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("challengePoolResolver err: ", err)
 		return sdk.Coin{}
 	}
 
@@ -225,7 +225,7 @@ func (ta *TruAPI) challengePoolResolver(_ context.Context, q story.Story) sdk.Co
 func (ta *TruAPI) categoryResolver(ctx context.Context, q category.QueryCategoryByIDParams) category.Category {
 	res, err := ta.RunQuery("categories/id", q)
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("categoryResolver err: ", err)
 		return category.Category{}
 	}
 
@@ -241,7 +241,7 @@ func (ta *TruAPI) categoryResolver(ctx context.Context, q category.QueryCategory
 func (ta *TruAPI) challengeResolver(_ context.Context, q app.QueryByIDParams) challenge.Challenge {
 	res, err := ta.RunQuery("challenges/id", q)
 	if err != nil {
-		fmt.Println("error getting challenge", res)
+		fmt.Println("error getting challenge", err)
 		return challenge.Challenge{}
 	}
 	challenge := challenge.Challenge{}
@@ -256,7 +256,7 @@ func (ta *TruAPI) challengeResolver(_ context.Context, q app.QueryByIDParams) ch
 func (ta *TruAPI) challengesResolver(_ context.Context, q app.QueryByIDParams) []challenge.Challenge {
 	res, err := ta.RunQuery(path.Join(challenge.QueryPath, challenge.QueryByStoryID), q)
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("challengesResolver err: ", err)
 		return []challenge.Challenge{}
 	}
 
@@ -272,7 +272,7 @@ func (ta *TruAPI) challengesResolver(_ context.Context, q app.QueryByIDParams) [
 func (ta *TruAPI) paramsResolver(_ context.Context) params.Params {
 	res, err := ta.RunQuery("params", nil)
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("paramsResolver err: ", err)
 		return params.Params{}
 	}
 
@@ -292,7 +292,7 @@ func (ta *TruAPI) storyCategoryResolver(ctx context.Context, q story.Story) cate
 func (ta *TruAPI) storyResolver(_ context.Context, q story.QueryStoryByIDParams) story.Story {
 	res, err := ta.RunQuery("stories/id", q)
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("storyResolver err: ", err)
 		return story.Story{}
 	}
 
@@ -322,7 +322,7 @@ func (ta *TruAPI) twitterProfileResolver(ctx context.Context, addr string) db.Tw
 func (ta *TruAPI) usersResolver(ctx context.Context, q users.QueryUsersByAddressesParams) []users.User {
 	res, err := ta.RunQuery("users/addresses", q)
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("usersResolver err: ", err)
 		return []users.User{}
 	}
 
@@ -338,7 +338,7 @@ func (ta *TruAPI) usersResolver(ctx context.Context, q users.QueryUsersByAddress
 func (ta *TruAPI) transactionsResolver(_ context.Context, q app.QueryByCreatorParams) []trubank.Transaction {
 	res, err := ta.RunQuery(path.Join(trubank.QueryPath, trubank.QueryTransactionsByCreator), q)
 	if err != nil {
-		fmt.Println("Resolver err: ", res)
+		fmt.Println("transactionsResolver err: ", err)
 		return []trubank.Transaction{}
 	}
 

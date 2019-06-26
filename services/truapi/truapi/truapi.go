@@ -575,7 +575,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"participants":      ta.claimParticipantsResolver,
 		"participantsCount": func(ctx context.Context, q claim.Claim) int { return len(ta.claimParticipantsResolver(ctx, q)) },
-		"comments": func(ctx context.Context, q claim.Claim) []ClaimComment {
+		"comments": func(ctx context.Context, q claim.Claim) []db.Comment {
 			return ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},
 		"creator": func(ctx context.Context, q claim.Claim) AppAccount {
@@ -601,14 +601,6 @@ func (ta *TruAPI) RegisterResolvers() {
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("ClaimComment", ClaimComment{}, map[string]interface{}{
-		"id":         func(_ context.Context, q ClaimComment) int64 { return q.ID },
-		"parentId":   func(_ context.Context, q ClaimComment) int64 { return q.ParentID },
-		"argumentId": func(_ context.Context, q ClaimComment) int64 { return q.ArgumentID },
-		"creator": func(ctx context.Context, q ClaimComment) AppAccount {
-			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
-		},
-	})
 
 	ta.GraphQLClient.RegisterQueryResolver("stakes", ta.stakesResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Stake", Stake{}, map[string]interface{}{

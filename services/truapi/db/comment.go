@@ -5,6 +5,7 @@ type Comment struct {
 	Timestamps
 	ID         int64  `json:"id"`
 	ParentID   int64  `json:"parent_id"`
+	ClaimID    int64  `json:"claim_id"`
 	ArgumentID int64  `json:"argument_id"`
 	Body       string `json:"body"`
 	Creator    string `json:"creator"`
@@ -14,6 +15,27 @@ type Comment struct {
 func (c *Client) CommentsByArgumentID(argumentID int64) ([]Comment, error) {
 	comments := make([]Comment, 0)
 	err := c.Model(&comments).Where("argument_id = ?", argumentID).Select()
+	if err != nil {
+		return nil, err
+	}
+	transformedComments := make([]Comment, 0)
+	for _, comment := range comments {
+		transformedComment := comment
+		transformedBody, err := c.replaceAddressesWithProfileURLs(comment.Body)
+		if err != nil {
+			return transformedComments, err
+		}
+		transformedComment.Body = transformedBody
+		transformedComments = append(transformedComments, transformedComment)
+	}
+
+	return transformedComments, nil
+}
+
+// CommentsByClaimID finds comments by claim id
+func (c *Client) CommentsByClaimID(claimID int64) ([]Comment, error) {
+	comments := make([]Comment, 0)
+	err := c.Model(&comments).Where("claim_id = ?", claimID).Select()
 	if err != nil {
 		return nil, err
 	}

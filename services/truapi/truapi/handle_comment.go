@@ -13,10 +13,9 @@ import (
 // AddCommentRequest represents the JSON request for adding a comment
 type AddCommentRequest struct {
 	ParentID   int64  `json:"parent_id,omitonempty"`
-	ArgumentID int64  `json:"argument_id"`
+	ClaimID    int64  `json:"claim_id,omitonempty"`
+	ArgumentID int64  `json:"argument_id,omitonempty"`
 	Body       string `json:"body"`
-	// Deprecated: Creator comes from cookie
-	Creator string `json:"creator"`
 }
 
 // HandleComment handles requests for comments
@@ -43,6 +42,7 @@ func (ta *TruAPI) handleCreateComment(r *http.Request) chttp.Response {
 
 	comment := &db.Comment{
 		ParentID:   request.ParentID,
+		ClaimID:    request.ClaimID,
 		ArgumentID: request.ArgumentID,
 		Body:       request.Body,
 		Creator:    user.Address,
@@ -57,6 +57,7 @@ func (ta *TruAPI) handleCreateComment(r *http.Request) chttp.Response {
 	}
 	ta.sendCommentNotification(CommentNotificationRequest{
 		ID:         comment.ID,
+		ClaimID:    comment.ClaimID,
 		ArgumentID: comment.ArgumentID,
 		Creator:    comment.Creator,
 		Timestamp:  time.Now(),

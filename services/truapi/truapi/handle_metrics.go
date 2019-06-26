@@ -217,7 +217,17 @@ func (ta *TruAPI) HandleMetrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	categories := ta.allCategoriesResolver(r.Context(), struct{}{})
+	res, err = ta.RunQuery("categories/all", struct{}{})
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	categories := make([]category.Category, 0)
+	err = json.Unmarshal(res, &categories)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if len(categories) == 0 {
 		render.Error(w, r, "no categories found", http.StatusInternalServerError)
 		return

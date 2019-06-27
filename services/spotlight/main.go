@@ -35,7 +35,7 @@ func (s *service) run() {
 }
 
 func main() {
-	templatePath := getEnv("SPOTLIGHT_HTML_TEMPLATE", "story.html")
+	templatePath := getEnv("SPOTLIGHT_HTML_TEMPLATE", "claim.html")
 	spotlight := &service{
 		port:          getEnv("PORT", "54448"),
 		storagePath:   getEnv("SPOTLIGHT_STORAGE_PATH", "./storage"),
@@ -62,6 +62,7 @@ func renderSpotlightHandler(s *service) http.Handler {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
+
 		err = s.storyTemplate.Execute(w, data)
 		if err != nil {
 			log.Println(err)

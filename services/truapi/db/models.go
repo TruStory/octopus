@@ -45,6 +45,7 @@ type Queries interface {
 	UnseenNotificationEventsCountByAddress(addr string) (*NotificationsCountResponse, error)
 	FlaggedStoriesByStoryID(storyID int64) ([]FlaggedStory, error)
 	CommentsByArgumentID(argumentID int64) ([]Comment, error)
+	CommentsByClaimID(claimID uint64) ([]Comment, error)
 	Invites() ([]Invite, error)
 	InvitesByAddress(addr string) ([]Invite, error)
 	ReactionsByReactionable(reactionable Reactionable) ([]Reaction, error)

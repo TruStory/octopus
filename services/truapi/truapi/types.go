@@ -24,6 +24,7 @@ type CommentNotificationRequest struct {
 	// ID is the comment id.
 	ID              int64     `json:"id"`
 	ArgumentCreator string    `json:"argument_creator"`
+	ClaimID         int64     `json:"claimId"`
 	ArgumentID      int64     `json:"argumentId"`
 	StoryID         int64     `json:"storyId"`
 	Creator         string    `json:"creator"`
@@ -120,16 +121,4 @@ type Settings struct {
 	MaxCommentLength  int64    `json:"maxCommentLength"`
 	BlockIntervalTime int64    `json:"blockIntervalTime"`
 	DefaultStake      sdk.Coin `json:"defaultStake"`
-}
-
-// ClaimComment contains claim level comments
-type ClaimComment struct {
-	ID         int64
-	ParentID   int64
-	ArgumentID int64
-	Body       string
-	Creator    string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	DeletedAt  *time.Time
 }

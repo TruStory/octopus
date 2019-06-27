@@ -35,7 +35,7 @@ func (s *service) run() {
 }
 
 func main() {
-	templatePath := getEnv("SPOTLIGHT_HTML_TEMPLATE", "claim.html")
+	templatePath := getEnv("SPOTLIGHT_HTML_TEMPLATE", "story.html")
 	spotlight := &service{
 		port:          getEnv("PORT", "54448"),
 		storagePath:   getEnv("SPOTLIGHT_STORAGE_PATH", "./storage"),

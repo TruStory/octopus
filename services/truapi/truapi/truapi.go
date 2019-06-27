@@ -122,6 +122,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/metrics", ta.HandleMetrics)
 	api.Handle("/track/", WithUser(apiCtx, http.HandlerFunc(ta.HandleTrackEvent)))
 	api.Handle("/claim_of_the_day", WithUser(apiCtx, WrapHandler(ta.HandleClaimOfTheDayID)))
+	api.HandleFunc("/spotlight", ta.HandleSpotlight)
 
 	if apiCtx.Config.App.MockRegistration {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))

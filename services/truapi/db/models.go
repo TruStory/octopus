@@ -29,6 +29,7 @@ type Mutations interface {
 	UnreactByAddressAndID(addr string, id int64) error
 	AddClaimOfTheDayID(claimOfTheDayID *ClaimOfTheDayID) error
 	DeleteClaimOfTheDayID(communitySlug string) error
+	AddClaimSourceURLPreview(sourceURLPreview *ClaimSourceURLPreview) error
 }
 
 // Queries read from the database
@@ -58,6 +59,7 @@ type Queries interface {
 	AreUserMetricsEmpty() (bool, error)
 	OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error)
 	ClaimOfTheDayIDByCommunitySlug(communitySlug string) (int64, error)
+	ClaimSourceURLPreview(claimID uint64) (string, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

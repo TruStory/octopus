@@ -17,6 +17,7 @@ import (
 	"github.com/TruStory/truchain/x/community"
 	"github.com/TruStory/truchain/x/users"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/julianshen/og"
 	amino "github.com/tendermint/go-amino"
 )
 
@@ -532,6 +533,40 @@ func (ta *TruAPI) appAccountClaimsWithAgreesResolver(ctx context.Context, q quer
 		}
 	}
 	return claimsWithAgrees
+}
+
+func (ta *TruAPI) sourceURLPreviewResolver(ctx context.Context, q claim.Claim) string {
+	sourceURLPreview, err := ta.DBClient.ClaimSourceURLPreview(q.ID)
+	if err == nil && sourceURLPreview != "" {
+		// found sourceURLPreview in the database, exit early
+		return sourceURLPreview
+	}
+
+	fmt.Println("Source url preview not in DB: ", q.Source)
+	n := (q.ID % 5) // random but deterministic placeholder image 0-4
+	defaultPreview := joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("sourceUrlPreview_default_%d.png", n))
+
+	if q.Source.String() == "" {
+		sourceURLPreview = defaultPreview
+	} else {
+		// fetch open graph image from source url website
+		ogImage := og.OgImage{}
+		err = og.GetPageDataFromUrl(q.Source.String(), &ogImage)
+
+		if err != nil || ogImage.Url == "" {
+			// no open graph image exists
+			sourceURLPreview = defaultPreview
+		} else {
+			sourceURLPreview = ogImage.Url
+		}
+	}
+
+	_ = ta.DBClient.AddClaimSourceURLPreview(&db.ClaimSourceURLPreview{
+		ClaimID:          q.ID,
+		SourceURLPreview: sourceURLPreview,
+	})
+
+	return sourceURLPreview
 }
 
 func (ta *TruAPI) settingsResolver(_ context.Context) Settings {

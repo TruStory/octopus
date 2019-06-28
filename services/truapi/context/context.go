@@ -64,11 +64,12 @@ type TwitterConfig struct {
 
 // WebConfig is the config for the web app
 type WebConfig struct {
-	Directory       string
-	DirectoryV2     string `mapstructure:"directory-v2"`
-	AuthLoginRedir  string `mapstructure:"auth-login-redir"`
-	AuthLogoutRedir string `mapstructure:"auth-logout-redir"`
-	AuthDeniedRedir string `mapstructure:"auth-denied-redir"`
+	Directory               string
+	DirectoryV2             string `mapstructure:"directory-v2"`
+	AuthLoginRedir          string `mapstructure:"auth-login-redir"`
+	AuthLogoutRedir         string `mapstructure:"auth-logout-redir"`
+	AuthDeniedRedir         string `mapstructure:"auth-denied-redir"`
+	AuthNotWhitelistedRedir string `mapstructure:"auth-not-whitelisted-redir"`
 }
 
 // Config contains all the config variables for the API server

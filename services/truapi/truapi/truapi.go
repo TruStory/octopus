@@ -32,7 +32,6 @@ import (
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
 	"github.com/gorilla/handlers"
-	"github.com/julianshen/og"
 )
 
 // ContextKey represents a string key for request context.
@@ -556,16 +555,8 @@ func (ta *TruAPI) RegisterResolvers() {
 		"community": func(ctx context.Context, q claim.Claim) *community.Community {
 			return ta.getCommunityByID(ctx, queryByID{ID: q.CommunityID})
 		},
-		"source": func(ctx context.Context, q claim.Claim) string { return q.Source.String() },
-		"sourceImage": func(ctx context.Context, q claim.Claim) string {
-			onImage := og.OgImage{}
-			err := og.GetPageDataFromUrl(q.Source.String(), &onImage)
-			if err != nil || onImage.Url == "" {
-				n := (q.ID % 5) // random but deterministic placeholder image 0-4
-				return joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("sourceImage_default_%d.png", n))
-			}
-			return onImage.Url
-		},
+		"source":           func(ctx context.Context, q claim.Claim) string { return q.Source.String() },
+		"sourceUrlPreview": ta.sourceURLPreviewResolver,
 		"argumentCount": func(ctx context.Context, q claim.Claim) int {
 			return len(ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID}))
 		},
@@ -575,12 +566,15 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"participants":      ta.claimParticipantsResolver,
 		"participantsCount": func(ctx context.Context, q claim.Claim) int { return len(ta.claimParticipantsResolver(ctx, q)) },
-		"comments": func(ctx context.Context, q claim.Claim) []ClaimComment {
+		"comments": func(ctx context.Context, q claim.Claim) []db.Comment {
 			return ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 		},
 		"creator": func(ctx context.Context, q claim.Claim) AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
+
+		// deprecated
+		"sourceImage": ta.sourceURLPreviewResolver,
 	})
 	ta.GraphQLClient.RegisterQueryResolver("claim", ta.claimResolver)
 	ta.GraphQLClient.RegisterQueryResolver("claimOfTheDay", ta.claimOfTheDayResolver)
@@ -601,14 +595,6 @@ func (ta *TruAPI) RegisterResolvers() {
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("ClaimComment", ClaimComment{}, map[string]interface{}{
-		"id":         func(_ context.Context, q ClaimComment) int64 { return q.ID },
-		"parentId":   func(_ context.Context, q ClaimComment) int64 { return q.ParentID },
-		"argumentId": func(_ context.Context, q ClaimComment) int64 { return q.ArgumentID },
-		"creator": func(ctx context.Context, q ClaimComment) AppAccount {
-			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
-		},
-	})
 
 	ta.GraphQLClient.RegisterQueryResolver("stakes", ta.stakesResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Stake", Stake{}, map[string]interface{}{

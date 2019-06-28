@@ -10,13 +10,13 @@ import (
 
 // AddClaimOfTheDayIDRequest represents the JSON request for adding a claim of the day id
 type AddClaimOfTheDayIDRequest struct {
-	CommunitySlug string `json:"community_slug"`
-	ClaimID       int64  `json:"claim_id"`
+	CommunityID string `json:"community_id"`
+	ClaimID     int64  `json:"claim_id"`
 }
 
 // DeleteClaimOfTheDayIDRequest represents the JSON request for deleting a claim of the day id
 type DeleteClaimOfTheDayIDRequest struct {
-	CommunitySlug string `json:"community_slug"`
+	CommunityID string `json:"community_id"`
 }
 
 // HandleClaimOfTheDayID handles requests for claim of the day
@@ -44,8 +44,8 @@ func (ta *TruAPI) addClaimOfTheDayID(r *http.Request) chttp.Response {
 	}
 
 	claimOfTheDayID := &db.ClaimOfTheDayID{
-		CommunitySlug: request.CommunitySlug,
-		ClaimID:       request.ClaimID,
+		CommunityID: request.CommunityID,
+		ClaimID:     request.ClaimID,
 	}
 	err = ta.DBClient.AddClaimOfTheDayID(claimOfTheDayID)
 	if err != nil {
@@ -66,7 +66,7 @@ func (ta *TruAPI) deleteClaimOfTheDayID(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
 	}
 
-	err = ta.DBClient.DeleteClaimOfTheDayID(request.CommunitySlug)
+	err = ta.DBClient.DeleteClaimOfTheDayID(request.CommunityID)
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
 	}

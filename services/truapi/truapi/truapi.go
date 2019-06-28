@@ -32,7 +32,6 @@ import (
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
 	"github.com/gorilla/handlers"
-	"github.com/julianshen/og"
 )
 
 // ContextKey represents a string key for request context.
@@ -535,14 +534,14 @@ func (ta *TruAPI) RegisterResolvers() {
 
 	ta.GraphQLClient.RegisterObjectResolver("EarnedCoin", EarnedCoin{}, map[string]interface{}{
 		"community": func(ctx context.Context, q EarnedCoin) *community.Community {
-			return ta.getCommunityByID(ctx, queryByID{ID: q.CommunityID})
+			return ta.communityResolver(ctx, queryByCommunityID{CommunityID: q.CommunityID})
 		},
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("communities", ta.communitiesResolver)
 	ta.GraphQLClient.RegisterQueryResolver("community", ta.communityResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Community", community.Community{}, map[string]interface{}{
-		"id":        func(_ context.Context, q community.Community) uint64 { return q.ID },
+		"id":        func(_ context.Context, q community.Community) string { return q.ID },
 		"iconImage": ta.communityIconImageResolver,
 		"heroImage": func(_ context.Context, q community.Community) string {
 			return joinPath(ta.APIContext.Config.App.S3AssetsURL, "communities/default_hero.png")
@@ -555,18 +554,10 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterPaginatedObjectResolver("claims", "iD", claim.Claim{}, map[string]interface{}{
 		"id": func(_ context.Context, q claim.Claim) uint64 { return q.ID },
 		"community": func(ctx context.Context, q claim.Claim) *community.Community {
-			return ta.getCommunityByID(ctx, queryByID{ID: q.CommunityID})
+			return ta.communityResolver(ctx, queryByCommunityID{CommunityID: q.CommunityID})
 		},
-		"source": func(ctx context.Context, q claim.Claim) string { return q.Source.String() },
-		"sourceImage": func(ctx context.Context, q claim.Claim) string {
-			onImage := og.OgImage{}
-			err := og.GetPageDataFromUrl(q.Source.String(), &onImage)
-			if err != nil || onImage.Url == "" {
-				n := (q.ID % 5) // random but deterministic placeholder image 0-4
-				return joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("sourceImage_default_%d.png", n))
-			}
-			return onImage.Url
-		},
+		"source":           func(ctx context.Context, q claim.Claim) string { return q.Source.String() },
+		"sourceUrlPreview": ta.sourceURLPreviewResolver,
 		"argumentCount": func(ctx context.Context, q claim.Claim) int {
 			return len(ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID}))
 		},
@@ -582,6 +573,9 @@ func (ta *TruAPI) RegisterResolvers() {
 		"creator": func(ctx context.Context, q claim.Claim) AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
+
+		// deprecated
+		"sourceImage": ta.sourceURLPreviewResolver,
 	})
 	ta.GraphQLClient.RegisterQueryResolver("claim", ta.claimResolver)
 	ta.GraphQLClient.RegisterQueryResolver("claimOfTheDay", ta.claimOfTheDayResolver)

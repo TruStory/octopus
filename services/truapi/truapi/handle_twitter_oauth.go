@@ -24,6 +24,17 @@ func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 			return
 		}
 
+		isWhitelisted, err := isWhitelistedUser(twitterUser)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if !isWhitelisted {
+			http.Redirect(w, req, ta.APIContext.Config.Web.AuthNotWhitelistedRedir, http.StatusFound)
+			return
+		}
+
 		addr, err := CalibrateUser(ta, twitterUser)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

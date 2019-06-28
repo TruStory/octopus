@@ -20,36 +20,37 @@ import (
 )
 
 const (
-	flagAppName              = "app.name"
-	flagAppURL               = "app.url"
-	flagAppMockRegistration  = "app.mock.registration"
-	flagAppUploadURL         = "app.upload.url"
-	flagAppS3AssetsURL       = "app.s3.assets.url"
-	flagCookieHashKey        = "cookie.hash.key"
-	flagCookieEncryptKey     = "cookie.encrypt.key"
-	flagDatabaseHost         = "database.hostname"
-	flagDatabasePort         = "database.port"
-	flagDatabaseUser         = "database.username"
-	flagDatabasePass         = "database.password"
-	flagDatabaseName         = "database.db"
-	flagDatabasePool         = "database.pool"
-	flagHostName             = "host.name"
-	flagHostPort             = "host.port"
-	flagHostHTTPSEnabled     = "host.https.enabled"
-	flagHostHTTPSCacheDir    = "host.https.cache.dir"
-	flagPushEndpointURL      = "push.endpoint.url"
-	flagWebDirectory         = "web.directory"
-	flagWebAuthLoginRedir    = "web.auth.login.redir"
-	flagWebAuthLogoutRedir   = "web.auth.logout.redir"
-	flagWebAuthDeniedRedir   = "web.auth.denied.redir"
-	flagTwitterAPIKey        = "twitter.api.key"
-	flagTwitterAPISecret     = "twitter.api.secret"
-	flagTwitterOAUTHCallback = "twitter.oauth.callback"
-	flagFlagLimit            = "flag.limit"
-	flagFlagAdmin            = "flag.admin"
-	flagRegistrarName        = "registrar.name"
-	flagRegistrarAddr        = "registrar.addr"
-	flagRegistrarPass        = "registrar.password"
+	flagAppName                    = "app.name"
+	flagAppURL                     = "app.url"
+	flagAppMockRegistration        = "app.mock.registration"
+	flagAppUploadURL               = "app.upload.url"
+	flagAppS3AssetsURL             = "app.s3.assets.url"
+	flagCookieHashKey              = "cookie.hash.key"
+	flagCookieEncryptKey           = "cookie.encrypt.key"
+	flagDatabaseHost               = "database.hostname"
+	flagDatabasePort               = "database.port"
+	flagDatabaseUser               = "database.username"
+	flagDatabasePass               = "database.password"
+	flagDatabaseName               = "database.db"
+	flagDatabasePool               = "database.pool"
+	flagHostName                   = "host.name"
+	flagHostPort                   = "host.port"
+	flagHostHTTPSEnabled           = "host.https.enabled"
+	flagHostHTTPSCacheDir          = "host.https.cache.dir"
+	flagPushEndpointURL            = "push.endpoint.url"
+	flagWebDirectory               = "web.directory"
+	flagWebAuthLoginRedir          = "web.auth.login.redir"
+	flagWebAuthLogoutRedir         = "web.auth.logout.redir"
+	flagWebAuthDeniedRedir         = "web.auth.denied.redir"
+	flagWebAuthNotWhitelistedRedir = "web.auth.not.whitelisted.redir"
+	flagTwitterAPIKey              = "twitter.api.key"
+	flagTwitterAPISecret           = "twitter.api.secret"
+	flagTwitterOAUTHCallback       = "twitter.oauth.callback"
+	flagFlagLimit                  = "flag.limit"
+	flagFlagAdmin                  = "flag.admin"
+	flagRegistrarName              = "registrar.name"
+	flagRegistrarAddr              = "registrar.addr"
+	flagRegistrarPass              = "registrar.password"
 )
 
 var (
@@ -282,6 +283,12 @@ func registerWebFlags(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().String(flagWebAuthDeniedRedir, "http://localhost:3000/auth-denied", "Web access denied redirect URL")
 	err = viper.BindPFlag(flagWebAuthDeniedRedir, cmd.Flags().Lookup(flagWebAuthDeniedRedir))
+	if err != nil {
+		panic(err)
+	}
+
+	cmd.Flags().String(flagWebAuthNotWhitelistedRedir, "http://localhost:3000/auth-not-whitelisted", "User not whitelisted redirect URL")
+	err = viper.BindPFlag(flagWebAuthNotWhitelistedRedir, cmd.Flags().Lookup(flagWebAuthNotWhitelistedRedir))
 	if err != nil {
 		panic(err)
 	}

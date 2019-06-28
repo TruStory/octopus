@@ -2,7 +2,6 @@ package truapi
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/TruStory/truchain/x/community"
 	"github.com/TruStory/truchain/x/users"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/julianshen/og"
 	amino "github.com/tendermint/go-amino"
 )
 
@@ -30,16 +30,8 @@ const (
 	ArgumentAgreed
 )
 
-type queryByID struct {
-	ID uint64 `json:"id"`
-}
-
 type queryByCommunityID struct {
-	CommunityID uint64 `json:"community_id"`
-}
-
-type queryByCommunitySlug struct {
-	CommunitySlug string `graphql:"communitySlug"`
+	CommunityID string `graphql:"communityId"`
 }
 
 type queryByClaimID struct {
@@ -60,9 +52,9 @@ type queryClaimArgumentParams struct {
 	Filter  ArgumentFilter `graphql:"filter,optional"`
 }
 
-type queryByCommunitySlugAndFeedFilter struct {
-	CommunitySlug string     `graphql:",optional"`
-	FeedFilter    FeedFilter `graphql:",optional"`
+type queryByCommunityIDAndFeedFilter struct {
+	CommunityID string     `graphql:"communityId,optional"`
+	FeedFilter  FeedFilter `graphql:"feedFilter,optional"`
 }
 
 type argumentMeta struct {
@@ -167,16 +159,14 @@ func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) AppA
 
 	trustake = append(trustake, sdk.NewCoin(app.StakeDenom, u.Coins.AmountOf(app.StakeDenom)))
 
-	communityID := int64(1)
 	for _, coin := range u.Coins {
 		if coin.Denom != app.StakeDenom {
 			earnedCoin := sdk.NewCoin(app.StakeDenom, coin.Amount)
 			earned := EarnedCoin{
 				Coin:        earnedCoin,
-				CommunityID: uint64(communityID),
+				CommunityID: coin.Denom,
 			}
 			earnedStake = append(earnedStake, earned)
-			communityID++
 		}
 	}
 
@@ -216,33 +206,35 @@ func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community
 	return *cs
 }
 
-func (ta *TruAPI) communityResolver(ctx context.Context, q queryByCommunitySlug) *community.Community {
-	community, err := ta.getCommunityBySlug(ctx, q.CommunitySlug)
+func (ta *TruAPI) communityResolver(ctx context.Context, q queryByCommunityID) *community.Community {
+	res, err := ta.Query("community/id", community.QueryCommunityParams{ID: q.CommunityID}, community.ModuleCodec)
+	if err != nil {
+		fmt.Println("getCommunityByIDResolver err: ", err)
+		return nil
+	}
+
+	c := new(community.Community)
+	err = community.ModuleCodec.UnmarshalJSON(res, c)
 	if err != nil {
 		return nil
 	}
-	return &community
+	return c
 }
 
 func (ta *TruAPI) communityIconImageResolver(ctx context.Context, q community.Community) CommunityIconImage {
 	return CommunityIconImage{
-		Regular: joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_normal.png", q.Slug)),
-		Active:  joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_active.png", q.Slug)),
+		Regular: joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_normal.png", q.ID)),
+		Active:  joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_active.png", q.ID)),
 	}
 }
 
-func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndFeedFilter) []claim.Claim {
+func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFeedFilter) []claim.Claim {
 	var res []byte
 	var err error
-	var community community.Community
-	if q.CommunitySlug == "all" {
+	if q.CommunityID == "all" {
 		res, err = ta.Query("claim/claims", struct{}{}, claim.ModuleCodec)
 	} else {
-		community, err = ta.getCommunityBySlug(ctx, q.CommunitySlug)
-		if err != nil {
-			return []claim.Claim{}
-		}
-		res, err = ta.Query("claim/community_claims", queryByCommunityID{CommunityID: community.ID}, claim.ModuleCodec)
+		res, err = ta.Query("claim/community_claims", queryByCommunityID{CommunityID: q.CommunityID}, claim.ModuleCodec)
 	}
 	if err != nil {
 		fmt.Println("claimsResolver err: ", err)
@@ -283,8 +275,8 @@ func (ta *TruAPI) claimResolver(ctx context.Context, q queryByClaimID) claim.Cla
 	return c
 }
 
-func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunitySlug) *claim.Claim {
-	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunitySlug(q.CommunitySlug)
+func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunityID) *claim.Claim {
+	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunityID(q.CommunityID)
 	if err != nil {
 		return nil
 	}
@@ -311,46 +303,6 @@ func (ta *TruAPI) filterFlaggedClaims(claims []claim.Claim) ([]claim.Claim, erro
 	}
 
 	return unflaggedClaims, nil
-}
-
-func (ta *TruAPI) getCommunityBySlug(ctx context.Context, slug string) (community.Community, error) {
-	// client pages require all claims to live under a community
-	// "all" is a community for the homepage which shows all the claims
-	if slug == "all" {
-		return community.Community{
-			ID:   0,
-			Slug: "all",
-			Name: "All",
-		}, nil
-	}
-	communities := ta.communitiesResolver(ctx)
-	var comm community.Community
-	for _, community := range communities {
-		if community.Slug == slug {
-			comm = community
-			break
-		}
-	}
-	if comm.ID == 0 {
-		return community.Community{}, errors.New("Category not found")
-	}
-
-	return comm, nil
-}
-
-func (ta *TruAPI) getCommunityByID(ctx context.Context, q queryByID) *community.Community {
-	res, err := ta.Query("community/id", community.QueryCommunityParams{ID: q.ID}, community.ModuleCodec)
-	if err != nil {
-		fmt.Println("getCommunityByIDResolver err: ", err)
-		return nil
-	}
-
-	c := new(community.Community)
-	err = community.ModuleCodec.UnmarshalJSON(res, c)
-	if err != nil {
-		return nil
-	}
-	return c
 }
 
 func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgumentParams) []Argument {
@@ -500,7 +452,7 @@ func (ta *TruAPI) stakesResolver(_ context.Context, q queryByArgumentID) []Stake
 }
 
 func (ta *TruAPI) appAccountClaimsCreatedResolver(ctx context.Context, q queryByAddress) []claim.Claim {
-	allClaims := ta.claimsResolver(ctx, queryByCommunitySlugAndFeedFilter{CommunitySlug: "all"})
+	allClaims := ta.claimsResolver(ctx, queryByCommunityIDAndFeedFilter{CommunityID: "all"})
 	claimsCreated := make([]claim.Claim, 0)
 	for _, claim := range allClaims {
 		if claim.Creator.String() == q.ID {
@@ -511,7 +463,7 @@ func (ta *TruAPI) appAccountClaimsCreatedResolver(ctx context.Context, q queryBy
 }
 
 func (ta *TruAPI) appAccountClaimsWithArgumentsResolver(ctx context.Context, q queryByAddress) []claim.Claim {
-	allClaims := ta.claimsResolver(ctx, queryByCommunitySlugAndFeedFilter{CommunitySlug: "all"})
+	allClaims := ta.claimsResolver(ctx, queryByCommunityIDAndFeedFilter{CommunityID: "all"})
 	claimsWithArguments := make([]claim.Claim, 0)
 	for _, claim := range allClaims {
 		arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claim.ID, Address: &q.ID, Filter: ArgumentCreated})
@@ -523,7 +475,7 @@ func (ta *TruAPI) appAccountClaimsWithArgumentsResolver(ctx context.Context, q q
 }
 
 func (ta *TruAPI) appAccountClaimsWithAgreesResolver(ctx context.Context, q queryByAddress) []claim.Claim {
-	allClaims := ta.claimsResolver(ctx, queryByCommunitySlugAndFeedFilter{CommunitySlug: "all"})
+	allClaims := ta.claimsResolver(ctx, queryByCommunityIDAndFeedFilter{CommunityID: "all"})
 	claimsWithAgrees := make([]claim.Claim, 0)
 	for _, claim := range allClaims {
 		arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claim.ID, Address: &q.ID, Filter: ArgumentAgreed})
@@ -532,6 +484,40 @@ func (ta *TruAPI) appAccountClaimsWithAgreesResolver(ctx context.Context, q quer
 		}
 	}
 	return claimsWithAgrees
+}
+
+func (ta *TruAPI) sourceURLPreviewResolver(ctx context.Context, q claim.Claim) string {
+	sourceURLPreview, err := ta.DBClient.ClaimSourceURLPreview(q.ID)
+	if err == nil && sourceURLPreview != "" {
+		// found sourceURLPreview in the database, exit early
+		return sourceURLPreview
+	}
+
+	fmt.Println("Source url preview not in DB: ", q.Source)
+	n := (q.ID % 5) // random but deterministic placeholder image 0-4
+	defaultPreview := joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("sourceUrlPreview_default_%d.png", n))
+
+	if q.Source.String() == "" {
+		sourceURLPreview = defaultPreview
+	} else {
+		// fetch open graph image from source url website
+		ogImage := og.OgImage{}
+		err = og.GetPageDataFromUrl(q.Source.String(), &ogImage)
+
+		if err != nil || ogImage.Url == "" {
+			// no open graph image exists
+			sourceURLPreview = defaultPreview
+		} else {
+			sourceURLPreview = ogImage.Url
+		}
+	}
+
+	_ = ta.DBClient.AddClaimSourceURLPreview(&db.ClaimSourceURLPreview{
+		ClaimID:          q.ID,
+		SourceURLPreview: sourceURLPreview,
+	})
+
+	return sourceURLPreview
 }
 
 func (ta *TruAPI) settingsResolver(_ context.Context) Settings {

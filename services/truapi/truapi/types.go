@@ -48,7 +48,7 @@ type AppAccount struct {
 type EarnedCoin struct {
 	sdk.Coin
 
-	CommunityID uint64
+	CommunityID string
 }
 
 // BaseAccount will be imported from truchain in the future

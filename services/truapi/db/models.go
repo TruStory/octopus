@@ -28,7 +28,7 @@ type Mutations interface {
 	ReactOnReactionable(addr string, reaction ReactionType, reactionable Reactionable) error
 	UnreactByAddressAndID(addr string, id int64) error
 	AddClaimOfTheDayID(claimOfTheDayID *ClaimOfTheDayID) error
-	DeleteClaimOfTheDayID(communitySlug string) error
+	DeleteClaimOfTheDayID(communityID string) error
 	AddClaimSourceURLPreview(sourceURLPreview *ClaimSourceURLPreview) error
 }
 
@@ -58,7 +58,7 @@ type Queries interface {
 	InitialStakeBalanceByAddress(address string) (*InitialStakeBalance, error)
 	AreUserMetricsEmpty() (bool, error)
 	OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error)
-	ClaimOfTheDayIDByCommunitySlug(communitySlug string) (int64, error)
+	ClaimOfTheDayIDByCommunityID(communityID string) (int64, error)
 	ClaimSourceURLPreview(claimID uint64) (string, error)
 }
 

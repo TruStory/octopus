@@ -533,14 +533,14 @@ func (ta *TruAPI) RegisterResolvers() {
 
 	ta.GraphQLClient.RegisterObjectResolver("EarnedCoin", EarnedCoin{}, map[string]interface{}{
 		"community": func(ctx context.Context, q EarnedCoin) *community.Community {
-			return ta.getCommunityByID(ctx, queryByID{ID: q.CommunityID})
+			return ta.communityResolver(ctx, queryByCommunityID{CommunityID: q.CommunityID})
 		},
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("communities", ta.communitiesResolver)
 	ta.GraphQLClient.RegisterQueryResolver("community", ta.communityResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Community", community.Community{}, map[string]interface{}{
-		"id":        func(_ context.Context, q community.Community) uint64 { return q.ID },
+		"id":        func(_ context.Context, q community.Community) string { return q.ID },
 		"iconImage": ta.communityIconImageResolver,
 		"heroImage": func(_ context.Context, q community.Community) string {
 			return joinPath(ta.APIContext.Config.App.S3AssetsURL, "communities/default_hero.png")
@@ -553,7 +553,7 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterPaginatedObjectResolver("claims", "iD", claim.Claim{}, map[string]interface{}{
 		"id": func(_ context.Context, q claim.Claim) uint64 { return q.ID },
 		"community": func(ctx context.Context, q claim.Claim) *community.Community {
-			return ta.getCommunityByID(ctx, queryByID{ID: q.CommunityID})
+			return ta.communityResolver(ctx, queryByCommunityID{CommunityID: q.CommunityID})
 		},
 		"source":           func(ctx context.Context, q claim.Claim) string { return q.Source.String() },
 		"sourceUrlPreview": ta.sourceURLPreviewResolver,

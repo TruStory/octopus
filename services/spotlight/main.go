@@ -69,6 +69,11 @@ func spotlightSVG(s *service) http.Handler {
 
 		filePath := filepath.Join(s.storagePath, "claim.svg")
 		rawPreview, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "URL Preview error", http.StatusInternalServerError)
+			return
+		}
 
 		compiledPreview := compilePreview(rawPreview, data.Story)
 		w.Header().Add("Content-Type", "image/svg+xml")
@@ -77,7 +82,6 @@ func spotlightSVG(s *service) http.Handler {
 			http.Error(w, "URL Preview cannot be generated", http.StatusInternalServerError)
 			return
 		}
-		return
 	}
 
 	return http.HandlerFunc(fn)

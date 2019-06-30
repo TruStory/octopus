@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
@@ -12,7 +13,9 @@ import (
 func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
 
 	// firing up the http client
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
 
 	err := req.ParseForm()
 	if err != nil {

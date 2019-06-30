@@ -20,6 +20,16 @@ const StoryByIDQuery = `
 			}
 		}
 		backings {
+			argument {
+				creator {
+					address
+					twitterProfile {
+						avatarURI
+						fullName
+						username
+					}
+				}
+			}
       creator {
         address
 				twitterProfile {
@@ -30,6 +40,16 @@ const StoryByIDQuery = `
       }
     }
     challenges {
+			argument {
+				creator {
+					address
+					twitterProfile {
+						avatarURI
+						fullName
+						username
+					}
+				}
+			}
       creator {
         address
 				twitterProfile {
@@ -63,9 +83,15 @@ type TwitterProfileObject struct {
 	Username  string `json:"username"`
 }
 
-// Argument defines the schema of either the backings or the challenges
+// Argument defines the schema of the argument
 type Argument struct {
 	Creator UserObject `json:"creator"`
+}
+
+// StoryAction defines the schema of either the backings or the challenges
+type StoryAction struct {
+	Argument Argument   `json:"argument"`
+	Creator  UserObject `json:"creator"`
 }
 
 // StoryObject defines the schema of a story
@@ -75,13 +101,26 @@ type StoryObject struct {
 	Source     string         `json:"source"`
 	Category   CategoryObject `json:"category"`
 	Creator    UserObject     `json:"creator"`
-	Backings   []Argument     `json:"backings"`
-	Challenges []Argument     `json:"challenges"`
+	Backings   []StoryAction  `json:"backings"`
+	Challenges []StoryAction  `json:"challenges"`
 }
 
 // GetArgumentCount returns the total count of backings + challenges
 func (story StoryObject) GetArgumentCount() int {
-	return len(story.Backings) + len(story.Challenges)
+	count := 0
+
+	for _, backing := range story.Backings {
+		if backing.Creator.Address == backing.Argument.Creator.Address {
+			count++
+		}
+	}
+
+	for _, challenge := range story.Challenges {
+		if challenge.Creator.Address == challenge.Argument.Creator.Address {
+			count++
+		}
+	}
+	return count
 }
 
 // HasSource returns whether a story has a source or not

@@ -28,7 +28,7 @@ jobs: # basic units of work in a run
       - save_cache:
           key: go-mod-v3-{{ checksum "go.sum" }}
           paths:
-            - '/go/pkg/mod'
+            - "/go/pkg/mod"
           # Persist the specified paths (workspace/echo-output) into the workspace for use in downstream job.
       - persist_to_workspace:
           # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
@@ -69,7 +69,7 @@ jobs: # basic units of work in a run
     steps:
       - add_ssh_keys:
           fingerprints:
-            - '73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e'
+            - "73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e"
       - attach_workspace:
           at: /tmp/octopus/bin
       - run:
@@ -90,7 +90,7 @@ jobs: # basic units of work in a run
                 scp bin/pushd "$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/pushd"
                 ssh $VENICE4_USER@$VENICE4_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
                 scp bin/spotlightd "$VENICE4_USER@$VENICE4_HOST:/opt/services/spotlight/bin/spotlightd"
-                scp services/spotlight/claim.html "$VENICE4_USER@$VENICE4_HOST:/opt/services/spotlight/claim.html"
+                scp services/spotlight/claim.svg "$VENICE4_USER@$VENICE4_HOST:/opt/services/spotlight/claim.svg"
                 ssh $VENICE4_USER@$VENICE4_HOST "cd /opt/services/spotlight && docker-compose up --build -d spotlightd"
                 echo "deploying to venice4"
             elif [ "${CIRCLE_BRANCH}" == "develop" ]
@@ -104,7 +104,7 @@ jobs: # basic units of work in a run
                 scp bin/pushd "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd"
                 ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
                 scp bin/spotlightd "$DEVNET_USER@$DEVNET_HOST:/opt/services/spotlight/bin/spotlightd"
-                scp services/spotlight/claim.html "$DEVNET_USER@$DEVNET_HOST:/opt/services/spotlight/claim.html"
+                scp services/spotlight/claim.svg "$DEVNET_USER@$DEVNET_HOST:/opt/services/spotlight/claim.svg"
                 ssh $DEVNET_USER@$DEVNET_HOST "cd /opt/services/spotlight && docker-compose up --build -d spotlightd"
                 echo "deployed to devnet"
             fi
@@ -113,7 +113,7 @@ jobs: # basic units of work in a run
     steps:
       - add_ssh_keys:
           fingerprints:
-            - '73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e'
+            - "73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e"
       - run:
           name: Migrate DB
           command: |
@@ -174,7 +174,7 @@ jobs: # basic units of work in a run
     steps:
       - add_ssh_keys:
           fingerprints:
-            - '73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e'
+            - "73:b6:96:34:a1:e8:b6:2e:b2:d1:6a:73:e0:ad:8b:3e"
       - run:
           name: Statistia Daily Job
           command: |
@@ -240,7 +240,7 @@ workflows:
   nightly-backup:
     triggers:
       - schedule:
-          cron: '0 0 * * *'
+          cron: "0 0 * * *"
           filters:
             branches:
               only:
@@ -253,7 +253,7 @@ workflows:
   statistia:
     triggers:
       - schedule:
-          cron: '5 0 * * *'
+          cron: "5 0 * * *"
           filters:
             branches:
               only:
@@ -264,7 +264,7 @@ workflows:
   metrics:
     triggers:
       - schedule:
-          cron: '10 0 * * *'
+          cron: "10 0 * * *"
           filters:
             branches:
               only:

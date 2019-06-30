@@ -67,7 +67,7 @@ func spotlightSVG(s *service) http.Handler {
 			return
 		}
 
-		filePath := filepath.Join(s.storagePath, "claim.svg")
+		filePath := filepath.Join("./", "claim.svg")
 		rawPreview, err := ioutil.ReadFile(filePath)
 		if err != nil {
 			log.Println(err)

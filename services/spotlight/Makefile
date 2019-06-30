@@ -18,5 +18,5 @@ run-docker:
 	docker run -d --name spotlight \
 		-eSPOTLIGHT_GRAPHQL_ENDPOINT=$(SPOTLIGHT_GRAPHQL_ENDPOINT) \
 		-v $(PWD)/storage:/usr/spotlight/storage \
-		-v $(PWD)/claim.html:/usr/spotlight/claim.html \
+		-v $(PWD)/claim.svg:/usr/spotlight/claim.svg \
 		-p 54448:54448 spotlightd

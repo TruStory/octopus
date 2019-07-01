@@ -4,3 +4,4 @@ vendor/*
 .envrc
 .env
 .vscode
+.idea/*

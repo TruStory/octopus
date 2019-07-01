@@ -1,14 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/itskingori/go-wkhtml/wkhtmltox"
@@ -24,6 +27,7 @@ type service struct {
 }
 
 func (s *service) run() {
+	s.router.Handle("/story/{id:[0-9]+}/svg-spotlight", spotlightSVG(s))
 	s.router.Handle("/story/{id:[0-9]+}/render-spotlight", renderSpotlightHandler(s))
 	s.router.Handle("/story/{id:[0-9]+}/spotlight", spotlightHandler(s))
 	http.Handle("/", s.router)
@@ -35,7 +39,7 @@ func (s *service) run() {
 }
 
 func main() {
-	templatePath := getEnv("SPOTLIGHT_HTML_TEMPLATE", "story.html")
+	templatePath := getEnv("SPOTLIGHT_HTML_TEMPLATE", "claim.html")
 	spotlight := &service{
 		port:          getEnv("PORT", "54448"),
 		storagePath:   getEnv("SPOTLIGHT_STORAGE_PATH", "./storage"),
@@ -45,6 +49,110 @@ func main() {
 	}
 
 	spotlight.run()
+}
+
+func spotlightSVG(s *service) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		storyID, err := strconv.ParseInt(vars["id"], 10, 64)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Invalid story ID passed.", http.StatusBadRequest)
+			return
+		}
+		data, err := getStory(s, storyID)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+		filePath := filepath.Join("./", "claim.svg")
+		rawPreview, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "URL Preview error", http.StatusInternalServerError)
+			return
+		}
+
+		compiledPreview := compilePreview(rawPreview, data.Story)
+		w.Header().Add("Content-Type", "image/svg+xml")
+		_, err = fmt.Fprint(w, compiledPreview)
+		if err != nil {
+			http.Error(w, "URL Preview cannot be generated", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	return http.HandlerFunc(fn)
+}
+
+func compilePreview(raw []byte, story StoryObject) string {
+	// BODY
+	bodyLines := wordWrap(story.Body)
+	// make sure to have 4 lines atleast
+	if len(bodyLines) < 4 {
+		for i := len(bodyLines); i < 4; i++ {
+			bodyLines = append(bodyLines, "")
+		}
+	} else if len(bodyLines) >= 4 {
+		bodyLines[3] += "..." // ellipsis if the entire claim couldn't be contained in this preview
+	}
+	compiled := bytes.Replace(raw, []byte("$PLACEHOLDER__CLAIM_LINE_1"), []byte(bodyLines[0]), -1)
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CLAIM_LINE_2"), []byte(bodyLines[1]), -1)
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CLAIM_LINE_3"), []byte(bodyLines[2]), -1)
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CLAIM_LINE_4"), []byte(bodyLines[3]), -1)
+
+	// ARGUMENT COUNT
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__ARGUMENT_COUNT"), []byte(strconv.Itoa(story.GetArgumentCount())), -1)
+
+	// CREATED BY
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte(story.Creator.TwitterProfile.FullName), -1)
+
+	// SOURCE
+	if story.HasSource() {
+		compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__SOURCE"), []byte(story.Source), -1)
+	} else {
+		compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__SOURCE"), []byte("—"), -1)
+	}
+
+	return string(compiled)
+}
+
+func wordWrap(body string) []string {
+	defaultWordsPerLine := 7
+	lines := make([]string, 0)
+
+	if strings.TrimSpace(body) == "" {
+		lines = append(lines, body)
+		return lines
+	}
+
+	// convert string to slice
+	words := strings.Fields(body)
+	wordsPerLine := defaultWordsPerLine
+	for len(words) >= 1 {
+		candidate := strings.Join(words[:wordsPerLine], " ")
+		for len(candidate) > 40 {
+			wordsPerLine--
+			candidate = strings.Join(words[:wordsPerLine], " ")
+		}
+
+		// add words into a line
+		lines = append(lines, candidate)
+
+		// remove the added words
+		words = words[wordsPerLine:]
+
+		// for the last few words
+		if len(words) < wordsPerLine {
+			wordsPerLine = len(words)
+		} else {
+			wordsPerLine = defaultWordsPerLine
+		}
+	}
+
+	return lines
 }
 
 func renderSpotlightHandler(s *service) http.Handler {
@@ -62,6 +170,7 @@ func renderSpotlightHandler(s *service) http.Handler {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
+
 		err = s.storyTemplate.Execute(w, data)
 		if err != nil {
 			log.Println(err)
@@ -82,7 +191,7 @@ func spotlightHandler(s *service) http.Handler {
 		ifs := make(wkhtmltox.ImageFlagSet)
 		ifs.SetCacheDir(filepath.Join(s.storagePath, "web-cache"))
 
-		renderURL := fmt.Sprintf("http://localhost:%s/story/%s/render-spotlight", s.port, storyID)
+		renderURL := fmt.Sprintf("http://localhost:%s/story/%s/svg-spotlight", s.port, storyID)
 		imageName := fmt.Sprintf("story-%s.png", storyID)
 		filePath := filepath.Join(s.storagePath, imageName)
 

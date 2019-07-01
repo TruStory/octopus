@@ -104,17 +104,9 @@ jobs: # basic units of work in a run
                 scp bin/pushd "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd"
                 ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
                 scp bin/spotlightd "$DEVNET_USER@$DEVNET_HOST:/opt/services/spotlight/bin/spotlightd"
-                scp $OCTOPUS_LOCATION/services/spotlight/claim.svg ""$DEVNET_USER@$DEVNET_HOST:/opt/services/spotlight/claim.svg"
+                scp $OCTOPUS_LOCATION/services/spotlight/claim.svg "$DEVNET_USER@$DEVNET_HOST:/opt/services/spotlight/claim.svg"
                 ssh $DEVNET_USER@$DEVNET_HOST "cd /opt/services/spotlight && docker-compose up --build -d spotlightd"
                 echo "deployed to devnet"
-            elif [ "${CIRCLE_BRANCH}" == "develop__fix/spotlight" ]
-            then
-                mkdir ~/.ssh
-                ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
-                scp bin/spotlightd "$DEVNET_USER@$DEVNET_HOST:/opt/services/spotlight/bin/spotlightd"
-                scp $OCTOPUS_LOCATION/services/spotlight/claim.svg ""$DEVNET_USER@$DEVNET_HOST:/opt/services/spotlight/claim.svg"
-                ssh $DEVNET_USER@$DEVNET_HOST "cd /opt/services/spotlight && docker-compose up --build -d spotlightd"
-                echo "deployed the spotlight service"
             fi
   migrate:
     executor: go
@@ -235,9 +227,8 @@ workflows:
           filters:
             branches:
               only:
-                #- master
-                #- develop
-                - develop__fix/spotlight
+                - master
+                - develop
       - migrate:
           requires:
             - test_migrations

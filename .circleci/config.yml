@@ -19,7 +19,9 @@ jobs: # basic units of work in a run
           name: Install linter
           command: |
             GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.0
-      - run: make # pull and build dependencies for the project
+      - run: make check_deps
+      - run: make check_lint
+      - run: make build-linux
       - run:
           name: List built binaries
           command: |

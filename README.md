@@ -29,8 +29,12 @@ git config --global url."git@github.com:".insteadOf "https://github.com/"
 
 This forces Git to use `ssh` instead of `https` when pulling repos with `go mod`.
 
-#### Linting
+#### Running
 
-```sh
-make check_lint
+```
+# Build all binaries
+make
+
+# Start the TruAPI light client
+./bin/truapid start --home ~/.octopus --chain-id truchain
 ```

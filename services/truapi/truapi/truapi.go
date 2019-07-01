@@ -237,6 +237,7 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterObjectResolver("Comment", db.Comment{}, map[string]interface{}{
 		"id":         func(_ context.Context, q db.Comment) int64 { return q.ID },
 		"parentId":   func(_ context.Context, q db.Comment) int64 { return q.ParentID },
+		"claimId":    func(_ context.Context, q db.Comment) int64 { return q.ClaimID },
 		"argumentId": func(_ context.Context, q db.Comment) int64 { return q.ArgumentID },
 		"body":       func(_ context.Context, q db.Comment) string { return q.Body },
 		"creator": func(ctx context.Context, q db.Comment) users.User {

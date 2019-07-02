@@ -20,6 +20,7 @@ import (
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/argument"
 	"github.com/TruStory/truchain/x/backing"
+	"github.com/TruStory/truchain/x/bank"
 	"github.com/TruStory/truchain/x/category"
 	"github.com/TruStory/truchain/x/challenge"
 	"github.com/TruStory/truchain/x/claim"
@@ -617,6 +618,11 @@ func (ta *TruAPI) RegisterResolvers() {
 		"creator": func(ctx context.Context, q Slash) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
+	})
+
+	ta.GraphQLClient.RegisterQueryResolver("transactions", ta.appAccountTransactionsResolver)
+	ta.GraphQLClient.RegisterObjectResolver("Transaction", bank.Transaction{}, map[string]interface{}{
+		"id": func(_ context.Context, q bank.Transaction) uint64 { return q.ID },
 	})
 
 	ta.GraphQLClient.RegisterPaginatedQueryResolver("appAccountClaimsCreated", ta.appAccountClaimsCreatedResolver)

@@ -33,15 +33,16 @@ type CommentNotificationRequest struct {
 
 // V2 Truchain structs
 
-// AppAccount will be imported from truchain in the future
 type AppAccount struct {
-	BaseAccount
-
-	EarnedStake []EarnedCoin
-	SlashCount  int
-	IsJailed    bool
-	JailEndTime time.Time
-	CreatedTime time.Time
+	Address       string
+	AccountNumber uint64
+	Coins         sdk.Coins
+	Sequence      uint64
+	Pubkey        tcmn.HexBytes
+	SlashCount    uint
+	IsJailed      bool
+	JailEndTime   time.Time
+	CreatedTime   time.Time
 }
 
 // EarnedCoin will be imported from truchain in the future
@@ -51,55 +52,11 @@ type EarnedCoin struct {
 	CommunityID string
 }
 
-// BaseAccount will be imported from truchain in the future
-type BaseAccount struct {
-	Address       string
-	Coins         sdk.Coins
-	PubKey        tcmn.HexBytes
-	AccountNumber uint64
-	Sequence      uint64
-}
-
 // CommunityIconImage contains regular and active icon images
 type CommunityIconImage struct {
 	Regular string
 	Active  string
 }
-
-// Argument will be imported from truchain in the future
-type Argument struct {
-	Stake
-
-	ClaimID      uint64
-	Summary      string
-	Body         string
-	UpvotedCount uint64
-	UpvotedStake sdk.Coin
-	SlashCount   int
-	IsUnhelpful  bool
-	UpdatedTime  time.Time
-}
-
-// Stake will be imported from truchain in the future
-type Stake struct {
-	ID          uint64
-	ArgumentID  uint64
-	Type        StakeType
-	Stake       sdk.Coin
-	Creator     sdk.AccAddress
-	CreatedTime time.Time
-	EndTime     time.Time
-}
-
-// StakeType will be imported from truchain in the future
-type StakeType int
-
-// will be imported from truchain in the future
-const (
-	Backing   StakeType = iota // 0
-	Challenge                  // 1
-	Upvote                     // 2
-)
 
 // Slash will be imported from truchain in the future
 type Slash struct {

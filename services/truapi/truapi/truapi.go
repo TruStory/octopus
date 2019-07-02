@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
@@ -417,6 +418,9 @@ func (ta *TruAPI) RegisterResolvers() {
 
 	ta.GraphQLClient.RegisterObjectResolver("TwitterProfile", db.TwitterProfile{}, map[string]interface{}{
 		"id": func(_ context.Context, q db.TwitterProfile) string { return string(q.ID) },
+		"avatarURI": func(_ context.Context, q db.TwitterProfile) string {
+			return strings.Replace(q.AvatarURI, "_bigger", "_200x200", 1)
+		},
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("users", ta.usersResolver)

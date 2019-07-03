@@ -170,12 +170,13 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 
 		// range over all the stakings
 		arguments := ta.claimArgumentsResolver(r.Context(), queryClaimArgumentParams{ClaimID: claim.ID})
-		totalBackingStakes := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
-		totalChallengingStakes := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 		for _, argument := range arguments {
 			if !argument.CreatedTime.Before(until) {
 				continue
 			}
+
+			totalBackingStakes := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+			totalChallengingStakes := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 
 			stakes := ta.claimArgumentStakesResolver(r.Context(), argument)
 			for _, stake := range stakes {
@@ -194,8 +195,31 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			// rule for identifying stake lost?
+			for _, stake := range stakes {
+				// if backers lost..
+				if totalBackingStakes.IsLT(totalChallengingStakes) {
+					// a.) but the stakes were of challenge, then earned
+					if stake.Type == staking.StakeChallenge {
+						systemMetrics.getUserMetrics(stake.Creator.String()).addStakeEarned(claim.CommunityID, stake.Amount)
+					}
+					// b.) and the stakes were of backing, then lost
+					if stake.Type == staking.StakeBacking {
+						systemMetrics.getUserMetrics(stake.Creator.String()).addStakeLost(claim.CommunityID, stake.Amount)
+					}
+				} else if totalChallengingStakes.IsLT(totalBackingStakes) { // if challengers lost..
+					// a.) but the stakes were of backing, then earned
+					if stake.Type == staking.StakeBacking {
+						systemMetrics.getUserMetrics(stake.Creator.String()).addStakeEarned(claim.CommunityID, stake.Amount)
+					}
+					// b.) and the stakes were of challenge, then lost
+					if stake.Type == staking.StakeChallenge {
+						systemMetrics.getUserMetrics(stake.Creator.String()).addStakeLost(claim.CommunityID, stake.Amount)
+					}
+				}
+			}
 
 		}
 	}
+
+	fmt.Println(systemMetrics)
 }

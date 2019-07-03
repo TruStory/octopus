@@ -77,12 +77,13 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
 	}
 
 	twitterProfile := &db.TwitterProfile{
-		ID:        twitterUser.ID,
-		Address:   addr,
-		Username:  twitterUser.ScreenName,
-		FullName:  twitterUser.Name,
-		Email:     twitterUser.Email,
-		AvatarURI: strings.Replace(twitterUser.ProfileImageURL, "_normal", "_bigger", 1),
+		ID:          twitterUser.ID,
+		Address:     addr,
+		Username:    twitterUser.ScreenName,
+		FullName:    twitterUser.Name,
+		Email:       twitterUser.Email,
+		AvatarURI:   strings.Replace(twitterUser.ProfileImageURL, "_normal", "_bigger", 1),
+		Description: twitterUser.Description,
 	}
 
 	err = ta.DBClient.UpsertTwitterProfile(twitterProfile)

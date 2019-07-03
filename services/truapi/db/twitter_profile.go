@@ -9,12 +9,13 @@ import (
 // TwitterProfile is the Twitter profile associated with an account
 type TwitterProfile struct {
 	Timestamps
-	ID        int64  `json:"id"`
-	Address   string `json:"address"`
-	Username  string `json:"username"`
-	FullName  string `json:"full_name"`
-	Email     string `json:"email"`
-	AvatarURI string `json:"avatar_uri"`
+	ID          int64  `json:"id"`
+	Address     string `json:"address"`
+	Username    string `json:"username"`
+	FullName    string `json:"full_name"`
+	Email       string `json:"email"`
+	AvatarURI   string `json:"avatar_uri"`
+	Description string `json:"description"`
 }
 
 func (t TwitterProfile) String() string {
@@ -93,7 +94,7 @@ func (c *Client) TwitterProfileByUsername(username string) (*TwitterProfile, err
 func (c *Client) UpsertTwitterProfile(profile *TwitterProfile) error {
 	_, err := c.Model(profile).
 		OnConflict("(id) DO UPDATE").
-		Set("address = EXCLUDED.address, username = EXCLUDED.username, full_name = EXCLUDED.full_name, avatar_uri = EXCLUDED.avatar_uri, email = EXCLUDED.email").
+		Set("address = EXCLUDED.address, username = EXCLUDED.username, full_name = EXCLUDED.full_name, avatar_uri = EXCLUDED.avatar_uri, email = EXCLUDED.email, description = EXCLUDED.description").
 		Insert()
 
 	return err

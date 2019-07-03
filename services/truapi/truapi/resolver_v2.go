@@ -11,6 +11,7 @@ import (
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/account"
+	"github.com/TruStory/truchain/x/bank"
 	"github.com/TruStory/truchain/x/claim"
 	"github.com/TruStory/truchain/x/community"
 	"github.com/TruStory/truchain/x/staking"
@@ -547,6 +548,28 @@ func (ta *TruAPI) agreesResolver(ctx context.Context, q queryByAddress) []stakin
 	}
 
 	return agrees
+}
+
+func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByAddress) []bank.Transaction {
+	creator, err := sdk.AccAddressFromBech32(q.ID)
+	if err != nil {
+		return []bank.Transaction{}
+	}
+
+	queryRoute := path.Join(bank.QuerierRoute, bank.QueryTransactionsByAddress)
+	res, err := ta.Query(queryRoute, bank.QueryTransactionsByAddressParams{Address: creator}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("appAccountTransactionsResolver err: ", err)
+		return []bank.Transaction{}
+	}
+
+	transactions := make([]bank.Transaction, 0)
+	err = staking.ModuleCodec.UnmarshalJSON(res, &transactions)
+	if err != nil {
+		return []bank.Transaction{}
+	}
+
+	return transactions
 }
 
 func (ta *TruAPI) sourceURLPreviewResolver(ctx context.Context, q claim.Claim) string {

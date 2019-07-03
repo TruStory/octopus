@@ -631,8 +631,7 @@ func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Trans
 	case bank.TransactionUpvoteReturned:
 		fallthrough
 	case bank.TransactionInterestUpvoteGiven:
-		stake := ta.stakeResolver(ctx, queryByStakeID{ID: t.ReferenceID})
-		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{stake.ArgumentID})
+		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{t.ReferenceID})
 		creatorTwitterProfile := ta.twitterProfileResolver(ctx, argument.Creator.String())
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,

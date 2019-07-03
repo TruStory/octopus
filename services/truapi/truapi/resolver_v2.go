@@ -171,6 +171,9 @@ func (ta *TruAPI) earnedStakeResolver(ctx context.Context, q queryByAddress) []E
 }
 
 func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community {
+	// the communities need to be curated better before they are made public
+	communityBlacklist := []string{"sports", "tech", "entertainment"}
+
 	queryRoute := path.Join(community.QuerierRoute, community.QueryCommunities)
 	res, err := ta.Query(queryRoute, struct{}{}, community.ModuleCodec)
 	if err != nil {
@@ -190,7 +193,15 @@ func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community
 		return (cs)[j].Name > (cs)[i].Name
 	})
 
-	return cs
+	// exclude blacklisted communities
+	filteredCommunities := make([]community.Community, 0)
+	for _, c := range cs {
+		if !contains(communityBlacklist, c.ID) {
+			filteredCommunities = append(filteredCommunities, c)
+		}
+	}
+
+	return filteredCommunities
 }
 
 func (ta *TruAPI) communityResolver(ctx context.Context, q queryByCommunityID) *community.Community {
@@ -224,7 +235,7 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFee
 		res, err = ta.Query(queryRoute, struct{}{}, claim.ModuleCodec)
 	} else {
 		queryRoute := path.Join(claim.QuerierRoute, claim.QueryCommunityClaims)
-		res, err = ta.Query(queryRoute, queryByCommunityID{CommunityID: q.CommunityID}, claim.ModuleCodec)
+		res, err = ta.Query(queryRoute, claim.QueryCommunityClaimsParams{CommunityID: q.CommunityID}, claim.ModuleCodec)
 	}
 	if err != nil {
 		fmt.Println("claimsResolver err: ", err)

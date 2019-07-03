@@ -611,23 +611,26 @@ func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByA
 
 func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Transaction) TransactionReference {
 	var tr TransactionReference
-	if t.Type == bank.TransactionRegistration {
+	switch t.Type {
+	case bank.TransactionRegistration:
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,
 			Type:        ReferenceNone,
 			Title:       TransactionTypeTitle[t.Type],
 			Body:        "",
 		}
-	} else if t.Type == bank.TransactionRewardPayout {
+	case bank.TransactionRewardPayout:
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,
 			Type:        ReferenceNone,
 			Title:       TransactionTypeTitle[t.Type],
 			Body:        "",
 		}
-	} else if t.Type == bank.TransactionUpvote ||
-		t.Type == bank.TransactionUpvoteReturned ||
-		t.Type == bank.TransactionInterestUpvoteGiven {
+	case bank.TransactionUpvote:
+		fallthrough
+	case bank.TransactionUpvoteReturned:
+		fallthrough
+	case bank.TransactionInterestUpvoteGiven:
 		stake := ta.stakeResolver(ctx, queryByStakeID{ID: t.ReferenceID})
 		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{stake.ArgumentID})
 		creatorTwitterProfile := ta.twitterProfileResolver(ctx, argument.Creator.String())
@@ -637,7 +640,7 @@ func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Trans
 			Title:       fmt.Sprintf(TransactionTypeTitle[t.Type], creatorTwitterProfile.Username),
 			Body:        stripmd.Strip(argument.Summary),
 		}
-	} else if t.Type == bank.TransactionInterestUpvoteReceived {
+	case bank.TransactionInterestUpvoteReceived:
 		stake := ta.stakeResolver(ctx, queryByStakeID{ID: t.ReferenceID})
 		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{stake.ArgumentID})
 		stakerTwitterProfile := ta.twitterProfileResolver(ctx, stake.Creator.String())
@@ -647,11 +650,15 @@ func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Trans
 			Title:       fmt.Sprintf(TransactionTypeTitle[t.Type], stakerTwitterProfile.Username),
 			Body:        stripmd.Strip(argument.Summary),
 		}
-	} else if t.Type == bank.TransactionBacking ||
-		t.Type == bank.TransactionBackingReturned ||
-		t.Type == bank.TransactionChallenge ||
-		t.Type == bank.TransactionChallengeReturned ||
-		t.Type == bank.TransactionInterestArgumentCreation {
+	case bank.TransactionBacking:
+		fallthrough
+	case bank.TransactionBackingReturned:
+		fallthrough
+	case bank.TransactionChallenge:
+		fallthrough
+	case bank.TransactionChallengeReturned:
+		fallthrough
+	case bank.TransactionInterestArgumentCreation:
 		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{t.ReferenceID})
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,
@@ -659,7 +666,7 @@ func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Trans
 			Title:       TransactionTypeTitle[t.Type],
 			Body:        stripmd.Strip(argument.Summary),
 		}
-	} else {
+	default:
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,
 			Type:        ReferenceNone,

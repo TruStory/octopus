@@ -620,9 +620,10 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 	})
 
-	ta.GraphQLClient.RegisterQueryResolver("transactions", ta.appAccountTransactionsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("Transaction", bank.Transaction{}, map[string]interface{}{
-		"id": func(_ context.Context, q bank.Transaction) uint64 { return q.ID },
+	ta.GraphQLClient.RegisterPaginatedQueryResolver("transactions", ta.appAccountTransactionsResolver)
+	ta.GraphQLClient.RegisterPaginatedObjectResolver("Transaction", "iD", bank.Transaction{}, map[string]interface{}{
+		"id":        func(_ context.Context, q bank.Transaction) uint64 { return q.ID },
+		"reference": ta.transactionReferenceResolver,
 	})
 
 	ta.GraphQLClient.RegisterPaginatedQueryResolver("appAccountClaimsCreated", ta.appAccountClaimsCreatedResolver)

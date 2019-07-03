@@ -3,12 +3,14 @@ package truapi
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/claim"
 	"github.com/TruStory/truchain/x/community"
+	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -123,12 +125,16 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 
 	// Get all claims
 	claims := make([]claim.Claim, 0)
-	result, err := ta.Query("claims_before_time", claim.QueryClaimsTimeParams{CreatedTime: until}, claim.ModuleCodec)
+	result, err := ta.Query(
+		path.Join(claim.QuerierRoute, claim.QueryClaimsBeforeTime),
+		claim.QueryClaimsTimeParams{CreatedTime: until},
+		claim.ModuleCodec,
+	)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = claim.ModuleCodec.UnmarshalJSON(result, claims)
+	err = claim.ModuleCodec.UnmarshalJSON(result, &claims)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
@@ -136,12 +142,16 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 
 	// Get all communities
 	communities := make([]community.Community, 0)
-	result, err = ta.Query("all", struct{}{}, community.ModuleCodec) // TODO: fix the community query string
+	result, err = ta.Query(
+		path.Join(community.QuerierRoute, community.QueryCommunities),
+		struct{}{},
+		community.ModuleCodec,
+	)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = community.ModuleCodec.UnmarshalJSON(result, communities)
+	err = community.ModuleCodec.UnmarshalJSON(result, &communities)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
@@ -159,7 +169,33 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(systemMetrics, i, claim)
 
 		// range over all the stakings
+		arguments := ta.claimArgumentsResolver(r.Context(), queryClaimArgumentParams{ClaimID: claim.ID})
+		totalBackingStakes := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		totalChallengingStakes := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		for _, argument := range arguments {
+			if !argument.CreatedTime.Before(until) {
+				continue
+			}
 
-		// range over all the slashings
+			stakes := ta.claimArgumentStakesResolver(r.Context(), argument)
+			for _, stake := range stakes {
+				stakerMetrics := systemMetrics.getUserMetrics(stake.Creator.String())
+				stakerMetrics.addAmoutStaked(claim.CommunityID, stake.Amount)
+
+				if stake.Type == staking.StakeBacking {
+					totalBackingStakes.Add(stake.Amount)
+				} else if stake.Type == staking.StakeChallenge {
+					totalChallengingStakes.Add(stake.Amount)
+				}
+
+				// if the argument is still running
+				if stake.EndTime.After(time.Now()) {
+					stakerMetrics.addAmoutAtStake(claim.CommunityID, stake.Amount)
+				}
+			}
+
+			// rule for identifying stake lost?
+
+		}
 	}
 }

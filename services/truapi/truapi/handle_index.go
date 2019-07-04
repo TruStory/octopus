@@ -167,10 +167,6 @@ func makeStoryMetaTags(ta *TruAPI, route string, storyID int64) (*Tags, error) {
 	backingTotalAmount := ta.backingPoolResolver(ctx, storyObj)
 	challengeTotalAmount := ta.challengePoolResolver(ctx, storyObj)
 
-	storyState := "Active"
-	if storyObj.Status == story.Expired {
-		storyState = "Completed"
-	}
 	totalParticipants := len(backings) + len(challenges)
 	totalParticipantsPlural := "s"
 	if totalParticipants == 1 {
@@ -180,7 +176,7 @@ func makeStoryMetaTags(ta *TruAPI, route string, storyID int64) (*Tags, error) {
 
 	return &Tags{
 		Title:       html.EscapeString(storyObj.Body),
-		Description: fmt.Sprintf("%s: %d participant%s and %s TruStake", storyState, totalParticipants, totalParticipantsPlural, totalStake),
+		Description: fmt.Sprintf("%d participant%s, %s TruStake", totalParticipants, totalParticipantsPlural, totalStake),
 		Image:       fmt.Sprintf("%s/api/v1/spotlight?story_id=%v", ta.APIContext.Config.App.URL, storyID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil

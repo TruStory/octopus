@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -67,7 +66,6 @@ func (statistia *service) run() {
 		if err != nil {
 			panic(err)
 		}
-		from = time.Now()
 	} else {
 		// starting from today only
 		from = time.Now()
@@ -147,34 +145,6 @@ func (statistia *service) saveMetrics(tx *pg.Tx, metrics db.UserMetric) error {
 	return nil
 }
 
-// fetchUsers fetches the users and their coin holdings from the chain
-func (statistia *service) fetchUsers() (map[string]User, error) {
-	users := make([]db.TwitterProfile, 0)
-	addresses := make([]string, 0)
-	err := statistia.dbClient.FindAll(&users)
-	if err != nil {
-		panic(err)
-	}
-	for _, user := range users {
-		addresses = append(addresses, user.Address)
-	}
-
-	graphqlReq := graphql.NewRequest(UsersByAddressesQuery)
-
-	graphqlReq.Var("addresses", addresses)
-	var usersMap = make(map[string]User)
-	var graphqlRes UsersByAddressesResponse
-	ctx := context.Background()
-	if err := statistia.graphqlClient.Run(ctx, graphqlReq, &graphqlRes); err != nil {
-		return usersMap, err
-	}
-
-	for _, user := range graphqlRes.Users {
-		usersMap[user.ID] = user
-	}
-	return usersMap, nil
-}
-
 // fetchMetrics fetches the metrics for a given day from the metrics endpoint
 func (statistia *service) fetchMetrics(date time.Time) *SystemMetrics {
 	request, err := http.NewRequest(
@@ -200,20 +170,6 @@ func (statistia *service) fetchMetrics(date time.Time) *SystemMetrics {
 	}
 
 	return metrics
-}
-
-// filterStakeCoin returns the trustake/trusteak coin
-func filterStakeCoin(coins []Coin) Coin {
-	var stake Coin
-
-	// assuming that everyone will have the stake coin balance
-	for _, coin := range coins {
-		if coin.Denom == "trusteak" || coin.Denom == "trustake" {
-			stake = coin
-		}
-	}
-
-	return stake
 }
 
 func getEnv(env, defaultValue string) string {

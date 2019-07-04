@@ -56,69 +56,29 @@ func (coin *Coin) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MetricsSummary represents metrics for the platform.
-type MetricsSummary struct {
-	Users map[string]*UserMetrics `json:"users"`
+// SystemMetrics represents metrics for the platform.
+type SystemMetrics struct {
+	Users map[string]*UserMetricsV2 `json:"users"`
 }
 
-// Metrics tracked.
-type Metrics struct {
-	// Interactions
-	TotalClaims               uint64 `json:"total_claims"`
-	TotalArguments            uint64 `json:"total_arguments"`
-	TotalBackings             uint64 `json:"total_backings"`
-	TotalChallenges           uint64 `json:"total_challenges"`
-	TotalReceivedEndorsements uint64 `json:"total_received_endorsements"`
-	TotalGivenEndorsements    uint64 `json:"total_given_endorsments"`
-
+// MetricsV2 defines the numbers that are tracked
+type MetricsV2 struct {
 	// StakeBased Metrics
-	TotalAmountBacked     Coin `json:"total_Amount_backed"`
-	TotalAmountChallenged Coin `json:"total_Amount_challenged"`
-	TotalAmountStaked     Coin `json:"total_amount_staked"`
-	StakeEarned           Coin `json:"stake_earned"`
-	StakeLost             Coin `json:"stake_lost"`
-	TotalAmountAtStake    Coin `json:"total_amount_at_stake"`
-	InterestEarned        Coin `json:"interest_earned"`
+	TotalAmountStaked  Coin `json:"total_amount_staked"`
+	StakeEarned        Coin `json:"stake_earned"`
+	StakeLost          Coin `json:"stake_lost"`
+	TotalAmountAtStake Coin `json:"total_amount_at_stake"`
+	AvailableStake     Coin `json:"available_stake"`
 }
 
-// CategoryMetrics summary of metrics by category.
-type CategoryMetrics struct {
-	CategoryID   uint64   `json:"category_id"`
-	CategoryName string   `json:"category_name"`
-	CredEarned   Coin     `json:"cred_earned"`
-	Metrics      *Metrics `json:"metrics"`
+// UserMetricsV2 a summary of different metrics per user
+type UserMetricsV2 struct {
+	// For each community
+	CommunityMetrics map[string]*CommunityMetrics `json:"community_metrics"`
 }
 
-// UserMetrics a summary of different metrics per user
-type UserMetrics struct {
-	UserName       string `json:"username"`
-	Balance        Coin   `json:"balance"`
-	RunningBalance Coin   `json:"running_balance"`
-
-	// ByCategoryID
-	CategoryMetrics map[int64]*CategoryMetrics `json:"category_metrics"`
-}
-
-// UsersByAddressesQuery fetches a user by the given address
-const UsersByAddressesQuery = `
-  query User($addresses: [String]) {
-		users(addresses: $addresses) {
-			id
-			coins {
-				amount
-				denom
-			}
-		}
-	}
-`
-
-// User represents the user from the chain
-type User struct {
-	ID    string `json:"id"`
-	Coins []Coin `json:"coins"`
-}
-
-// UsersByAddressesResponse defines the JSON response
-type UsersByAddressesResponse struct {
-	Users []User `json:"users"`
+// CommunityMetrics summary of metrics by community
+type CommunityMetrics struct {
+	CommunityID string     `json:"community_id"`
+	Metrics     *MetricsV2 `json:"metrics"`
 }

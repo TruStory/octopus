@@ -211,8 +211,10 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
-
 		}
+
+		// TODO: addAvailableStake
+		systemMetrics.getUserMetrics(claim.Creator.String()).addAvailableStake(claim.CommunityID, sdk.NewCoin(app.StakeDenom, sdk.NewInt(0)))
 	}
 
 	render.JSON(w, r, systemMetrics, http.StatusOK)

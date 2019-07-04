@@ -4,6 +4,7 @@ import (
 	"time"
 
 	app "github.com/TruStory/truchain/types"
+	"github.com/TruStory/truchain/x/bank"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 )
@@ -33,6 +34,7 @@ type CommentNotificationRequest struct {
 
 // V2 Truchain structs
 
+// AppAccount represents graphql serializable representation of a cosmos account
 type AppAccount struct {
 	Address       string
 	AccountNumber uint64
@@ -45,11 +47,44 @@ type AppAccount struct {
 	CreatedTime   time.Time
 }
 
-// EarnedCoin will be imported from truchain in the future
+// EarnedCoin represents trusteak earned in each category
 type EarnedCoin struct {
 	sdk.Coin
-
 	CommunityID string
+}
+
+// TransactionReference represents an entity referenced in a transaction
+type TransactionReference struct {
+	ReferenceID uint64 `graphql:"referenceId"`
+	Type        TransactionReferenceType
+	Title       string
+	Body        string
+}
+
+// TransactionReferenceType defines the type of ReferenceID in a transaction
+type TransactionReferenceType int8
+
+// Types of reference
+const (
+	ReferenceNone TransactionReferenceType = iota
+	ReferenceArgument
+	ReferenceClaim
+	ReferenceAppAccount
+)
+
+// TransactionTypeTitle defines user readable text for each transaction type
+var TransactionTypeTitle = []string{
+	bank.TransactionRegistration:             "Account Created",
+	bank.TransactionBacking:                  "Wrote an Argument",
+	bank.TransactionBackingReturned:          "Refund: Wrote an Argument",
+	bank.TransactionChallenge:                "Wrote an Argument",
+	bank.TransactionChallengeReturned:        "Refund: Wrote an Argument",
+	bank.TransactionUpvote:                   "Agreed with %s",
+	bank.TransactionUpvoteReturned:           "Refund: Agreed with %s",
+	bank.TransactionInterestArgumentCreation: "Reward: Wrote an Argument",
+	bank.TransactionInterestUpvoteReceived:   "Reward: Agree received from %s",
+	bank.TransactionInterestUpvoteGiven:      "Reward: Agreed with %s",
+	bank.TransactionRewardPayout:             "Reward: Invite a friend",
 }
 
 // CommunityIconImage contains regular and active icon images

@@ -1,7 +1,6 @@
 package truapi
 
 import (
-	"fmt"
 	"net/http"
 	"path"
 	"time"
@@ -23,7 +22,6 @@ func (sysMetrics *SystemMetrics) getUserMetrics(address string) *UserMetricsV2 {
 	userMetrics, ok := sysMetrics.Users[address]
 	if !ok {
 		userMetrics = &UserMetricsV2{
-			Balance:          sdk.NewCoin(app.StakeDenom, sdk.NewInt(0)),
 			CommunityMetrics: make(map[string]*CommunityMetrics),
 		}
 	}
@@ -37,9 +35,6 @@ func (sysMetrics *SystemMetrics) setUserMetrics(address string, userMetrics *Use
 
 // UserMetricsV2 a summary of different metrics per user
 type UserMetricsV2 struct {
-	Username string   `json:"username"`
-	Balance  sdk.Coin `json:"balance"`
-
 	// For each community
 	CommunityMetrics map[string]*CommunityMetrics `json:"community_metrics"`
 }
@@ -165,8 +160,7 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 		Users: make(map[string]*UserMetricsV2),
 	}
 
-	for i, claim := range claims {
-		fmt.Println(systemMetrics, i, claim)
+	for _, claim := range claims {
 
 		// range over all the stakings
 		arguments := ta.claimArgumentsResolver(r.Context(), queryClaimArgumentParams{ClaimID: claim.ID})
@@ -184,9 +178,9 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 				stakerMetrics.addAmoutStaked(claim.CommunityID, stake.Amount)
 
 				if stake.Type == staking.StakeBacking {
-					totalBackingStakes.Add(stake.Amount)
+					totalBackingStakes = totalBackingStakes.Add(stake.Amount)
 				} else if stake.Type == staking.StakeChallenge {
-					totalChallengingStakes.Add(stake.Amount)
+					totalChallengingStakes = totalChallengingStakes.Add(stake.Amount)
 				}
 
 				// if the argument is still running
@@ -221,5 +215,5 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fmt.Println(systemMetrics)
+	render.JSON(w, r, systemMetrics, http.StatusOK)
 }

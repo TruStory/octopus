@@ -18,6 +18,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/julianshen/og"
 	tcmn "github.com/tendermint/tendermint/libs/common"
+	stripmd "github.com/writeas/go-strip-markdown"
 )
 
 // ArgumentFilter defines filters for claimArguments
@@ -39,6 +40,10 @@ type queryByClaimID struct {
 }
 
 type queryByArgumentID struct {
+	ID uint64 `graphql:"id"`
+}
+
+type queryByStakeID struct {
 	ID uint64 `graphql:"id"`
 }
 
@@ -415,6 +420,23 @@ func participantExists(participants []AppAccount, participantToAddAddress string
 	return false
 }
 
+func (ta *TruAPI) stakeResolver(ctx context.Context, q queryByStakeID) *staking.Stake {
+	queryRoute := path.Join(staking.ModuleName, staking.QueryStake)
+	res, err := ta.Query(queryRoute, staking.QueryStakeParams{StakeID: q.ID}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("stakeResolver err: ", err)
+		return nil
+	}
+
+	stake := new(staking.Stake)
+	err = staking.ModuleCodec.UnmarshalJSON(res, stake)
+	if err != nil {
+		return nil
+	}
+
+	return stake
+}
+
 func (ta *TruAPI) claimArgumentStakesResolver(ctx context.Context, q staking.Argument) []staking.Stake {
 	queryRoute := path.Join(staking.ModuleName, staking.QueryArgumentStakes)
 	res, err := ta.Query(queryRoute, staking.QueryArgumentStakesParams{ArgumentID: q.ID}, staking.ModuleCodec)
@@ -580,7 +602,78 @@ func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByA
 		return []bank.Transaction{}
 	}
 
+	sort.Slice(transactions, func(i, j int) bool {
+		return transactions[j].CreatedTime.Before(transactions[i].CreatedTime)
+	})
+
 	return transactions
+}
+
+func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Transaction) TransactionReference {
+	var tr TransactionReference
+	switch t.Type {
+	case bank.TransactionRegistration:
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceNone,
+			Title:       TransactionTypeTitle[t.Type],
+			Body:        "",
+		}
+	case bank.TransactionRewardPayout:
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceNone,
+			Title:       TransactionTypeTitle[t.Type],
+			Body:        "",
+		}
+	case bank.TransactionUpvote:
+		fallthrough
+	case bank.TransactionUpvoteReturned:
+		fallthrough
+	case bank.TransactionInterestUpvoteGiven:
+		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{t.ReferenceID})
+		creatorTwitterProfile := ta.twitterProfileResolver(ctx, argument.Creator.String())
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceArgument,
+			Title:       fmt.Sprintf(TransactionTypeTitle[t.Type], creatorTwitterProfile.Username),
+			Body:        stripmd.Strip(argument.Summary),
+		}
+	case bank.TransactionInterestUpvoteReceived:
+		stake := ta.stakeResolver(ctx, queryByStakeID{ID: t.ReferenceID})
+		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{stake.ArgumentID})
+		stakerTwitterProfile := ta.twitterProfileResolver(ctx, stake.Creator.String())
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceArgument,
+			Title:       fmt.Sprintf(TransactionTypeTitle[t.Type], stakerTwitterProfile.Username),
+			Body:        stripmd.Strip(argument.Summary),
+		}
+	case bank.TransactionBacking:
+		fallthrough
+	case bank.TransactionBackingReturned:
+		fallthrough
+	case bank.TransactionChallenge:
+		fallthrough
+	case bank.TransactionChallengeReturned:
+		fallthrough
+	case bank.TransactionInterestArgumentCreation:
+		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{t.ReferenceID})
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceArgument,
+			Title:       TransactionTypeTitle[t.Type],
+			Body:        stripmd.Strip(argument.Summary),
+		}
+	default:
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceNone,
+			Title:       "",
+			Body:        "",
+		}
+	}
+	return tr
 }
 
 func (ta *TruAPI) sourceURLPreviewResolver(ctx context.Context, q claim.Claim) string {

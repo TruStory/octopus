@@ -25,6 +25,7 @@ const (
 
 var (
 	storyRegex    = regexp.MustCompile("/story/([0-9]+)$")
+	claimRegex    = regexp.MustCompile("/claim/([0-9]+)$")
 	argumentRegex = regexp.MustCompile("/story/([0-9]+)/argument/([0-9]+)$")
 	commentRegex  = regexp.MustCompile("/story/([0-9]+)/argument/([0-9]+)/comment/([0-9]+)$")
 )
@@ -51,6 +52,23 @@ func CompileIndexFile(ta *TruAPI, index []byte, route string) string {
 		}
 
 		metaTags, err := makeStoryMetaTags(ta, route, storyID)
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		return compile(index, *metaTags)
+	}
+
+	// /claim/xxx
+	matches = claimRegex.FindStringSubmatch(route)
+	if len(matches) == 2 {
+		// replace placeholder with claim details, where claim id is in matches[1]
+		claimID, err := strconv.ParseInt(matches[1], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+
+		metaTags, err := makeClaimMetaTags(ta, route, uint64(claimID))
 		if err != nil {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
@@ -164,6 +182,35 @@ func makeStoryMetaTags(ta *TruAPI, route string, storyID int64) (*Tags, error) {
 		Title:       html.EscapeString(storyObj.Body),
 		Description: fmt.Sprintf("%s: %d participant%s and %s TruStake", storyState, totalParticipants, totalParticipantsPlural, totalStake),
 		Image:       fmt.Sprintf("%s/api/v1/spotlight?story_id=%v", ta.APIContext.Config.App.URL, storyID),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
+	}, nil
+}
+
+// meta tags for a claim
+func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) {
+	ctx := context.Background()
+
+	claimObj := ta.claimResolver(ctx, queryByClaimID{ID: claimID})
+	participants := ta.claimParticipantsResolver(ctx, claimObj)
+	totalStaked := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+	arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claimID})
+	for _, argument := range arguments {
+		stakes := ta.claimArgumentStakesResolver(ctx, argument)
+		for _, stake := range stakes {
+			totalStaked = totalStaked.Add(stake.Amount)
+		}
+	}
+
+	totalParticipants := len(participants)
+	totalParticipantsPlural := "s"
+	if totalParticipants == 1 {
+		totalParticipantsPlural = ""
+	}
+
+	return &Tags{
+		Title:       html.EscapeString(claimObj.Body),
+		Description: fmt.Sprintf("%d articipant%s, %s TruStake", totalParticipants, totalParticipantsPlural, totalStaked.Amount),
+		Image:       fmt.Sprintf("%s/api/v1/spotlight?story_id=%v", ta.APIContext.Config.App.URL, claimID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

@@ -67,53 +67,14 @@ func (statistia *service) run() {
 		if err != nil {
 			panic(err)
 		}
+		from = time.Now()
 	} else {
 		// starting from today only
 		from = time.Now()
 	}
 	to = time.Now()
 
-	statistia.seedInitialBalances()
 	statistia.seedBetween(from, to)
-}
-
-// seedInitialBalances seeds the initial balances of all the users
-// whose initial balances are not tracked yet
-func (statistia *service) seedInitialBalances() {
-	fmt.Printf("----------SEEDING INITIAL BALANCES----------\n")
-	users, err := statistia.fetchUsers()
-	if err != nil {
-		panic(err)
-	}
-
-	tomorrow := time.Now().Add(24 * 1 * time.Hour)
-	tmMetrics := statistia.fetchMetrics(tomorrow)
-	for address, user := range users {
-		initialBalance := db.InitialStakeBalance{
-			Address:        address,
-			InitialBalance: filterStakeCoin(user.Coins).Amount,
-		}
-
-		// if any activity by the user is found, we will reverse calculate the initial balance
-		userMetrics, ok := tmMetrics.Users[address]
-		if ok {
-			var totalStakeEarned, totalStakeLost, totalInterestEarned, totalAtStake uint64
-			for _, categoryMetric := range userMetrics.CategoryMetrics {
-				totalStakeEarned += categoryMetric.Metrics.StakeEarned.Amount
-				totalStakeLost += categoryMetric.Metrics.StakeLost.Amount
-				totalInterestEarned += categoryMetric.Metrics.InterestEarned.Amount
-				totalAtStake += categoryMetric.Metrics.TotalAmountAtStake.Amount
-			}
-
-			// initial balance = current balance - total earned + total lost - total interest earned + at stake
-			initialBalance.InitialBalance = userMetrics.Balance.Amount - totalStakeEarned + totalStakeLost - totalInterestEarned + totalAtStake
-		}
-		fmt.Println(address, initialBalance)
-		err = statistia.dbClient.UpsertInitialStakeBalance(initialBalance)
-		if err != nil {
-			panic(err)
-		}
-	}
 }
 
 // seedBetween seeds the user daily metrics between the two given dates
@@ -143,68 +104,29 @@ func (statistia *service) seedBetween(from, to time.Time) {
 
 // seedFor seeds the user daily metrics for the given date
 func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
-	today := date
-	yesterday := date.Add(-24 * 1 * time.Hour)
+	metrics := statistia.fetchMetrics(date)
+	fmt.Printf("Seeding for... %s\n", date.Format("2006-01-02"))
 
-	yMetrics := statistia.fetchMetrics(yesterday)
-	tMetrics := statistia.fetchMetrics(today)
-	fmt.Printf("Seeding for... %s in comparison with...%s\n", today.Format("2006-01-02"), yesterday.Format("2006-01-02"))
-
-	for address, tUserMetric := range tMetrics.Users {
+	for address, userMetric := range metrics.Users {
 		fmt.Printf("\tCalculating for User... %s\n", address)
-		for categoryID, tCategoryMetric := range tUserMetric.CategoryMetrics {
-			fmt.Printf("\t\tCalculating for Category... %s\n", tCategoryMetric.CategoryName)
+		for communityID, communityMetric := range userMetric.CommunityMetrics {
 
 			// by default, assume that the user has no previous activity,
 			// thus, today's metrics become the daily metrics,
 			// thus, creating and initializing a default struct.
-			dUserMetric := db.UserMetric{
-				Address:                   address,
-				AsOnDate:                  today,
-				CategoryID:                categoryID,
-				TotalClaims:               tCategoryMetric.Metrics.TotalClaims,
-				TotalArguments:            tCategoryMetric.Metrics.TotalArguments,
-				TotalClaimsBacked:         tCategoryMetric.Metrics.TotalBackings,
-				TotalClaimsChallenged:     tCategoryMetric.Metrics.TotalChallenges,
-				TotalAmountBacked:         tCategoryMetric.Metrics.TotalAmountBacked.Amount,
-				TotalAmountChallenged:     tCategoryMetric.Metrics.TotalAmountChallenged.Amount,
-				TotalEndorsementsGiven:    tCategoryMetric.Metrics.TotalGivenEndorsements,
-				TotalEndorsementsReceived: tCategoryMetric.Metrics.TotalReceivedEndorsements,
-				TotalAmountStaked:         tCategoryMetric.Metrics.TotalAmountStaked.Amount,
-				TotalAmountAtStake:        tCategoryMetric.Metrics.TotalAmountAtStake.Amount,
-				StakeEarned:               tCategoryMetric.Metrics.StakeEarned.Amount,
-				StakeLost:                 tCategoryMetric.Metrics.StakeLost.Amount,
-				InterestEarned:            tCategoryMetric.Metrics.InterestEarned.Amount,
-				StakeBalance:              tUserMetric.RunningBalance.Amount,
-				CredEarned:                tCategoryMetric.CredEarned.Amount,
-			}
-
-			// if any activity is found on the previous day,
-			// we'll calculate the difference to get the given day's metrics.
-			yUserMetric, ok := yMetrics.Users[address]
-			if ok {
-				dUserMetric.StakeBalance = tUserMetric.RunningBalance.Minus(yUserMetric.RunningBalance).Amount
-				yCategoryMetric, ok := yUserMetric.CategoryMetrics[categoryID]
-				if ok {
-					dUserMetric.TotalClaims = tCategoryMetric.Metrics.TotalClaims - yCategoryMetric.Metrics.TotalClaims
-					dUserMetric.TotalArguments = tCategoryMetric.Metrics.TotalArguments - yCategoryMetric.Metrics.TotalArguments
-					dUserMetric.TotalClaimsBacked = tCategoryMetric.Metrics.TotalBackings - yCategoryMetric.Metrics.TotalBackings
-					dUserMetric.TotalClaimsChallenged = tCategoryMetric.Metrics.TotalChallenges - yCategoryMetric.Metrics.TotalChallenges
-					dUserMetric.TotalEndorsementsGiven = tCategoryMetric.Metrics.TotalGivenEndorsements - yCategoryMetric.Metrics.TotalGivenEndorsements
-					dUserMetric.TotalEndorsementsReceived = tCategoryMetric.Metrics.TotalReceivedEndorsements - yCategoryMetric.Metrics.TotalReceivedEndorsements
-					dUserMetric.TotalAmountBacked = tCategoryMetric.Metrics.TotalAmountBacked.Minus(yCategoryMetric.Metrics.TotalAmountBacked).Amount
-					dUserMetric.TotalAmountChallenged = tCategoryMetric.Metrics.TotalAmountChallenged.Minus(yCategoryMetric.Metrics.TotalAmountChallenged).Amount
-					dUserMetric.TotalAmountStaked = tCategoryMetric.Metrics.TotalAmountStaked.Minus(yCategoryMetric.Metrics.TotalAmountStaked).Amount
-					dUserMetric.TotalAmountAtStake = tCategoryMetric.Metrics.TotalAmountAtStake.Minus(yCategoryMetric.Metrics.TotalAmountAtStake).Amount
-					dUserMetric.StakeEarned = tCategoryMetric.Metrics.StakeEarned.Minus(yCategoryMetric.Metrics.StakeEarned).Amount
-					dUserMetric.StakeLost = tCategoryMetric.Metrics.StakeLost.Minus(yCategoryMetric.Metrics.StakeLost).Amount
-					dUserMetric.InterestEarned = tCategoryMetric.Metrics.InterestEarned.Minus(yCategoryMetric.Metrics.InterestEarned).Amount
-					dUserMetric.CredEarned = tCategoryMetric.CredEarned.Minus(yCategoryMetric.CredEarned).Amount
-				}
+			dayMetric := db.UserMetric{
+				Address:            address,
+				AsOnDate:           date,
+				CommunityID:        communityID,
+				TotalAmountStaked:  communityMetric.Metrics.TotalAmountStaked.Amount,
+				StakeEarned:        communityMetric.Metrics.StakeEarned.Amount,
+				StakeLost:          communityMetric.Metrics.StakeLost.Amount,
+				TotalAmountAtStake: communityMetric.Metrics.TotalAmountAtStake.Amount,
+				AvailableStake:     communityMetric.Metrics.AvailableStake.Amount,
 			}
 
 			fmt.Printf("\t\tSaving...\n")
-			err := statistia.saveMetrics(tx, dUserMetric)
+			err := statistia.saveMetrics(tx, dayMetric)
 			if err != nil {
 				fmt.Printf("\t\tSaving FAILED\n")
 				return err
@@ -254,7 +176,7 @@ func (statistia *service) fetchUsers() (map[string]User, error) {
 }
 
 // fetchMetrics fetches the metrics for a given day from the metrics endpoint
-func (statistia *service) fetchMetrics(date time.Time) *MetricsSummary {
+func (statistia *service) fetchMetrics(date time.Time) *SystemMetrics {
 	request, err := http.NewRequest(
 		"GET", statistia.metricsEndpoint+"?date="+date.Format("2006-01-02"), nil,
 	)
@@ -269,8 +191,8 @@ func (statistia *service) fetchMetrics(date time.Time) *MetricsSummary {
 		panic(err)
 	}
 
-	metrics := &MetricsSummary{
-		Users: make(map[string]*UserMetrics),
+	metrics := &SystemMetrics{
+		Users: make(map[string]*UserMetricsV2),
 	}
 	err = json.NewDecoder(response.Body).Decode(metrics)
 	if err != nil {

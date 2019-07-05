@@ -92,7 +92,6 @@ jobs: # basic units of work in a run
                 scp bin/pushd "$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/pushd"
                 ssh $VENICE4_USER@$VENICE4_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
                 scp bin/spotlightd "$VENICE4_USER@$VENICE4_HOST:/opt/services/spotlight/bin/spotlightd"
-                scp $OCTOPUS_LOCATION/services/spotlight/claim.svg "$VENICE4_USER@$VENICE4_HOST:/opt/services/spotlight/claim.svg"
                 ssh $VENICE4_USER@$VENICE4_HOST "cd /opt/services/spotlight && docker-compose up --build -d spotlightd"
                 echo "deploying to venice4"
             elif [ "${CIRCLE_BRANCH}" == "develop" ]
@@ -106,7 +105,6 @@ jobs: # basic units of work in a run
                 scp bin/pushd "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd"
                 ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
                 scp bin/spotlightd "$DEVNET_USER@$DEVNET_HOST:/opt/services/spotlight/bin/spotlightd"
-                scp $OCTOPUS_LOCATION/services/spotlight/claim.svg "$DEVNET_USER@$DEVNET_HOST:/opt/services/spotlight/claim.svg"
                 ssh $DEVNET_USER@$DEVNET_HOST "cd /opt/services/spotlight && docker-compose up --build -d spotlightd"
                 echo "deployed to devnet"
             fi

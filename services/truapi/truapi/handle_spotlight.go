@@ -23,13 +23,19 @@ func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 	storyID := req.FormValue("story_id")
-	if storyID == "" {
-		render.Error(res, req, "provide a valid story", http.StatusBadRequest)
+	argumentID := req.FormValue("argument_id")
+	if storyID == "" && argumentID == "" {
+		render.Error(res, req, "provide a valid story or argument", http.StatusBadRequest)
 		return
 	}
 
 	// preparing the request
-	spotlightURL := strings.Replace("http://localhost:54448/story/STORY_ID/spotlight", "STORY_ID", storyID, -1)
+	spotlightURL := ""
+	if storyID != "" {
+		spotlightURL = strings.Replace("http://localhost:54448/story/STORY_ID/spotlight", "STORY_ID", storyID, -1)
+	} else if argumentID != "" {
+		spotlightURL = strings.Replace("http://localhost:54448/argument/ARGUMENT_ID/spotlight", "ARGUMENT_ID", argumentID, -1)
+	}
 	request, err := http.NewRequest("GET", spotlightURL, req.Body)
 	if err != nil {
 		render.Error(res, req, err.Error(), http.StatusBadRequest)

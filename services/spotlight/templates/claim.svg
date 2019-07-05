@@ -38,17 +38,17 @@
             <path d="M1688,780.833 L1716,780.833" id="Shape" stroke="#000000" stroke-width="5" stroke-linecap="round"></path>
             <path d="M1688,790.167 L1702,790.167" id="Shape" stroke="#000000" stroke-width="5" stroke-linecap="round"></path>
             <path d="M1685.67,810.198 L1685.67,801.667 C1685.67,801.114 1685.22,800.667 1684.67,800.667 L1679.67,800.667 C1679.11,800.667 1678.67,800.219 1678.67,799.667 L1678.67,771.333 C1678.67,770.781 1679.11,770.333 1679.67,770.333 L1724.33,770.333 C1724.89,770.333 1725.33,770.781 1725.33,771.333 L1725.33,799.667 C1725.33,800.219 1724.89,800.667 1724.33,800.667 L1700.03,800.667 C1699.79,800.667 1699.57,800.749 1699.39,800.898 L1687.31,810.966 C1686.66,811.509 1685.67,811.046 1685.67,810.198 Z" id="Shape" stroke="#000000" stroke-width="5"></path>
-            <text id="$PLACEHOLDER__CLAIM_LINE_1" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
-                <tspan x="150" y="288.75">$PLACEHOLDER__CLAIM_LINE_1</tspan>
+            <text id="$PLACEHOLDER__BODY_LINE_1" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
+                <tspan x="150" y="288.75">$PLACEHOLDER__BODY_LINE_1</tspan>
             </text>
-            <text id="$PLACEHOLDER__CLAIM_LINE_2" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
-                <tspan x="150" y="413.75">$PLACEHOLDER__CLAIM_LINE_2</tspan>
+            <text id="$PLACEHOLDER__BODY_LINE_2" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
+                <tspan x="150" y="413.75">$PLACEHOLDER__BODY_LINE_2</tspan>
             </text>
-            <text id="$PLACEHOLDER__CLAIM_LINE_3" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
-                <tspan x="150" y="538.75">$PLACEHOLDER__CLAIM_LINE_3</tspan>
+            <text id="$PLACEHOLDER__BODY_LINE_3" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
+                <tspan x="150" y="538.75">$PLACEHOLDER__BODY_LINE_3</tspan>
             </text>
-            <text id="$PLACEHOLDER__CLAIM_LINE_4" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
-                <tspan x="150" y="663.75">$PLACEHOLDER__CLAIM_LINE_4</tspan>
+            <text id="$PLACEHOLDER__BODY_LINE_4" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
+                <tspan x="150" y="663.75">$PLACEHOLDER__BODY_LINE_4</tspan>
             </text>
             <text id="TruStory" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="50" font-weight="bold">
                 <tspan x="1624.54" y="130.5">TruStory</tspan>

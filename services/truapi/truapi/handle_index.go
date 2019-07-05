@@ -228,7 +228,7 @@ func makeStoryMetaTags(ta *TruAPI, route string, storyID int64) (*Tags, error) {
 	return &Tags{
 		Title:       html.EscapeString(storyObj.Body),
 		Description: fmt.Sprintf("%d participant%s, %s TruStake", totalParticipants, totalParticipantsPlural, totalStake),
-		Image:       fmt.Sprintf("%s/api/v1/spotlight?story_id=%v", ta.APIContext.Config.App.URL, storyID),
+		Image:       joinPath(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

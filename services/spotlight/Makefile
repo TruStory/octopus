@@ -1,11 +1,13 @@
 PACKAGES=$(shell go list ./...)
 
 build:
+	$(GO_BIN) get -u github.com/gobuffalo/packr/v2/packr2
 	packr2
 	go build -o ../../bin/spotlightd *.go
 	packr2 clean
 
 build-linux:
+	$(GO_BIN) get -u github.com/gobuffalo/packr/v2/packr2
 	packr2
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0  go build -o ../../bin/spotlightd *.go
 	packr2 clean
@@ -14,6 +16,7 @@ run:
 	go run *.go
 
 build-docker:
+	$(GO_BIN) get -u github.com/gobuffalo/packr/v2/packr2
 	packr2
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0  go build -o bin/spotlightd 
 	packr2 clean

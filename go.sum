@@ -27,6 +27,10 @@ github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 h1:3trCIB5GsAOIY8Nxl
 github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56/go.mod h1:D0JMgToj/WdxCgd30Kc1UcA9E+WdZoJqeVOuYW7iTBM=
 github.com/TruStory/truchain v0.1.26-0.20190704001956-881a311baedb h1:cUWV8vPpb+tfg7usMFVPVh/Rysy7P+flbvfeJjUe67I=
 github.com/TruStory/truchain v0.1.26-0.20190704001956-881a311baedb/go.mod h1:6+T+cueyZi+dsvT+9flvXwqpSCYdRmvV5pai/b39brw=
+github.com/TruStory/truchain v0.1.26-0.20190705171917-9a1c1e54710b h1:rqHcQ+zQw3vSv2fx6JuQ2lt9Dbk0ZwpfxpesNpbA3MU=
+github.com/TruStory/truchain v0.1.26-0.20190705171917-9a1c1e54710b/go.mod h1:6+T+cueyZi+dsvT+9flvXwqpSCYdRmvV5pai/b39brw=
+github.com/TruStory/truchain v0.1.26-0.20190705183417-d7b1a04cf0ec h1:ShseM4EQZsr35YDa/Rxv6r79qn2xgmALwwW0e7g0cag=
+github.com/TruStory/truchain v0.1.26-0.20190705183417-d7b1a04cf0ec/go.mod h1:6+T+cueyZi+dsvT+9flvXwqpSCYdRmvV5pai/b39brw=
 github.com/VividCortex/gohistogram v1.0.0 h1:6+hBz+qvs0JOrrNhhmR7lFxo5sINxBCGXrdtl/UvroE=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=

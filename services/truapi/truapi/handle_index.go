@@ -291,7 +291,7 @@ func makeClaimArgumentMetaTags(ta *TruAPI, route string, claimID uint64, argumen
 	return &Tags{
 		Title:       fmt.Sprintf("%s made an argument", creatorObj.FullName),
 		Description: html.EscapeString(stripmd.Strip(argumentObj.Summary)),
-		Image:       joinPath(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
+		Image:       fmt.Sprintf("%s/api/v1/spotlight?argument_id=%v", ta.APIContext.Config.App.URL, argumentID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

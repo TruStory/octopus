@@ -24,9 +24,12 @@ const (
 )
 
 var (
-	storyRegex    = regexp.MustCompile("/story/([0-9]+)$")
-	argumentRegex = regexp.MustCompile("/story/([0-9]+)/argument/([0-9]+)$")
-	commentRegex  = regexp.MustCompile("/story/([0-9]+)/argument/([0-9]+)/comment/([0-9]+)$")
+	storyRegex         = regexp.MustCompile("/story/([0-9]+)$")
+	claimRegex         = regexp.MustCompile("/claim/([0-9]+)$")
+	argumentRegex      = regexp.MustCompile("/story/([0-9]+)/argument/([0-9]+)$")
+	claimArgumentRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)$")
+	commentRegex       = regexp.MustCompile("/story/([0-9]+)/argument/([0-9]+)/comment/([0-9]+)$")
+	claimCommentRegex  = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/comment/([0-9]+)$")
 )
 
 // Tags defines the struct containing all the request Meta Tags for a page
@@ -57,6 +60,23 @@ func CompileIndexFile(ta *TruAPI, index []byte, route string) string {
 		return compile(index, *metaTags)
 	}
 
+	// /claim/xxx
+	matches = claimRegex.FindStringSubmatch(route)
+	if len(matches) == 2 {
+		// replace placeholder with claim details, where claim id is in matches[1]
+		claimID, err := strconv.ParseInt(matches[1], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+
+		metaTags, err := makeClaimMetaTags(ta, route, uint64(claimID))
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		return compile(index, *metaTags)
+	}
+
 	// /story/xxx/argument/xxx
 	matches = argumentRegex.FindStringSubmatch(route)
 	if len(matches) == 3 {
@@ -73,6 +93,28 @@ func CompileIndexFile(ta *TruAPI, index []byte, route string) string {
 		}
 
 		metaTags, err := makeArgumentMetaTags(ta, route, storyID, argumentID)
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		return compile(index, *metaTags)
+	}
+
+	// /claim/xxx/argument/xxx
+	matches = claimArgumentRegex.FindStringSubmatch(route)
+	if len(matches) == 3 {
+		// replace placeholder with claim details, where claim id is in matches[1]
+		claimID, err := strconv.ParseUint(matches[1], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		argumentID, err := strconv.ParseUint(matches[2], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+
+		metaTags, err := makeClaimArgumentMetaTags(ta, route, claimID, argumentID)
 		if err != nil {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
@@ -100,6 +142,33 @@ func CompileIndexFile(ta *TruAPI, index []byte, route string) string {
 		}
 
 		metaTags, err := makeCommentMetaTags(ta, route, storyID, argumentID, commentID)
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		return compile(index, *metaTags)
+	}
+
+	// /claim/xxx/argument/xxx/comment/xxx
+	matches = claimCommentRegex.FindStringSubmatch(route)
+	if len(matches) == 4 {
+		// replace placeholder with claim details, where claim id is in matches[1]
+		claimID, err := strconv.ParseUint(matches[1], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		argumentID, err := strconv.ParseUint(matches[2], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		commentID, err := strconv.ParseInt(matches[3], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+
+		metaTags, err := makeClaimCommentMetaTags(ta, route, claimID, argumentID, commentID)
 		if err != nil {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
@@ -149,10 +218,6 @@ func makeStoryMetaTags(ta *TruAPI, route string, storyID int64) (*Tags, error) {
 	backingTotalAmount := ta.backingPoolResolver(ctx, storyObj)
 	challengeTotalAmount := ta.challengePoolResolver(ctx, storyObj)
 
-	storyState := "Active"
-	if storyObj.Status == story.Expired {
-		storyState = "Completed"
-	}
 	totalParticipants := len(backings) + len(challenges)
 	totalParticipantsPlural := "s"
 	if totalParticipants == 1 {
@@ -162,8 +227,37 @@ func makeStoryMetaTags(ta *TruAPI, route string, storyID int64) (*Tags, error) {
 
 	return &Tags{
 		Title:       html.EscapeString(storyObj.Body),
-		Description: fmt.Sprintf("%s: %d participant%s and %s TruStake", storyState, totalParticipants, totalParticipantsPlural, totalStake),
-		Image:       fmt.Sprintf("%s/api/v1/spotlight?story_id=%v", ta.APIContext.Config.App.URL, storyID),
+		Description: fmt.Sprintf("%d participant%s, %s TruStake", totalParticipants, totalParticipantsPlural, totalStake),
+		Image:       joinPath(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
+	}, nil
+}
+
+// meta tags for a claim
+func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) {
+	ctx := context.Background()
+
+	claimObj := ta.claimResolver(ctx, queryByClaimID{ID: claimID})
+	participants := ta.claimParticipantsResolver(ctx, claimObj)
+	totalStaked := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+	arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claimID})
+	for _, argument := range arguments {
+		stakes := ta.claimArgumentStakesResolver(ctx, argument)
+		for _, stake := range stakes {
+			totalStaked = totalStaked.Add(stake.Amount)
+		}
+	}
+
+	totalParticipants := len(participants)
+	totalParticipantsPlural := "s"
+	if totalParticipants == 1 {
+		totalParticipantsPlural = ""
+	}
+
+	return &Tags{
+		Title:       html.EscapeString(claimObj.Body),
+		Description: fmt.Sprintf("%d participant%s, %s TruStake", totalParticipants, totalParticipantsPlural, totalStaked.Amount.Quo(sdk.NewInt(app.Shanev))),
+		Image:       fmt.Sprintf("%s/api/v1/spotlight?story_id=%v", ta.APIContext.Config.App.URL, claimID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }
@@ -182,6 +276,22 @@ func makeArgumentMetaTags(ta *TruAPI, route string, storyID int64, argumentID in
 		Title:       fmt.Sprintf("%s made an argument in %s", creatorObj.FullName, categoryObj.Title),
 		Description: html.EscapeString(stripmd.Strip(argumentObj.Body)),
 		Image:       joinPath(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
+	}, nil
+}
+
+func makeClaimArgumentMetaTags(ta *TruAPI, route string, claimID uint64, argumentID uint64) (*Tags, error) {
+	ctx := context.Background()
+	argumentObj := ta.claimArgumentResolver(ctx, queryByArgumentID{ID: argumentID})
+	creatorObj, err := ta.DBClient.TwitterProfileByAddress(argumentObj.Creator.String())
+	if err != nil {
+		// if error, return default
+		return nil, err
+	}
+	return &Tags{
+		Title:       fmt.Sprintf("%s made an argument", creatorObj.FullName),
+		Description: html.EscapeString(stripmd.Strip(argumentObj.Summary)),
+		Image:       fmt.Sprintf("%s/api/v1/spotlight?argument_id=%v", ta.APIContext.Config.App.URL, argumentID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }
@@ -205,6 +315,28 @@ func makeCommentMetaTags(ta *TruAPI, route string, storyID int64, argumentID int
 	}
 	return &Tags{
 		Title:       fmt.Sprintf("%s posted a comment in %s", creatorObj.FullName, categoryObj.Title),
+		Description: html.EscapeString(stripmd.Strip(commentObj.Body)),
+		Image:       joinPath(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
+	}, nil
+}
+
+func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, argumentID uint64, commentID int64) (*Tags, error) {
+	ctx := context.Background()
+	comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: claimID})
+	commentObj := db.Comment{}
+	for _, comment := range comments {
+		if comment.ID == commentID {
+			commentObj = comment
+		}
+	}
+	creatorObj, err := ta.DBClient.TwitterProfileByAddress(commentObj.Creator)
+	if err != nil {
+		// if error, return default
+		return nil, err
+	}
+	return &Tags{
+		Title:       fmt.Sprintf("%s posted a comment", creatorObj.FullName),
 		Description: html.EscapeString(stripmd.Strip(commentObj.Body)),
 		Image:       joinPath(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),

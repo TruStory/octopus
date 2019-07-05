@@ -597,7 +597,7 @@ func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByA
 	}
 
 	transactions := make([]bank.Transaction, 0)
-	err = staking.ModuleCodec.UnmarshalJSON(res, &transactions)
+	err = bank.ModuleCodec.UnmarshalJSON(res, &transactions)
 	if err != nil {
 		return []bank.Transaction{}
 	}

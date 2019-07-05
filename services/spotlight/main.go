@@ -246,6 +246,7 @@ func argumentSpotlightHandler(s *service) http.Handler {
 
 		ifs := make(wkhtmltox.ImageFlagSet)
 		ifs.SetCacheDir(filepath.Join(s.storagePath, "web-cache"))
+		ifs.SetWidth(800)
 
 		renderURL := fmt.Sprintf("http://localhost:%s/argument/%s/render-spotlight", s.port, argumentID)
 		imageName := fmt.Sprintf("argument-%s.png", argumentID)

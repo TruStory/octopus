@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>TruStory</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Poppins:400,700&display=swap" rel="stylesheet">
+</head>
+
+<style>
+    .clearfix::after {
+        content: "";
+        clear: both;
+        display: table;
+    }
+
+    html,
+    body {
+        width: 1200px;
+        height: 630px;
+        margin: 0px;
+        padding: 0px;
+        font-family: 'Poppins', sans-serif;
+        color: #000000;
+        background: radial-gradient(669.00px at 64.48% 43.66%, #C5B7FF 0%, #8C70FF 100%);
+    }
+
+    header {
+        padding: 35px 35px 10px;
+    }
+
+    #claim-heading {
+        font-size: 35px;
+        line-height: 35px;
+    }
+
+    #logo-heading {
+        font-size: 20px;
+        font-weight: bold;
+        line-height: 35px;
+        float: right;
+    }
+
+    section#claim {
+        font-family: Poppins;
+        font-style: normal;
+        font-weight: bold;
+        font-size: 30px;
+        line-height: 50px;
+        padding: 0px 100px;
+        height: 300px;
+    }
+
+    section.meta:first-child {
+        padding-top: 35px;
+    }
+
+    section.meta {
+        padding: 15px 35px 10px;
+        font-size: 25px;
+        line-height: 25px;
+    }
+
+    section.meta .meta-value {
+        float: right;
+    }
+
+    #argument-icon {
+        width: 30px;
+        height: 30px;
+        float: left;
+        margin-right: 10px;
+    }
+
+    div#creator div.avatar {
+        float: left;
+    }
+
+    div#creator div#name p {
+        font-size: 20px;
+        font-weight: bold;
+        padding-top: 3px;
+        margin: 0;
+    }
+
+    div#creator div.avatar img {
+        width: 30px;
+        border-radius: 60px;
+        margin-right: 5px;
+    }
+</style>
+
+<body>
+
+    <header>
+        <span id="claim-heading">Claim</span>
+        <span id="logo-heading">TruStory</span>
+        <!-- <img src="https://www.trustory.io/images/logos/Logo.svg" id="logo"> -->
+    </header>
+
+    <section id="claim">
+        <p>{{.Story.Body}}</p>
+    </section>
+
+    <section id="meta-holder">
+        <section class="meta">
+            <span class="meta-heading">Arguments</span>
+            <span class="meta-value">
+                <svg id="argument-icon" width="56" height="56" viewBox="0 0 56 56" fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 19.8333H42" stroke="black" stroke-width="5" stroke-linecap="round" />
+                    <path d="M14 29.1667H28" stroke="black" stroke-width="5" stroke-linecap="round" />
+                    <path
+                        d="M11.6665 49.1982V40.6666C11.6665 40.1143 11.2188 39.6666 10.6665 39.6666H5.6665C5.11422 39.6666 4.6665 39.2189 4.6665 38.6666V10.3333C4.6665 9.78097 5.11422 9.33325 5.6665 9.33325H50.3332C50.8855 9.33325 51.3332 9.78097 51.3332 10.3333V38.6666C51.3332 39.2189 50.8855 39.6666 50.3332 39.6666H26.0286C25.7946 39.6666 25.5681 39.7486 25.3884 39.8984L13.3067 49.9664C12.6554 50.5092 11.6665 50.046 11.6665 49.1982Z"
+                        stroke="black" stroke-width="5" />
+                </svg>
+                {{.Story.GetArgumentCount}}
+            </span>
+        </section>
+        <section class="meta">
+            <span class="meta-heading">Participants</span>
+            <span class="meta-value">
+                <div id="creator" class="clearfix">
+                    {{ range $participant := .Story.GetTopParticipants}}
+                    <div class="avatar">
+                        <img src="{{$participant.TwitterProfile.AvatarURI}}">
+                    </div>
+                    {{ end }}
+                </div>
+            </span>
+        </section>
+        {{ if .Story.HasSource }}
+        <section class="meta">
+            <span class="meta-heading">Source</span>
+            <span class="meta-value">{{.Story.Source}}</span>
+        </section>
+        {{ end }}
+    </section>
+
+</body>
+
+</html>

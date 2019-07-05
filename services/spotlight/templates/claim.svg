@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1920px" height="1080px" viewBox="0 0 1920 1080" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 47.1 (45422) - http://www.bohemiancoding.com/sketch -->
+    <title>claim</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <radialGradient cx="64.4791667%" cy="43.6574074%" fx="64.4791667%" fy="43.6574074%" r="0.0520833333%" gradientTransform="translate(0.644792,0.436574),scale(0.562500,1.000000),translate(-0.644792,-0.436574)" id="radialGradient-1">
+            <stop stop-color="#CFE2FF" offset="0%"></stop>
+            <stop stop-color="#97BEFA" offset="100%"></stop>
+        </radialGradient>
+        <style type="text/css">
+            @import url('https://fonts.googleapis.com/css?family=Poppins:400,700');
+        </style>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="claim">
+            <rect id="Rectangle-path" fill="url(#radialGradient-1)" fill-rule="nonzero" x="0" y="0" width="1920" height="1080"></rect>
+            <path d="M1047.13,343.208 L1142.16,316.698 C1184.59,304.859 1228.81,330.004 1240.74,372.756 C1252.67,415.508 1227.85,459.912 1185.41,471.751 L1040.64,512.139 C1025.62,516.33 1010.01,507.456 1005.79,492.319 L991.807,442.203 C980.083,399.394 1004.7,355.047 1047.13,343.208 Z" id="Shape" fill="#67A3FF" fill-rule="nonzero"></path>
+            <path d="M1152.04,684.726 C1194.48,672.887 1219.29,628.483 1207.37,585.731 C1195.44,542.979 1151.22,517.834 1108.78,529.673 L1059.04,543.551 C1044.01,547.743 1035.25,563.415 1039.48,578.552 L1053.46,628.668 C1065.59,671.363 1109.6,696.564 1152.04,684.726 Z" id="Shape" fill="#67A3FF" fill-rule="nonzero"></path>
+            <path d="M868.333,427.189 L773.308,453.699 C730.871,465.538 706.055,509.942 717.982,552.694 C729.909,595.445 774.128,620.59 816.564,608.751 L961.335,568.363 C976.36,564.172 985.119,548.5 980.896,533.363 L966.915,483.247 C954.785,440.551 910.769,415.35 868.333,427.189 Z" id="Shape" fill="#67A3FF" fill-rule="nonzero"></path>
+            <path d="M975.094,751.18 C932.658,763.019 888.439,737.874 876.512,695.122 C864.585,652.371 889.401,607.967 931.838,596.128 L981.584,582.25 C996.609,578.058 1012.22,586.933 1016.44,602.07 L1030.42,652.186 C1042.14,694.994 1017.53,739.341 975.094,751.18 Z" id="Shape" fill="#67A3FF" fill-rule="nonzero"></path>
+            <path d="M1021.65,346.35 L1119.11,299.441 C1161.37,279.099 1212.45,297.178 1232.96,339.796 C1253.48,382.414 1235.74,433.616 1193.48,453.958 L1045,525.423 C1030.85,532.234 1013.78,526.207 1006.9,511.911 L982.168,460.522 C982.167,460.521 982.167,460.519 982.166,460.517 C961.85,417.785 979.396,366.686 1021.65,346.35 Z M1216.89,555.796 C1237.41,598.414 1219.67,649.616 1177.41,669.958 C1135.16,690.294 1084.28,672.133 1063.55,629.6 C1063.55,629.598 1063.55,629.595 1063.55,629.592 L1038.81,578.204 C1031.93,563.908 1037.87,546.809 1052.02,539.998 L1103.04,515.441 C1145.3,495.099 1196.38,513.178 1216.89,555.796 Z M756.346,474.045 L853.803,427.137 C896.054,406.801 946.936,424.962 967.663,467.496 C967.664,467.498 967.665,467.5 967.666,467.502 L992.4,518.891 C999.281,533.187 993.345,550.286 979.195,557.097 L830.718,628.562 C788.455,648.904 737.374,630.826 716.86,588.208 C696.347,545.589 714.083,494.388 756.346,474.045 Z M1009.57,750.745 C967.302,771.087 916.221,753.008 895.707,710.39 C875.194,667.772 892.93,616.57 935.193,596.228 L986.212,571.671 C1000.36,564.86 1017.43,570.887 1024.31,585.184 L1049.05,636.572 C1049.05,636.574 1049.05,636.575 1049.05,636.577 C1069.36,679.31 1051.82,730.408 1009.57,750.745 Z" id="Shape" stroke="#0064FF" stroke-width="5"></path>
+            <text id="Arguments" fill="#000000" font-family="Poppins-Regular, Poppins" font-size="50" font-weight="normal">
+                <tspan x="75" y="806">Arguments</tspan>
+            </text>
+            <text id="Claim" fill="#000000" font-family="Poppins-Regular, Poppins" font-size="75" font-weight="normal">
+                <tspan x="75" y="138.75">Claim</tspan>
+            </text>
+            <text id="Created-By" fill="#000000" font-family="Poppins-Regular, Poppins" font-size="50" font-weight="normal">
+                <tspan x="75" y="905">Created By</tspan>
+            </text>
+            <text id="Source" fill="#000000" font-family="Poppins-Regular, Poppins" font-size="50" font-weight="normal">
+                <tspan x="75" y="1004">Source</tspan>
+            </text>
+            <text fill="black" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="50" letter-spacing="0em"><tspan x="1813" y="806" text-anchor="end">$PLACEHOLDER__ARGUMENT_COUNT</tspan></text>
+            <text fill="black" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="50" letter-spacing="0em"><tspan x="1813" y="905" text-anchor="end">$PLACEHOLDER__CREATOR</tspan></text>
+            <text fill="black" xml:space="preserve" style="white-space: pre" font-family="Poppins" font-size="50" letter-spacing="0em"><tspan x="1813" y="1004" text-anchor="end">$PLACEHOLDER__SOURCE</tspan></text>
+            <path d="M1688,780.833 L1716,780.833" id="Shape" stroke="#000000" stroke-width="5" stroke-linecap="round"></path>
+            <path d="M1688,790.167 L1702,790.167" id="Shape" stroke="#000000" stroke-width="5" stroke-linecap="round"></path>
+            <path d="M1685.67,810.198 L1685.67,801.667 C1685.67,801.114 1685.22,800.667 1684.67,800.667 L1679.67,800.667 C1679.11,800.667 1678.67,800.219 1678.67,799.667 L1678.67,771.333 C1678.67,770.781 1679.11,770.333 1679.67,770.333 L1724.33,770.333 C1724.89,770.333 1725.33,770.781 1725.33,771.333 L1725.33,799.667 C1725.33,800.219 1724.89,800.667 1724.33,800.667 L1700.03,800.667 C1699.79,800.667 1699.57,800.749 1699.39,800.898 L1687.31,810.966 C1686.66,811.509 1685.67,811.046 1685.67,810.198 Z" id="Shape" stroke="#000000" stroke-width="5"></path>
+            <text id="$PLACEHOLDER__BODY_LINE_1" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
+                <tspan x="150" y="288.75">$PLACEHOLDER__BODY_LINE_1</tspan>
+            </text>
+            <text id="$PLACEHOLDER__BODY_LINE_2" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
+                <tspan x="150" y="413.75">$PLACEHOLDER__BODY_LINE_2</tspan>
+            </text>
+            <text id="$PLACEHOLDER__BODY_LINE_3" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
+                <tspan x="150" y="538.75">$PLACEHOLDER__BODY_LINE_3</tspan>
+            </text>
+            <text id="$PLACEHOLDER__BODY_LINE_4" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
+                <tspan x="150" y="663.75">$PLACEHOLDER__BODY_LINE_4</tspan>
+            </text>
+            <text id="TruStory" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="50" font-weight="bold">
+                <tspan x="1624.54" y="130.5">TruStory</tspan>
+            </text>
+        </g>
+    </g>
+</svg>

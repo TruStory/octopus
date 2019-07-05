@@ -4,6 +4,7 @@ import (
 	"time"
 
 	app "github.com/TruStory/truchain/types"
+	"github.com/TruStory/truchain/x/bank"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 )
@@ -33,31 +34,57 @@ type CommentNotificationRequest struct {
 
 // V2 Truchain structs
 
-// AppAccount will be imported from truchain in the future
+// AppAccount represents graphql serializable representation of a cosmos account
 type AppAccount struct {
-	BaseAccount
-
-	EarnedStake []EarnedCoin
-	SlashCount  int
-	IsJailed    bool
-	JailEndTime time.Time
-	CreatedTime time.Time
+	Address       string
+	AccountNumber uint64
+	Coins         sdk.Coins
+	Sequence      uint64
+	Pubkey        tcmn.HexBytes
+	SlashCount    uint
+	IsJailed      bool
+	JailEndTime   time.Time
+	CreatedTime   time.Time
 }
 
-// EarnedCoin will be imported from truchain in the future
+// EarnedCoin represents trusteak earned in each category
 type EarnedCoin struct {
 	sdk.Coin
-
-	CommunityID uint64
+	CommunityID string
 }
 
-// BaseAccount will be imported from truchain in the future
-type BaseAccount struct {
-	Address       string
-	Coins         sdk.Coins
-	PubKey        tcmn.HexBytes
-	AccountNumber uint64
-	Sequence      uint64
+// TransactionReference represents an entity referenced in a transaction
+type TransactionReference struct {
+	ReferenceID uint64 `graphql:"referenceId"`
+	Type        TransactionReferenceType
+	Title       string
+	Body        string
+}
+
+// TransactionReferenceType defines the type of ReferenceID in a transaction
+type TransactionReferenceType int8
+
+// Types of reference
+const (
+	ReferenceNone TransactionReferenceType = iota
+	ReferenceArgument
+	ReferenceClaim
+	ReferenceAppAccount
+)
+
+// TransactionTypeTitle defines user readable text for each transaction type
+var TransactionTypeTitle = []string{
+	bank.TransactionRegistration:             "Account Created",
+	bank.TransactionBacking:                  "Wrote an Argument",
+	bank.TransactionBackingReturned:          "Refund: Wrote an Argument",
+	bank.TransactionChallenge:                "Wrote an Argument",
+	bank.TransactionChallengeReturned:        "Refund: Wrote an Argument",
+	bank.TransactionUpvote:                   "Agreed with %s",
+	bank.TransactionUpvoteReturned:           "Refund: Agreed with %s",
+	bank.TransactionInterestArgumentCreation: "Reward: Wrote an Argument",
+	bank.TransactionInterestUpvoteReceived:   "Reward: Agree received from %s",
+	bank.TransactionInterestUpvoteGiven:      "Reward: Agreed with %s",
+	bank.TransactionRewardPayout:             "Reward: Invite a friend",
 }
 
 // CommunityIconImage contains regular and active icon images
@@ -65,41 +92,6 @@ type CommunityIconImage struct {
 	Regular string
 	Active  string
 }
-
-// Argument will be imported from truchain in the future
-type Argument struct {
-	Stake
-
-	ClaimID      uint64
-	Summary      string
-	Body         string
-	UpvotedCount uint64
-	UpvotedStake sdk.Coin
-	SlashCount   int
-	IsUnhelpful  bool
-	UpdatedTime  time.Time
-}
-
-// Stake will be imported from truchain in the future
-type Stake struct {
-	ID          uint64
-	ArgumentID  uint64
-	Type        StakeType
-	Stake       sdk.Coin
-	Creator     sdk.AccAddress
-	CreatedTime time.Time
-	EndTime     time.Time
-}
-
-// StakeType will be imported from truchain in the future
-type StakeType int
-
-// will be imported from truchain in the future
-const (
-	Backing   StakeType = iota // 0
-	Challenge                  // 1
-	Upvote                     // 2
-)
 
 // Slash will be imported from truchain in the future
 type Slash struct {

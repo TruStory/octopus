@@ -2,7 +2,6 @@ PACKAGES=$(shell go list ./...)
 
 default: check_deps check_lint build
 
-
 check_deps:
 	@echo "--> Checking deps"
 	@go mod download
@@ -12,6 +11,12 @@ check_lint:
 	@golangci-lint run --verbose
 
 build:
+	make -C services/push build
+	make -C services/uploader build
+	make -C services/spotlight build
+	make -C services/truapi build
+
+build-linux:
 	make -C services/push build-linux
 	make -C services/uploader build-linux
 	make -C services/spotlight build-linux

@@ -2,23 +2,23 @@ package truapi
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"path"
 	"sort"
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	app "github.com/TruStory/truchain/types"
-	"github.com/TruStory/truchain/x/argument"
-	"github.com/TruStory/truchain/x/backing"
-	"github.com/TruStory/truchain/x/challenge"
+	"github.com/TruStory/truchain/x/account"
+	"github.com/TruStory/truchain/x/bank"
 	"github.com/TruStory/truchain/x/claim"
 	"github.com/TruStory/truchain/x/community"
-	"github.com/TruStory/truchain/x/users"
+	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/julianshen/og"
-	amino "github.com/tendermint/go-amino"
+	tcmn "github.com/tendermint/tendermint/libs/common"
+	stripmd "github.com/writeas/go-strip-markdown"
 )
 
 // ArgumentFilter defines filters for claimArguments
@@ -31,16 +31,8 @@ const (
 	ArgumentAgreed
 )
 
-type queryByID struct {
-	ID uint64 `json:"id"`
-}
-
 type queryByCommunityID struct {
-	CommunityID uint64 `json:"community_id"`
-}
-
-type queryByCommunitySlug struct {
-	CommunitySlug string `graphql:"communitySlug"`
+	CommunityID string `graphql:"communityId"`
 }
 
 type queryByClaimID struct {
@@ -48,6 +40,10 @@ type queryByClaimID struct {
 }
 
 type queryByArgumentID struct {
+	ID uint64 `graphql:"id"`
+}
+
+type queryByStakeID struct {
 	ID uint64 `graphql:"id"`
 }
 
@@ -61,14 +57,9 @@ type queryClaimArgumentParams struct {
 	Filter  ArgumentFilter `graphql:"filter,optional"`
 }
 
-type queryByCommunitySlugAndFeedFilter struct {
-	CommunitySlug string     `graphql:",optional"`
-	FeedFilter    FeedFilter `graphql:",optional"`
-}
-
-type argumentMeta struct {
-	Vote         bool
-	UpvotedCount uint64
+type queryByCommunityIDAndFeedFilter struct {
+	CommunityID string     `graphql:"communityId,optional"`
+	FeedFilter  FeedFilter `graphql:"feedFilter,optional"`
 }
 
 // claimMetricsBest represents all-time claim metrics
@@ -88,175 +79,181 @@ type claimMetricsTrending struct {
 	TotalStakes    int64
 }
 
-// SummaryLength is amount of characters allowed when summarizing an argument
-const SummaryLength = 140
-
-func convertStoryArgumentToClaimArgument(storyArgument argument.Argument, argumentMeta argumentMeta) Argument {
-	bodyLength := len(storyArgument.Body)
-	if bodyLength > SummaryLength {
-		bodyLength = SummaryLength
-	}
-	summary := storyArgument.Body[:bodyLength]
-	var stakeType StakeType
-	if argumentMeta.Vote {
-		stakeType = Backing
-	} else {
-		stakeType = Challenge
-	}
-	claimArgument := Argument{
-		Stake: Stake{
-			ID:          uint64(storyArgument.ID),
-			Creator:     storyArgument.Creator,
-			CreatedTime: storyArgument.Timestamp.CreatedTime,
-			Type:        stakeType,
-		},
-		ClaimID:      uint64(storyArgument.StoryID),
-		UpvotedCount: argumentMeta.UpvotedCount,
-		Body:         storyArgument.Body,
-		Summary:      summary,
-	}
-	return claimArgument
-}
-
-func convertBackingToStake(backing backing.Backing) Stake {
-	return Stake{
-		ID:          uint64(backing.ID()),
-		ArgumentID:  uint64(backing.ArgumentID),
-		Type:        Upvote,
-		Stake:       backing.Amount(),
-		Creator:     backing.Creator(),
-		CreatedTime: backing.Timestamp().CreatedTime,
-		EndTime:     backing.Timestamp().UpdatedTime,
-	}
-}
-
-func convertChallengeToStake(challenge challenge.Challenge) Stake {
-	return Stake{
-		ID:          uint64(challenge.ID()),
-		ArgumentID:  uint64(challenge.ArgumentID),
-		Type:        Upvote,
-		Stake:       challenge.Amount(),
-		Creator:     challenge.Creator(),
-		CreatedTime: challenge.Timestamp().CreatedTime,
-		EndTime:     challenge.Timestamp().UpdatedTime,
-	}
-}
-
-func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) AppAccount {
-	addresses := users.QueryUsersByAddressesParams{
-		Addresses: []string{q.ID},
-	}
-
-	res, err := ta.RunQuery("users/addresses", addresses)
+func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *AppAccount {
+	address, err := sdk.AccAddressFromBech32(q.ID)
 	if err != nil {
-		return AppAccount{}
+		fmt.Println("account AccAddressFromBech32 err: ", err)
+		return nil
 	}
 
-	users := new([]users.User)
-	err = amino.UnmarshalJSON(res, users)
+	queryRoute := path.Join(account.QuerierRoute, account.QueryAppAccount)
+	res, err := ta.Query(queryRoute, account.QueryAppAccountParams{Address: address}, account.ModuleCodec)
 	if err != nil {
-		return AppAccount{}
-	}
-	if len(*users) == 0 {
-		return AppAccount{}
-	}
-	u := (*users)[0]
-
-	// split User.Coins into AppAccount.Coins and AppAccount.EarnedStake
-	trustake := make(sdk.Coins, 0)
-	earnedStake := make([]EarnedCoin, 0)
-
-	trustake = append(trustake, sdk.NewCoin(app.StakeDenom, u.Coins.AmountOf(app.StakeDenom)))
-
-	communityID := int64(1)
-	for _, coin := range u.Coins {
-		if coin.Denom != app.StakeDenom {
-			earnedCoin := sdk.NewCoin(app.StakeDenom, coin.Amount)
-			earned := EarnedCoin{
-				Coin:        earnedCoin,
-				CommunityID: uint64(communityID),
-			}
-			earnedStake = append(earnedStake, earned)
-			communityID++
-		}
+		return nil
 	}
 
-	appAccount := AppAccount{
-		BaseAccount: BaseAccount{
-			Address:       u.Address,
-			AccountNumber: u.AccountNumber,
-			Coins:         trustake,
-			Sequence:      u.Sequence,
-			PubKey:        u.Pubkey,
-		},
-		EarnedStake: earnedStake,
+	var aa = new(account.AppAccount)
+	err = account.ModuleCodec.UnmarshalJSON(res, aa)
+	if err != nil {
+		fmt.Println("AppAccount UnmarshalJSON err: ", err)
+		return nil
 	}
 
-	return appAccount
+	var pubKey []byte
+
+	// GetPubKey can return nil and Bytes() will panic due to nil pointer
+	if aa.GetPubKey() != nil {
+		pubKey = aa.GetPubKey().Bytes()
+	}
+
+	return &AppAccount{
+		Address:       aa.GetAddress().String(),
+		AccountNumber: aa.GetAccountNumber(),
+		Coins:         aa.GetCoins(),
+		Sequence:      aa.GetSequence(),
+		Pubkey:        tcmn.HexBytes(pubKey),
+		SlashCount:    aa.SlashCount,
+		IsJailed:      aa.IsJailed,
+		JailEndTime:   aa.JailEndTime,
+		CreatedTime:   aa.CreatedTime,
+	}
+}
+
+func (ta *TruAPI) earnedBalanceResolver(ctx context.Context, q queryByAddress) sdk.Coin {
+	address, err := sdk.AccAddressFromBech32(q.ID)
+	if err != nil {
+		fmt.Println("earnedBalanceResolver err: ", err)
+		return sdk.Coin{}
+	}
+
+	queryRoute := path.Join(staking.QuerierRoute, staking.QueryTotalEarnedCoins)
+	res, err := ta.Query(queryRoute, staking.QueryTotalEarnedCoinsParams{Address: address}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("earnedBalanceResolver err: ", err)
+		return sdk.Coin{}
+	}
+
+	balance := new(sdk.Coin)
+	err = staking.ModuleCodec.UnmarshalJSON(res, balance)
+	if err != nil {
+		fmt.Println("totalEarnedCoin UnmarshalJSON err: ", err)
+		return sdk.Coin{}
+	}
+
+	return *balance
+}
+
+func (ta *TruAPI) earnedStakeResolver(ctx context.Context, q queryByAddress) []EarnedCoin {
+	address, err := sdk.AccAddressFromBech32(q.ID)
+	if err != nil {
+		fmt.Println("earnedStakeResolver err: ", err)
+		return []EarnedCoin{}
+	}
+
+	queryRoute := path.Join(staking.QuerierRoute, staking.QueryEarnedCoins)
+	res, err := ta.Query(queryRoute, staking.QueryEarnedCoinsParams{Address: address}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("earnedStakeResolver err: ", err)
+		return []EarnedCoin{}
+	}
+
+	coins := make([]sdk.Coin, 0)
+	err = staking.ModuleCodec.UnmarshalJSON(res, &coins)
+	if err != nil {
+		fmt.Println("earnedCoin UnmarshalJSON err: ", err)
+		return []EarnedCoin{}
+	}
+
+	earnedCoins := make([]EarnedCoin, 0)
+	for _, coin := range coins {
+		earnedCoins = append(earnedCoins, EarnedCoin{
+			coin,
+			coin.Denom,
+		})
+	}
+
+	return earnedCoins
 }
 
 func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community {
-	res, err := ta.Query("community/all", struct{}{}, community.ModuleCodec)
+	// the communities need to be curated better before they are made public
+	communityBlacklist := []string{"sports", "tech", "entertainment"}
+
+	queryRoute := path.Join(community.QuerierRoute, community.QueryCommunities)
+	res, err := ta.Query(queryRoute, struct{}{}, community.ModuleCodec)
 	if err != nil {
 		fmt.Println("communitiesResolver err: ", err)
 		return []community.Community{}
 	}
 
-	cs := new([]community.Community)
-	err = community.ModuleCodec.UnmarshalJSON(res, cs)
+	cs := make([]community.Community, 0)
+	err = community.ModuleCodec.UnmarshalJSON(res, &cs)
 	if err != nil {
 		fmt.Println("community UnmarshalJSON err: ", err)
 		return []community.Community{}
 	}
 
 	// sort in alphabetical order
-	sort.Slice(*cs, func(i, j int) bool {
-		return (*cs)[j].Name > (*cs)[i].Name
+	sort.Slice(cs, func(i, j int) bool {
+		return (cs)[j].Name > (cs)[i].Name
 	})
 
-	return *cs
+	// exclude blacklisted communities
+	filteredCommunities := make([]community.Community, 0)
+	for _, c := range cs {
+		if !contains(communityBlacklist, c.ID) {
+			filteredCommunities = append(filteredCommunities, c)
+		}
+	}
+
+	return filteredCommunities
 }
 
-func (ta *TruAPI) communityResolver(ctx context.Context, q queryByCommunitySlug) *community.Community {
-	community, err := ta.getCommunityBySlug(ctx, q.CommunitySlug)
+func (ta *TruAPI) communityResolver(ctx context.Context, q queryByCommunityID) *community.Community {
+	queryRoute := path.Join(community.QuerierRoute, community.QueryCommunity)
+	res, err := ta.Query(queryRoute, community.QueryCommunityParams{ID: q.CommunityID}, community.ModuleCodec)
+	if err != nil {
+		fmt.Println("getCommunityByIDResolver err: ", err)
+		return nil
+	}
+
+	c := new(community.Community)
+	err = community.ModuleCodec.UnmarshalJSON(res, c)
 	if err != nil {
 		return nil
 	}
-	return &community
+	return c
 }
 
 func (ta *TruAPI) communityIconImageResolver(ctx context.Context, q community.Community) CommunityIconImage {
 	return CommunityIconImage{
-		Regular: joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_normal.png", q.Slug)),
-		Active:  joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_active.png", q.Slug)),
+		Regular: joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_normal.png", q.ID)),
+		Active:  joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_icon_active.png", q.ID)),
 	}
 }
 
-func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndFeedFilter) []claim.Claim {
+func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFeedFilter) []claim.Claim {
 	var res []byte
 	var err error
-	var community community.Community
-	if q.CommunitySlug == "all" {
-		res, err = ta.Query("claim/claims", struct{}{}, claim.ModuleCodec)
+	if q.CommunityID == "all" {
+		queryRoute := path.Join(claim.QuerierRoute, claim.QueryClaims)
+		res, err = ta.Query(queryRoute, struct{}{}, claim.ModuleCodec)
 	} else {
-		community, err = ta.getCommunityBySlug(ctx, q.CommunitySlug)
-		if err != nil {
-			return []claim.Claim{}
-		}
-		res, err = ta.Query("claim/community_claims", queryByCommunityID{CommunityID: community.ID}, claim.ModuleCodec)
+		queryRoute := path.Join(claim.QuerierRoute, claim.QueryCommunityClaims)
+		res, err = ta.Query(queryRoute, claim.QueryCommunityClaimsParams{CommunityID: q.CommunityID}, claim.ModuleCodec)
 	}
 	if err != nil {
 		fmt.Println("claimsResolver err: ", err)
 		return []claim.Claim{}
 	}
 
-	claims := new([]claim.Claim)
-	err = claim.ModuleCodec.UnmarshalJSON(res, claims)
+	claims := make([]claim.Claim, 0)
+	err = claim.ModuleCodec.UnmarshalJSON(res, &claims)
 	if err != nil {
 		panic(err)
 	}
 
-	unflaggedClaims, err := ta.filterFlaggedClaims(*claims)
+	unflaggedClaims, err := ta.filterFlaggedClaims(claims)
 	if err != nil {
 		fmt.Println("filterFlaggedClaims err: ", err)
 		panic(err)
@@ -268,24 +265,25 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunitySlugAndF
 }
 
 func (ta *TruAPI) claimResolver(ctx context.Context, q queryByClaimID) claim.Claim {
-	res, err := ta.Query("claim/claim", claim.QueryClaimParams{ID: q.ID}, claim.ModuleCodec)
+	queryRoute := path.Join(claim.QuerierRoute, claim.QueryClaim)
+	res, err := ta.Query(queryRoute, claim.QueryClaimParams{ID: q.ID}, claim.ModuleCodec)
 	if err != nil {
 		fmt.Println("claimResolver err: ", err)
 		return claim.Claim{}
 	}
 
-	var c claim.Claim
-	err = claim.ModuleCodec.UnmarshalJSON(res, &c)
+	c := new(claim.Claim)
+	err = claim.ModuleCodec.UnmarshalJSON(res, c)
 	if err != nil {
 		fmt.Println("claim UnmarshalJSON err: ", err)
 		return claim.Claim{}
 	}
 
-	return c
+	return *c
 }
 
-func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunitySlug) *claim.Claim {
-	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunitySlug(q.CommunitySlug)
+func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunityID) *claim.Claim {
+	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunityID(q.CommunityID)
 	if err != nil {
 		return nil
 	}
@@ -314,113 +312,89 @@ func (ta *TruAPI) filterFlaggedClaims(claims []claim.Claim) ([]claim.Claim, erro
 	return unflaggedClaims, nil
 }
 
-func (ta *TruAPI) getCommunityBySlug(ctx context.Context, slug string) (community.Community, error) {
-	// client pages require all claims to live under a community
-	// "all" is a community for the homepage which shows all the claims
-	if slug == "all" {
-		return community.Community{
-			ID:   0,
-			Slug: "all",
-			Name: "All",
-		}, nil
-	}
-	communities := ta.communitiesResolver(ctx)
-	var comm community.Community
-	for _, community := range communities {
-		if community.Slug == slug {
-			comm = community
-			break
-		}
-	}
-	if comm.ID == 0 {
-		return community.Community{}, errors.New("Category not found")
-	}
-
-	return comm, nil
-}
-
-func (ta *TruAPI) getCommunityByID(ctx context.Context, q queryByID) *community.Community {
-	res, err := ta.Query("community/id", community.QueryCommunityParams{ID: q.ID}, community.ModuleCodec)
+func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgumentParams) []staking.Argument {
+	queryRoute := path.Join(staking.ModuleName, staking.QueryClaimArguments)
+	res, err := ta.Query(queryRoute, staking.QueryClaimArgumentsParams{ClaimID: q.ClaimID}, staking.ModuleCodec)
 	if err != nil {
-		fmt.Println("getCommunityByIDResolver err: ", err)
-		return nil
+		fmt.Println("claimArgumentsResolver err: ", err)
+		return []staking.Argument{}
 	}
 
-	c := new(community.Community)
-	err = community.ModuleCodec.UnmarshalJSON(res, c)
+	arguments := make([]staking.Argument, 0)
+	err = staking.ModuleCodec.UnmarshalJSON(res, &arguments)
 	if err != nil {
-		return nil
+		fmt.Println("[]staking.Argument UnmarshalJSON err: ", err)
+		return []staking.Argument{}
 	}
-	return c
-}
-
-func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgumentParams) []Argument {
-	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: int64(q.ClaimID)})
-	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: int64(q.ClaimID)})
-	storyArguments := map[int64]*argumentMeta{}
-	for _, backing := range backings {
-		if storyArguments[backing.ArgumentID] == nil {
-			storyArguments[backing.ArgumentID] = &argumentMeta{
-				Vote:         backing.VoteChoice(),
-				UpvotedCount: 0,
-			}
-		} else {
-			storyArguments[backing.ArgumentID].UpvotedCount++
-		}
-	}
-	for _, challenge := range challenges {
-		if storyArguments[challenge.ArgumentID] == nil {
-			storyArguments[challenge.ArgumentID] = &argumentMeta{
-				Vote:         challenge.VoteChoice(),
-				UpvotedCount: 0,
-			}
-		} else {
-			storyArguments[challenge.ArgumentID].UpvotedCount++
-		}
-	}
-	claimArguments := make([]Argument, 0)
-	for argumentID, argumentMeta := range storyArguments {
-		storyArgument := ta.argumentResolver(ctx, app.QueryArgumentByID{ID: argumentID})
-		claimArgument := convertStoryArgumentToClaimArgument(storyArgument, *argumentMeta)
+	filteredArguments := make([]staking.Argument, 0)
+	for _, argument := range arguments {
 		if q.Filter == ArgumentCreated {
-			if *q.Address == claimArgument.Creator.String() {
-				claimArguments = append(claimArguments, claimArgument)
+			if argument.Creator.String() == *q.Address {
+				filteredArguments = append(filteredArguments, argument)
 			}
 		} else if q.Filter == ArgumentAgreed {
-			stakers := ta.claimArgumentStakersResolver(ctx, claimArgument)
-			for _, staker := range stakers {
-				if *q.Address == staker.Address && staker.Address != claimArgument.Creator.String() {
-					claimArguments = append(claimArguments, claimArgument)
+			stakes := ta.claimArgumentStakesResolver(ctx, argument)
+			for _, stake := range stakes {
+				if stake.Creator.String() == *q.Address {
+					filteredArguments = append(filteredArguments, argument)
 					break
 				}
 			}
 		} else {
-			claimArguments = append(claimArguments, claimArgument)
+			filteredArguments = append(filteredArguments, argument)
 		}
 	}
 
-	return claimArguments
+	return filteredArguments
 }
 
-func (ta *TruAPI) topArgumentResolver(ctx context.Context, q claim.Claim) *Argument {
-	arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID})
-	if len(arguments) == 0 {
+func (ta *TruAPI) claimArgumentResolver(ctx context.Context, q queryByArgumentID) *staking.Argument {
+	queryRoute := path.Join(staking.ModuleName, staking.QueryClaimArgument)
+	res, err := ta.Query(queryRoute, staking.QueryClaimArgumentParams{ArgumentID: q.ID}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("claimArgumentResolver err: ", err)
 		return nil
 	}
-	return &arguments[0]
+
+	argument := new(staking.Argument)
+	err = staking.ModuleCodec.UnmarshalJSON(res, argument)
+	if err != nil {
+		return nil
+	}
+
+	return argument
+}
+
+func (ta *TruAPI) topArgumentResolver(ctx context.Context, q claim.Claim) *staking.Argument {
+	queryRoute := path.Join(staking.ModuleName, staking.QueryClaimTopArgument)
+	res, err := ta.Query(queryRoute, staking.QueryClaimTopArgumentParams{ClaimID: q.ID}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("topArgumentResolver err: ", err)
+		return nil
+	}
+
+	argument := new(staking.Argument)
+	err = staking.ModuleCodec.UnmarshalJSON(res, argument)
+	if err != nil {
+		fmt.Println("staking.Argument UnmarshalJSON err: ", err)
+		return nil
+	}
+
+	// no top argument
+	if argument.ID == 0 {
+		return nil
+	}
+
+	return argument
 }
 
 func (ta *TruAPI) claimStakersResolver(ctx context.Context, q claim.Claim) []AppAccount {
-	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: int64(q.ID)})
-	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: int64(q.ID)})
-	appAccounts := make([]AppAccount, 0)
-	for _, backing := range backings {
-		appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: backing.Creator().String()}))
+	stakers := make([]AppAccount, 0)
+	arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID})
+	for _, argument := range arguments {
+		stakers = append(stakers, ta.claimArgumentStakersResolver(ctx, argument)...)
 	}
-	for _, challenge := range challenges {
-		appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: challenge.Creator().String()}))
-	}
-	return appAccounts
+	return stakers
 }
 
 func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q claim.Claim) []AppAccount {
@@ -428,56 +402,70 @@ func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q claim.Claim) 
 	comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 	for _, comment := range comments {
 		if !participantExists(participants, comment.Creator) {
-			participants = append(participants, ta.appAccountResolver(ctx, queryByAddress{ID: comment.Creator}))
+			participants = append(participants, *ta.appAccountResolver(ctx, queryByAddress{ID: comment.Creator}))
 		}
-	}
-	if !participantExists(participants, q.Creator.String()) {
-		participants = append(participants, ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()}))
 	}
 	return participants
 }
 
-func participantExists(participants []AppAccount, participantToAdd string) bool {
+func participantExists(participants []AppAccount, participantToAddAddress string) bool {
 	for _, participant := range participants {
-		if participantToAdd == participant.Address {
+		if participant.Address == participantToAddAddress {
 			return true
 		}
 	}
 	return false
 }
 
-func (ta *TruAPI) claimArgumentStakesResolver(ctx context.Context, q Argument) []Stake {
-	backings := ta.backingsResolver(ctx, app.QueryByIDParams{ID: int64(q.ClaimID)})
-	challenges := ta.challengesResolver(ctx, app.QueryByIDParams{ID: int64(q.ClaimID)})
-	stakes := make([]Stake, 0)
-	for _, backing := range backings {
-		if uint64(backing.ArgumentID) == q.ID && !backing.Creator().Equals(q.Creator) {
-			stakes = append(stakes, convertBackingToStake(backing))
-		}
+func (ta *TruAPI) stakeResolver(ctx context.Context, q queryByStakeID) *staking.Stake {
+	queryRoute := path.Join(staking.ModuleName, staking.QueryStake)
+	res, err := ta.Query(queryRoute, staking.QueryStakeParams{StakeID: q.ID}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("stakeResolver err: ", err)
+		return nil
 	}
-	for _, challenge := range challenges {
-		if uint64(challenge.ArgumentID) == q.ID && !challenge.Creator().Equals(q.Creator) {
-			stakes = append(stakes, convertChallengeToStake(challenge))
-		}
+
+	stake := new(staking.Stake)
+	err = staking.ModuleCodec.UnmarshalJSON(res, stake)
+	if err != nil {
+		return nil
 	}
+
+	return stake
+}
+
+func (ta *TruAPI) claimArgumentStakesResolver(ctx context.Context, q staking.Argument) []staking.Stake {
+	queryRoute := path.Join(staking.ModuleName, staking.QueryArgumentStakes)
+	res, err := ta.Query(queryRoute, staking.QueryArgumentStakesParams{ArgumentID: q.ID}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("claimArgumentStakesResolver err: ", err)
+		return []staking.Stake{}
+	}
+
+	stakes := make([]staking.Stake, 0)
+	err = staking.ModuleCodec.UnmarshalJSON(res, &stakes)
+	if err != nil {
+		fmt.Println("[]staking.Stake UnmarshalJSON err: ", err)
+		return []staking.Stake{}
+	}
+
 	return stakes
 }
 
-func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q Argument) []AppAccount {
+func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q staking.Argument) []AppAccount {
 	stakes := ta.claimArgumentStakesResolver(ctx, q)
 	appAccounts := make([]AppAccount, 0)
 	for _, stake := range stakes {
-		appAccounts = append(appAccounts, ta.appAccountResolver(ctx, queryByAddress{ID: stake.Creator.String()}))
+		if stake.Type == staking.StakeUpvote {
+			appAccounts = append(appAccounts, *ta.appAccountResolver(ctx, queryByAddress{ID: stake.Creator.String()}))
+		}
 	}
 	return appAccounts
 }
 
-func (ta *TruAPI) appAccountStakeResolver(ctx context.Context, q Argument) *Stake {
+func (ta *TruAPI) appAccountStakeResolver(ctx context.Context, q staking.Argument) *staking.Stake {
 	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
 	if ok {
-		if user.Address == q.Creator.String() {
-			return &q.Stake
-		}
 		stakes := ta.claimArgumentStakesResolver(ctx, q)
 		for _, stake := range stakes {
 			if user.Address == stake.Creator.String() {
@@ -496,43 +484,193 @@ func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) [
 	return comments
 }
 
-func (ta *TruAPI) stakesResolver(_ context.Context, q queryByArgumentID) []Stake {
-	return []Stake{}
-}
-
 func (ta *TruAPI) appAccountClaimsCreatedResolver(ctx context.Context, q queryByAddress) []claim.Claim {
-	allClaims := ta.claimsResolver(ctx, queryByCommunitySlugAndFeedFilter{CommunitySlug: "all"})
-	claimsCreated := make([]claim.Claim, 0)
-	for _, claim := range allClaims {
-		if claim.Creator.String() == q.ID {
-			claimsCreated = append(claimsCreated, claim)
-		}
+	creator, err := sdk.AccAddressFromBech32(q.ID)
+	if err != nil {
+		fmt.Println("appAccountClaimsCreatedResolver err: ", err)
+		return []claim.Claim{}
 	}
+
+	queryRoute := path.Join(claim.QuerierRoute, claim.QueryCreatorClaims)
+	res, err := ta.Query(queryRoute, claim.QueryCreatorClaimsParams{Creator: creator}, claim.ModuleCodec)
+	if err != nil {
+		return []claim.Claim{}
+	}
+
+	claimsCreated := make([]claim.Claim, 0)
+	err = claim.ModuleCodec.UnmarshalJSON(res, &claimsCreated)
+	if err != nil {
+		fmt.Println("[]claim.Claim UnmarshalJSON err: ", err)
+		return []claim.Claim{}
+	}
+
 	return claimsCreated
 }
 
 func (ta *TruAPI) appAccountClaimsWithArgumentsResolver(ctx context.Context, q queryByAddress) []claim.Claim {
-	allClaims := ta.claimsResolver(ctx, queryByCommunitySlugAndFeedFilter{CommunitySlug: "all"})
-	claimsWithArguments := make([]claim.Claim, 0)
-	for _, claim := range allClaims {
-		arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claim.ID, Address: &q.ID, Filter: ArgumentCreated})
-		if len(arguments) > 0 {
-			claimsWithArguments = append(claimsWithArguments, claim)
-		}
+	creator, err := sdk.AccAddressFromBech32(q.ID)
+	if err != nil {
+		return []claim.Claim{}
 	}
-	return claimsWithArguments
+
+	queryRoute := path.Join(staking.QuerierRoute, staking.QueryUserArguments)
+	res, err := ta.Query(queryRoute, staking.QueryUserArgumentsParams{Address: creator}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("appAccountClaimsWithArguments err: ", err)
+		return []claim.Claim{}
+	}
+
+	arguments := make([]staking.Argument, 0)
+	err = staking.ModuleCodec.UnmarshalJSON(res, &arguments)
+	if err != nil {
+		fmt.Println("[]staking.Argument UnmarshalJSON err: ", err)
+		return []claim.Claim{}
+	}
+
+	// TODO: instead of a loop, pass a list of claim IDs to fetch from cosmos
+	claimsWithArgument := make([]claim.Claim, 0)
+	for _, argument := range arguments {
+		claim := ta.claimResolver(ctx, queryByClaimID{ID: argument.ClaimID})
+		claimsWithArgument = append(claimsWithArgument, claim)
+	}
+	return claimsWithArgument
 }
 
 func (ta *TruAPI) appAccountClaimsWithAgreesResolver(ctx context.Context, q queryByAddress) []claim.Claim {
-	allClaims := ta.claimsResolver(ctx, queryByCommunitySlugAndFeedFilter{CommunitySlug: "all"})
-	claimsWithAgrees := make([]claim.Claim, 0)
-	for _, claim := range allClaims {
-		arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claim.ID, Address: &q.ID, Filter: ArgumentAgreed})
-		if len(arguments) > 0 {
-			claimsWithAgrees = append(claimsWithAgrees, claim)
+	stakes := ta.agreesResolver(ctx, q)
+
+	claims := make([]claim.Claim, 0)
+	for _, stake := range stakes {
+		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{ID: stake.ArgumentID})
+		if argument != nil {
+			claim := ta.claimResolver(ctx, queryByClaimID{ID: argument.ClaimID})
+			claims = append(claims, claim)
 		}
 	}
-	return claimsWithAgrees
+
+	return claims
+}
+
+func (ta *TruAPI) agreesResolver(ctx context.Context, q queryByAddress) []staking.Stake {
+	creator, err := sdk.AccAddressFromBech32(q.ID)
+	if err != nil {
+		return []staking.Stake{}
+	}
+
+	queryRoute := path.Join(staking.QuerierRoute, staking.QueryUserStakes)
+	res, err := ta.Query(queryRoute, staking.QueryUserStakesParams{Address: creator}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("agreesResolver err: ", err)
+		return []staking.Stake{}
+	}
+
+	stakes := make([]staking.Stake, 0)
+	err = staking.ModuleCodec.UnmarshalJSON(res, &stakes)
+	if err != nil {
+		return []staking.Stake{}
+	}
+
+	agrees := make([]staking.Stake, 0)
+	for _, stake := range stakes {
+		if stake.Type == staking.StakeUpvote {
+			agrees = append(agrees, stake)
+		}
+	}
+
+	return agrees
+}
+
+func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByAddress) []bank.Transaction {
+	creator, err := sdk.AccAddressFromBech32(q.ID)
+	if err != nil {
+		return []bank.Transaction{}
+	}
+
+	queryRoute := path.Join(bank.QuerierRoute, bank.QueryTransactionsByAddress)
+	res, err := ta.Query(queryRoute, bank.QueryTransactionsByAddressParams{Address: creator}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("appAccountTransactionsResolver err: ", err)
+		return []bank.Transaction{}
+	}
+
+	transactions := make([]bank.Transaction, 0)
+	err = bank.ModuleCodec.UnmarshalJSON(res, &transactions)
+	if err != nil {
+		return []bank.Transaction{}
+	}
+
+	sort.Slice(transactions, func(i, j int) bool {
+		return transactions[j].CreatedTime.Before(transactions[i].CreatedTime)
+	})
+
+	return transactions
+}
+
+func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Transaction) TransactionReference {
+	var tr TransactionReference
+	switch t.Type {
+	case bank.TransactionRegistration:
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceNone,
+			Title:       TransactionTypeTitle[t.Type],
+			Body:        "",
+		}
+	case bank.TransactionRewardPayout:
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceNone,
+			Title:       TransactionTypeTitle[t.Type],
+			Body:        "",
+		}
+	case bank.TransactionUpvote:
+		fallthrough
+	case bank.TransactionUpvoteReturned:
+		fallthrough
+	case bank.TransactionInterestUpvoteGiven:
+		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{t.ReferenceID})
+		creatorTwitterProfile := ta.twitterProfileResolver(ctx, argument.Creator.String())
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceArgument,
+			Title:       fmt.Sprintf(TransactionTypeTitle[t.Type], creatorTwitterProfile.Username),
+			Body:        stripmd.Strip(argument.Summary),
+		}
+	case bank.TransactionInterestUpvoteReceived:
+		stake := ta.stakeResolver(ctx, queryByStakeID{ID: t.ReferenceID})
+		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{stake.ArgumentID})
+		stakerTwitterProfile := ta.twitterProfileResolver(ctx, stake.Creator.String())
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceArgument,
+			Title:       fmt.Sprintf(TransactionTypeTitle[t.Type], stakerTwitterProfile.Username),
+			Body:        stripmd.Strip(argument.Summary),
+		}
+	case bank.TransactionBacking:
+		fallthrough
+	case bank.TransactionBackingReturned:
+		fallthrough
+	case bank.TransactionChallenge:
+		fallthrough
+	case bank.TransactionChallengeReturned:
+		fallthrough
+	case bank.TransactionInterestArgumentCreation:
+		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{t.ReferenceID})
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceArgument,
+			Title:       TransactionTypeTitle[t.Type],
+			Body:        stripmd.Strip(argument.Summary),
+		}
+	default:
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceNone,
+			Title:       "",
+			Body:        "",
+		}
+	}
+	return tr
 }
 
 func (ta *TruAPI) sourceURLPreviewResolver(ctx context.Context, q claim.Claim) string {
@@ -542,7 +680,6 @@ func (ta *TruAPI) sourceURLPreviewResolver(ctx context.Context, q claim.Claim) s
 		return sourceURLPreview
 	}
 
-	fmt.Println("Source url preview not in DB: ", q.Source)
 	n := (q.ID % 5) // random but deterministic placeholder image 0-4
 	defaultPreview := joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("sourceUrlPreview_default_%d.png", n))
 

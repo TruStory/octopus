@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"html/template"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/gobuffalo/packr/v2"
 
 	"github.com/gorilla/mux"
 	"github.com/itskingori/go-wkhtml/wkhtmltox"
@@ -22,13 +22,11 @@ type service struct {
 	port          string
 	storagePath   string
 	router        *mux.Router
-	storyTemplate *template.Template
 	graphqlClient *graphql.Client
 }
 
 func (s *service) run() {
 	s.router.Handle("/story/{id:[0-9]+}/svg-spotlight", spotlightSVG(s))
-	s.router.Handle("/story/{id:[0-9]+}/render-spotlight", renderSpotlightHandler(s))
 	s.router.Handle("/story/{id:[0-9]+}/spotlight", spotlightHandler(s))
 	http.Handle("/", s.router)
 	err := http.ListenAndServe(":"+s.port, nil)
@@ -39,12 +37,10 @@ func (s *service) run() {
 }
 
 func main() {
-	templatePath := getEnv("SPOTLIGHT_HTML_TEMPLATE", "claim.html")
 	spotlight := &service{
 		port:          getEnv("PORT", "54448"),
 		storagePath:   getEnv("SPOTLIGHT_STORAGE_PATH", "./storage"),
 		router:        mux.NewRouter(),
-		storyTemplate: template.Must(template.ParseFiles(templatePath)),
 		graphqlClient: graphql.NewClient(mustEnv("SPOTLIGHT_GRAPHQL_ENDPOINT")),
 	}
 
@@ -67,8 +63,8 @@ func spotlightSVG(s *service) http.Handler {
 			return
 		}
 
-		filePath := filepath.Join("./", "claim.svg")
-		rawPreview, err := ioutil.ReadFile(filePath)
+		box := packr.New("Templates", "./templates")
+		rawPreview, err := box.Find("claim.svg")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "URL Preview error", http.StatusInternalServerError)
@@ -153,33 +149,6 @@ func wordWrap(body string) []string {
 	}
 
 	return lines
-}
-
-func renderSpotlightHandler(s *service) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		storyID, err := strconv.ParseInt(vars["id"], 10, 64)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, "Invalid story ID passed.", http.StatusBadRequest)
-			return
-		}
-		data, err := getStory(s, storyID)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
-
-		err = s.storyTemplate.Execute(w, data)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	return http.HandlerFunc(fn)
 }
 
 func spotlightHandler(s *service) http.Handler {

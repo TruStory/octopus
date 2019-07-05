@@ -1,16 +1,22 @@
 PACKAGES=$(shell go list ./...)
 
 build:
+	packr2
 	go build -o ../../bin/spotlightd *.go
+	packr2 clean
 
 build-linux:
+	packr2
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0  go build -o ../../bin/spotlightd *.go
+	packr2 clean
 
 run:
 	go run *.go
 
 build-docker:
+	packr2
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0  go build -o bin/spotlightd 
+	packr2 clean
 	docker build -t spotlightd .
 
 run-docker:

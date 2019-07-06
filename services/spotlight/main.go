@@ -190,6 +190,12 @@ func wordWrap(body string) []string {
 	// convert string to slice
 	words := strings.Fields(body)
 	wordsPerLine := defaultWordsPerLine
+
+	if len(words) < wordsPerLine {
+		lines = append(lines, strings.Join(words, " "))
+		return lines
+	}
+
 	for len(words) >= 1 {
 		candidate := strings.Join(words[:wordsPerLine], " ")
 		for len(candidate) > 40 {

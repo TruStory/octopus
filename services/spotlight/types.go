@@ -1,5 +1,9 @@
 package main
 
+import (
+	"net/url"
+)
+
 // StoryByIDQuery fetches a story by the given ID
 const StoryByIDQuery = `
   query Story($storyId: ID!) {
@@ -155,6 +159,15 @@ func (story StoryObject) GetArgumentCount() int {
 // HasSource returns whether a story has a source or not
 func (story StoryObject) HasSource() bool {
 	return story.Source != ""
+}
+
+// GetSource returns the hostname of the source
+func (story StoryObject) GetSource() string {
+	u, err := url.Parse(story.Source)
+	if err != nil {
+		return ""
+	}
+	return u.Hostname()
 }
 
 // GetTopParticipants returns the top participants of a story

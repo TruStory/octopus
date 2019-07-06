@@ -129,7 +129,7 @@ func compileStoryPreview(raw []byte, story StoryObject) string {
 		for i := len(bodyLines); i < 4; i++ {
 			bodyLines = append(bodyLines, "")
 		}
-	} else if len(bodyLines) >= 4 {
+	} else if len(bodyLines) > 4 {
 		bodyLines[3] += "..." // ellipsis if the entire body couldn't be contained in this preview
 	}
 	compiled := bytes.Replace(raw, []byte("$PLACEHOLDER__BODY_LINE_1"), []byte(bodyLines[0]), -1)
@@ -145,7 +145,7 @@ func compileStoryPreview(raw []byte, story StoryObject) string {
 
 	// SOURCE
 	if story.HasSource() {
-		compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__SOURCE"), []byte(story.Source), -1)
+		compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__SOURCE"), []byte(story.GetSource()), -1)
 	} else {
 		compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__SOURCE"), []byte("—"), -1)
 	}
@@ -161,7 +161,7 @@ func compileArgumentPreview(raw []byte, argument ArgumentObject) string {
 		for i := len(bodyLines); i < 4; i++ {
 			bodyLines = append(bodyLines, "")
 		}
-	} else if len(bodyLines) >= 4 {
+	} else if len(bodyLines) > 4 {
 		bodyLines[3] += "..." // ellipsis if the entire body couldn't be contained in this preview
 	}
 	compiled := bytes.Replace(raw, []byte("$PLACEHOLDER__BODY_LINE_1"), []byte(bodyLines[0]), -1)

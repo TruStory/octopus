@@ -53,7 +53,7 @@ func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// if all went well, sending back the response
-	res.Header().Set("Content-Type", "image/png")
+	res.Header().Set("Content-Type", "image/jpeg")
 	res.WriteHeader(http.StatusOK)
 	_, err = res.Write(responseBody)
 	if err != nil {

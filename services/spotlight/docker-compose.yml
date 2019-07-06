@@ -11,4 +11,3 @@ services:
       - "54448:54448"
     volumes:
       - ./storage/:/usr/spotlight/storage
-      - ./claim.svg:/usr/spotlight/claim.svg

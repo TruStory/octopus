@@ -222,9 +222,10 @@ func storySpotlightHandler(s *service) http.Handler {
 
 		ifs := make(wkhtmltox.ImageFlagSet)
 		ifs.SetCacheDir(filepath.Join(s.storagePath, "web-cache"))
+		ifs.SetFormat("jpeg")
 
 		renderURL := fmt.Sprintf("http://localhost:%s/story/%s/render-spotlight", s.port, storyID)
-		imageName := fmt.Sprintf("story-%s.png", storyID)
+		imageName := fmt.Sprintf("story-%s.jpeg", storyID)
 		filePath := filepath.Join(s.storagePath, imageName)
 
 		_, err := ifs.Generate(renderURL, filePath)
@@ -246,9 +247,10 @@ func argumentSpotlightHandler(s *service) http.Handler {
 
 		ifs := make(wkhtmltox.ImageFlagSet)
 		ifs.SetCacheDir(filepath.Join(s.storagePath, "web-cache"))
+		ifs.SetFormat("jpeg")
 
 		renderURL := fmt.Sprintf("http://localhost:%s/argument/%s/render-spotlight", s.port, argumentID)
-		imageName := fmt.Sprintf("argument-%s.png", argumentID)
+		imageName := fmt.Sprintf("argument-%s.jpeg", argumentID)
 		filePath := filepath.Join(s.storagePath, imageName)
 
 		_, err := ifs.Generate(renderURL, filePath)

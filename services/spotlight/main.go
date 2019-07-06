@@ -190,6 +190,12 @@ func wordWrap(body string) []string {
 	// convert string to slice
 	words := strings.Fields(body)
 	wordsPerLine := defaultWordsPerLine
+
+	if len(words) < wordsPerLine {
+		lines = append(lines, strings.Join(words, " "))
+		return lines
+	}
+
 	for len(words) >= 1 {
 		candidate := strings.Join(words[:wordsPerLine], " ")
 		for len(candidate) > 40 {
@@ -222,9 +228,10 @@ func storySpotlightHandler(s *service) http.Handler {
 
 		ifs := make(wkhtmltox.ImageFlagSet)
 		ifs.SetCacheDir(filepath.Join(s.storagePath, "web-cache"))
+		ifs.SetFormat("jpeg")
 
 		renderURL := fmt.Sprintf("http://localhost:%s/story/%s/render-spotlight", s.port, storyID)
-		imageName := fmt.Sprintf("story-%s.png", storyID)
+		imageName := fmt.Sprintf("story-%s.jpeg", storyID)
 		filePath := filepath.Join(s.storagePath, imageName)
 
 		_, err := ifs.Generate(renderURL, filePath)
@@ -246,10 +253,10 @@ func argumentSpotlightHandler(s *service) http.Handler {
 
 		ifs := make(wkhtmltox.ImageFlagSet)
 		ifs.SetCacheDir(filepath.Join(s.storagePath, "web-cache"))
-		ifs.SetWidth(800)
+		ifs.SetFormat("jpeg")
 
 		renderURL := fmt.Sprintf("http://localhost:%s/argument/%s/render-spotlight", s.port, argumentID)
-		imageName := fmt.Sprintf("argument-%s.png", argumentID)
+		imageName := fmt.Sprintf("argument-%s.jpeg", argumentID)
 		filePath := filepath.Join(s.storagePath, imageName)
 
 		_, err := ifs.Generate(renderURL, filePath)

@@ -1,5 +1,9 @@
 package main
 
+import (
+	"net/url"
+)
+
 // StoryByIDQuery fetches a story by the given ID
 const StoryByIDQuery = `
   query Story($storyId: ID!) {
@@ -64,6 +68,26 @@ const StoryByIDQuery = `
   
 `
 
+// ArgumentByIDQuery fetches an argument by the given ID
+const ArgumentByIDQuery = `
+	query ArgumentQuery($argumentId: ID!) {
+    claimArgument(id: $argumentId) {
+			id
+			summary
+			body
+			creator {
+				address
+				twitterProfile {
+					avatarURI
+					fullName
+					username
+				}
+			}
+			upvotedCount
+    }
+	}
+`
+
 // CategoryObject defines the schema of a category
 type CategoryObject struct {
 	ID    int64  `json:"id"`
@@ -105,6 +129,15 @@ type StoryObject struct {
 	Challenges []StoryAction  `json:"challenges"`
 }
 
+// ArgumentObject defines the schema of an argument
+type ArgumentObject struct {
+	ID          int64      `json:"id"`
+	Body        string     `json:"body"`
+	Summary     string     `json:"summary"`
+	Creator     UserObject `json:"creator"`
+	UpvoteCount int        `json:"upvoteCount"`
+}
+
 // GetArgumentCount returns the total count of backings + challenges
 func (story StoryObject) GetArgumentCount() int {
 	count := 0
@@ -128,6 +161,15 @@ func (story StoryObject) HasSource() bool {
 	return story.Source != ""
 }
 
+// GetSource returns the hostname of the source
+func (story StoryObject) GetSource() string {
+	u, err := url.Parse(story.Source)
+	if err != nil {
+		return ""
+	}
+	return u.Hostname()
+}
+
 // GetTopParticipants returns the top participants of a story
 func (story StoryObject) GetTopParticipants() []UserObject {
 	limit := 3
@@ -147,4 +189,9 @@ func (story StoryObject) GetTopParticipants() []UserObject {
 // StoryByIDResponse defines the JSON response
 type StoryByIDResponse struct {
 	Story StoryObject `json:"story"`
+}
+
+// ArgumentByIDResponse defines the JSON response
+type ArgumentByIDResponse struct {
+	ClaimArgument ArgumentObject `json:"claimArgument"`
 }

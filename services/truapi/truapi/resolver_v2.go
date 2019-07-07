@@ -405,9 +405,6 @@ func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q claim.Claim) 
 			participants = append(participants, *ta.appAccountResolver(ctx, queryByAddress{ID: comment.Creator}))
 		}
 	}
-	if !participantExists(participants, q.Creator.String()) {
-		participants = append(participants, *ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()}))
-	}
 	return participants
 }
 
@@ -597,7 +594,7 @@ func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByA
 	}
 
 	transactions := make([]bank.Transaction, 0)
-	err = staking.ModuleCodec.UnmarshalJSON(res, &transactions)
+	err = bank.ModuleCodec.UnmarshalJSON(res, &transactions)
 	if err != nil {
 		return []bank.Transaction{}
 	}

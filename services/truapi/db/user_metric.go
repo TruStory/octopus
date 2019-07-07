@@ -8,6 +8,7 @@ import (
 
 // UserMetric is the db model to interact with user metrics
 type UserMetric struct {
+	//nolint:structcheck,unused
 	tableName          struct{}  `sql:"user_metrics_v2"`
 	Address            string    `json:"address"`
 	AsOnDate           time.Time `json:"as_on_date"`

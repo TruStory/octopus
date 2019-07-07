@@ -5,6 +5,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/claim"
@@ -22,6 +23,7 @@ func (sysMetrics *SystemMetrics) getUserMetrics(address string) *UserMetricsV2 {
 	userMetrics, ok := sysMetrics.Users[address]
 	if !ok {
 		userMetrics = &UserMetricsV2{
+			AvailableStake:   sdk.NewCoin(app.StakeDenom, sdk.NewInt(0)),
 			CommunityMetrics: make(map[string]*CommunityMetrics),
 		}
 	}
@@ -35,6 +37,9 @@ func (sysMetrics *SystemMetrics) setUserMetrics(address string, userMetrics *Use
 
 // UserMetricsV2 a summary of different metrics per user
 type UserMetricsV2 struct {
+	// Per user
+	AvailableStake sdk.Coin `json:"available_stake"`
+
 	// For each community
 	CommunityMetrics map[string]*CommunityMetrics `json:"community_metrics"`
 }
@@ -52,7 +57,6 @@ type MetricsV2 struct {
 	StakeEarned        sdk.Coin `json:"stake_earned"`
 	StakeLost          sdk.Coin `json:"stake_lost"`
 	TotalAmountAtStake sdk.Coin `json:"total_amount_at_stake"`
-	AvailableStake     sdk.Coin `json:"available_stake"`
 }
 
 func (userMetrics *UserMetricsV2) getMetricsByCommunity(communityID string) *CommunityMetrics {
@@ -65,7 +69,6 @@ func (userMetrics *UserMetricsV2) getMetricsByCommunity(communityID string) *Com
 				StakeEarned:        sdk.NewCoin(app.StakeDenom, sdk.NewInt(0)),
 				StakeLost:          sdk.NewCoin(app.StakeDenom, sdk.NewInt(0)),
 				TotalAmountAtStake: sdk.NewCoin(app.StakeDenom, sdk.NewInt(0)),
-				AvailableStake:     sdk.NewCoin(app.StakeDenom, sdk.NewInt(0)),
 			},
 		}
 		userMetrics.CommunityMetrics[communityID] = communityMetrics
@@ -94,9 +97,8 @@ func (userMetrics *UserMetricsV2) addAmoutAtStake(communityID string, amount sdk
 	m.TotalAmountAtStake = m.TotalAmountAtStake.Add(amount)
 }
 
-func (userMetrics *UserMetricsV2) addAvailableStake(communityID string, amount sdk.Coin) {
-	m := userMetrics.getMetricsByCommunity(communityID).Metrics
-	m.AvailableStake = m.AvailableStake.Add(amount)
+func (userMetrics *UserMetricsV2) addAvailableStake(amount sdk.Coin) {
+	userMetrics.AvailableStake = userMetrics.AvailableStake.Add(amount)
 }
 
 // HandleMetricsV2 dumps system wide metrics
@@ -160,8 +162,28 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 		Users: make(map[string]*UserMetricsV2),
 	}
 
-	for _, claim := range claims {
+	// For each user, get the available stake calculated.
+	users := make([]db.TwitterProfile, 0)
+	err = ta.DBClient.FindAll(&users)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+	}
 
+	for _, user := range users {
+		userMetrics := systemMetrics.getUserMetrics(user.Address)
+
+		transactions := ta.appAccountTransactionsResolver(r.Context(), queryByAddress{ID: user.Address})
+		for _, transaction := range transactions {
+			if !transaction.CreatedTime.Before(until) {
+				continue
+			}
+
+			userMetrics.addAvailableStake(transaction.Amount)
+		}
+	}
+
+	// Calculate the community-specific metrics here
+	for _, claim := range claims {
 		// range over all the stakings
 		arguments := ta.claimArgumentsResolver(r.Context(), queryClaimArgumentParams{ClaimID: claim.ID})
 		for _, argument := range arguments {
@@ -190,32 +212,20 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 			}
 
 			for _, stake := range stakes {
-				// if backers lost..
-				if totalBackingStakes.IsLT(totalChallengingStakes) {
-					// a.) but the stakes were of challenge, then earned
-					if stake.Type == staking.StakeChallenge {
-						systemMetrics.getUserMetrics(stake.Creator.String()).addStakeEarned(claim.CommunityID, stake.Amount)
-					}
-					// b.) and the stakes were of backing, then lost
-					if stake.Type == staking.StakeBacking {
-						systemMetrics.getUserMetrics(stake.Creator.String()).addStakeLost(claim.CommunityID, stake.Amount)
-					}
-				} else if totalChallengingStakes.IsLT(totalBackingStakes) { // if challengers lost..
-					// a.) but the stakes were of backing, then earned
-					if stake.Type == staking.StakeBacking {
-						systemMetrics.getUserMetrics(stake.Creator.String()).addStakeEarned(claim.CommunityID, stake.Amount)
-					}
-					// b.) and the stakes were of challenge, then lost
-					if stake.Type == staking.StakeChallenge {
-						systemMetrics.getUserMetrics(stake.Creator.String()).addStakeLost(claim.CommunityID, stake.Amount)
-					}
+				if totalBackingStakes.IsLT(totalChallengingStakes) && stake.Type == staking.StakeChallenge {
+					// if backers lost.. but the stakes were of challenge, then earned
+					systemMetrics.getUserMetrics(stake.Creator.String()).addStakeEarned(claim.CommunityID, stake.Amount)
+				} else if totalChallengingStakes.IsLT(totalBackingStakes) && stake.Type == staking.StakeBacking {
+					// if challengers lost.. but the stakes were of backing, then earned
+					systemMetrics.getUserMetrics(stake.Creator.String()).addStakeEarned(claim.CommunityID, stake.Amount)
 				}
 			}
 		}
 
-		// TODO: addAvailableStake
-		systemMetrics.getUserMetrics(claim.Creator.String()).addAvailableStake(claim.CommunityID, sdk.NewCoin(app.StakeDenom, sdk.NewInt(0)))
+		// TODO: addStakeLost method to be implemented when slashing module gets in
+		systemMetrics.getUserMetrics(claim.Creator.String()).addStakeLost(claim.CommunityID, sdk.NewCoin(app.StakeDenom, sdk.NewInt(0)))
 	}
+
 
 	render.JSON(w, r, systemMetrics, http.StatusOK)
 }

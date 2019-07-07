@@ -102,7 +102,7 @@ func renderArgumentSpotlight(s *service) http.Handler {
 		}
 
 		box := packr.New("Templates", "./templates")
-		rawPreview, err := box.Find("argument.svg")
+		rawPreview, err := box.Find("argument-v2.svg")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "URL Preview error", http.StatusInternalServerError)
@@ -155,18 +155,17 @@ func compileStoryPreview(raw []byte, story StoryObject) string {
 func compileArgumentPreview(raw []byte, argument ArgumentObject) string {
 	// BODY
 	bodyLines := wordWrap(argument.Summary)
-	// make sure to have 4 lines atleast
-	if len(bodyLines) < 4 {
-		for i := len(bodyLines); i < 4; i++ {
+	// make sure to have 3 lines atleast
+	if len(bodyLines) < 3 {
+		for i := len(bodyLines); i < 3; i++ {
 			bodyLines = append(bodyLines, "")
 		}
-	} else if len(bodyLines) > 4 {
-		bodyLines[3] += "..." // ellipsis if the entire body couldn't be contained in this preview
+	} else if len(bodyLines) > 3 {
+		bodyLines[2] += "..." // ellipsis if the entire body couldn't be contained in this preview
 	}
 	compiled := bytes.Replace(raw, []byte("$PLACEHOLDER__BODY_LINE_1"), []byte(bodyLines[0]), -1)
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_2"), []byte(bodyLines[1]), -1)
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_3"), []byte(bodyLines[2]), -1)
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_4"), []byte(bodyLines[3]), -1)
 
 	// AGREE COUNT
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__AGREE_COUNT"), []byte(strconv.Itoa(argument.UpvoteCount)), -1)

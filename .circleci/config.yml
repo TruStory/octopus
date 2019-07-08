@@ -84,16 +84,16 @@ jobs: # basic units of work in a run
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
                 mkdir ~/.ssh
-                ssh-keyscan $VENICE4_HOST >> ~/.ssh/known_hosts
-                ssh $VENICE4_USER@$VENICE4_HOST "sudo systemctl stop truapid.service"
-                scp bin/truapid "$VENICE4_USER@$VENICE4_HOST:/home/ubuntu/go/bin/truapid"
-                ssh $VENICE4_USER@$VENICE4_HOST "sudo setcap CAP_NET_BIND_SERVICE=+eip /home/ubuntu/go/bin/truapid"
-                ssh $VENICE4_USER@$VENICE4_HOST "sudo systemctl start truapid.service"
-                scp bin/pushd "$VENICE4_USER@$VENICE4_HOST:$DEPLOY_LOCATION/pushd"
-                ssh $VENICE4_USER@$VENICE4_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
-                scp bin/spotlightd "$VENICE4_USER@$VENICE4_HOST:/opt/services/spotlight/bin/spotlightd"
-                ssh $VENICE4_USER@$VENICE4_HOST 'cd /opt/services/spotlight && CURRENT_UID=$(id -u):$(id -g) docker-compose up --build -d spotlightd'
-                echo "deploying to venice4"
+                ssh-keyscan $BETA_HOST >> ~/.ssh/known_hosts
+                ssh $BETA_USER@$BETA_HOST "sudo systemctl stop truapid.service"
+                scp bin/truapid "$BETA_USER@$BETA_HOST:/home/ubuntu/go/bin/truapid"
+                ssh $BETA_USER@$BETA_HOST "sudo setcap CAP_NET_BIND_SERVICE=+eip /home/ubuntu/go/bin/truapid"
+                ssh $BETA_USER@$BETA_HOST "sudo systemctl start truapid.service"
+                scp bin/pushd "$BETA_USER@$BETA_HOST:$DEPLOY_LOCATION/pushd"
+                ssh $BETA_USER@$BETA_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
+                scp bin/spotlightd "$BETA_USER@$BETA_HOST:/opt/services/spotlight/bin/spotlightd"
+                ssh $BETA_USER@$BETA_HOST 'cd /opt/services/spotlight && CURRENT_UID=$(id -u):$(id -g) docker-compose up --build -d spotlightd'
+                echo "deploying to beta.trustory.io"
             elif [ "${CIRCLE_BRANCH}" == "develop" ]
             then
                 mkdir ~/.ssh
@@ -119,17 +119,17 @@ jobs: # basic units of work in a run
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               mkdir ~/.ssh
-              ssh-keyscan $VENICE4_HOST >> ~/.ssh/known_hosts
-              ssh $VENICE4_USER@$VENICE4_HOST "cd $OCTOPUS_LOCATION && git pull"
-              ssh $VENICE4_USER@$VENICE4_HOST "cd $OCTOPUS_LOCATION && /usr/local/go/bin/go run ./services/db/migrations/*.go"
-              echo "Migrated DB on Testnet"
+              ssh-keyscan $BETA_HOST >> ~/.ssh/known_hosts
+              ssh $BETA_USER@$BETA_HOST "cd $OCTOPUS_LOCATION && git pull"
+              ssh $BETA_USER@$BETA_HOST "cd $OCTOPUS_LOCATION && /usr/local/go/bin/go run ./services/db/migrations/*.go"
+              echo "Migrated betadb database on beta.trustory.io"
             elif [ "${CIRCLE_BRANCH}" == "develop" ]
             then               
               mkdir ~/.ssh
               ssh-keyscan $DEVNET_HOST >> ~/.ssh/known_hosts
               ssh $DEVNET_USER@$DEVNET_HOST "cd $OCTOPUS_LOCATION && git pull"
               ssh $DEVNET_USER@$DEVNET_HOST "cd $OCTOPUS_LOCATION && /usr/local/go/bin/go run ./services/db/migrations/*.go"
-              echo "Migrated DB on Devnet"
+              echo "Migrated trudb database on Devnet"
             fi
   db_dump:
     docker:

@@ -1,16 +1,18 @@
 package truapi
 
 import (
+	"context"
 	"net/http"
 	"path"
 	"time"
+
+	"github.com/TruStory/truchain/x/bank/exported"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/claim"
 	"github.com/TruStory/truchain/x/community"
-	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -178,11 +180,35 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
+			// Available Stake
+			if transaction.Type.AllowedForDeduction() {
+				transaction.Amount.Amount = transaction.Amount.Amount.Neg()
+			}
 			userMetrics.addAvailableStake(transaction.Amount)
+
+			// Stake Earned
+			if transaction.Type.OneOf([]exported.TransactionType{
+				exported.TransactionInterestArgumentCreation,
+				exported.TransactionInterestUpvoteReceived,
+				exported.TransactionInterestUpvoteGiven,
+				exported.TransactionRewardPayout,
+			}) {
+				userMetrics.addStakeEarned(getCommunityIDFromTransaction(r.Context(), ta, transaction), transaction.Amount)
+			}
+
+			// AmountStaked
+			if transaction.Type.OneOf([]exported.TransactionType{
+				exported.TransactionBacking,
+				exported.TransactionChallenge,
+				exported.TransactionUpvote,
+			}) {
+				userMetrics.addAmoutStaked(getCommunityIDFromTransaction(r.Context(), ta, transaction), transaction.Amount)
+			}
+
 		}
 	}
 
-	// Calculate the community-specific metrics here
+	// AmountAtStake
 	for _, claim := range claims {
 		// range over all the stakings
 		arguments := ta.claimArgumentsResolver(r.Context(), queryClaimArgumentParams{ClaimID: claim.ID})
@@ -191,33 +217,13 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			totalBackingStakes := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
-			totalChallengingStakes := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
-
 			stakes := ta.claimArgumentStakesResolver(r.Context(), argument)
 			for _, stake := range stakes {
 				stakerMetrics := systemMetrics.getUserMetrics(stake.Creator.String())
-				stakerMetrics.addAmoutStaked(claim.CommunityID, stake.Amount)
-
-				if stake.Type == staking.StakeBacking {
-					totalBackingStakes = totalBackingStakes.Add(stake.Amount)
-				} else if stake.Type == staking.StakeChallenge {
-					totalChallengingStakes = totalChallengingStakes.Add(stake.Amount)
-				}
 
 				// if the argument is still running
 				if stake.EndTime.After(time.Now()) {
 					stakerMetrics.addAmoutAtStake(claim.CommunityID, stake.Amount)
-				}
-			}
-
-			for _, stake := range stakes {
-				if totalBackingStakes.IsLT(totalChallengingStakes) && stake.Type == staking.StakeChallenge {
-					// if backers lost.. but the stakes were of challenge, then earned
-					systemMetrics.getUserMetrics(stake.Creator.String()).addStakeEarned(claim.CommunityID, stake.Amount)
-				} else if totalChallengingStakes.IsLT(totalBackingStakes) && stake.Type == staking.StakeBacking {
-					// if challengers lost.. but the stakes were of backing, then earned
-					systemMetrics.getUserMetrics(stake.Creator.String()).addStakeEarned(claim.CommunityID, stake.Amount)
 				}
 			}
 		}
@@ -226,6 +232,20 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 		systemMetrics.getUserMetrics(claim.Creator.String()).addStakeLost(claim.CommunityID, sdk.NewCoin(app.StakeDenom, sdk.NewInt(0)))
 	}
 
-
 	render.JSON(w, r, systemMetrics, http.StatusOK)
+}
+
+func getCommunityIDFromTransaction(ctx context.Context, ta *TruAPI, transaction exported.Transaction) string {
+	var claimID uint64
+	if transaction.Type == exported.TransactionInterestUpvoteReceived {
+		stake := ta.stakeResolver(ctx, queryByStakeID{ID: transaction.ReferenceID})
+		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{ID: stake.ArgumentID})
+		claimID = argument.ClaimID
+	} else {
+		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{ID: transaction.ReferenceID})
+		claimID = argument.ClaimID
+	}
+	claim := ta.claimResolver(ctx, queryByClaimID{ID: claimID})
+
+	return claim.CommunityID
 }

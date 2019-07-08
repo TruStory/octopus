@@ -400,30 +400,17 @@ func (ta *TruAPI) claimStakersResolver(ctx context.Context, q claim.Claim) []App
 func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q claim.Claim) []AppAccount {
 	participants := ta.claimStakersResolver(ctx, q)
 	comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
+
+	// use map to prevent duplicate participants
+	participantsMap := make(map[string]string)
 	for _, comment := range comments {
-		if !participantExists(participants, comment.Creator) {
-			participants = append(participants, *ta.appAccountResolver(ctx, queryByAddress{ID: comment.Creator}))
-		}
+		participantsMap[comment.Creator] = comment.Creator
+	}
+
+	for address := range participantsMap {
+		participants = append(participants, *ta.appAccountResolver(ctx, queryByAddress{ID: address}))
 	}
 	return participants
-}
-
-func participantExists(participants []AppAccount, participantToAddAddress string) bool {
-	for _, participant := range participants {
-		if participant.Address == participantToAddAddress {
-			return true
-		}
-	}
-	return false
-}
-
-func claimIDExists(claimIDs []uint64, claimIDToAdd uint64) bool {
-	for _, claimID := range claimIDs {
-		if claimID == claimIDToAdd {
-			return true
-		}
-	}
-	return false
 }
 
 func (ta *TruAPI) stakeResolver(ctx context.Context, q queryByStakeID) *staking.Stake {
@@ -516,35 +503,49 @@ func (ta *TruAPI) appAccountClaimsCreatedResolver(ctx context.Context, q queryBy
 	return claimsCreated
 }
 
-func (ta *TruAPI) appAccountClaimsWithArgumentsResolver(ctx context.Context, q queryByAddress) []claim.Claim {
+func (ta *TruAPI) appAccountArgumentsResolver(ctx context.Context, q queryByAddress) []staking.Argument {
 	creator, err := sdk.AccAddressFromBech32(q.ID)
 	if err != nil {
-		return []claim.Claim{}
+		return []staking.Argument{}
 	}
 
 	queryRoute := path.Join(staking.QuerierRoute, staking.QueryUserArguments)
 	res, err := ta.Query(queryRoute, staking.QueryUserArgumentsParams{Address: creator}, staking.ModuleCodec)
 	if err != nil {
-		fmt.Println("appAccountClaimsWithArguments err: ", err)
-		return []claim.Claim{}
+		fmt.Println("appAccountArguments err: ", err)
+		return []staking.Argument{}
 	}
 
 	arguments := make([]staking.Argument, 0)
 	err = staking.ModuleCodec.UnmarshalJSON(res, &arguments)
 	if err != nil {
 		fmt.Println("[]staking.Argument UnmarshalJSON err: ", err)
-		return []claim.Claim{}
+		return []staking.Argument{}
 	}
 
-	claimsIDsWithArgument := make([]uint64, 0)
+	return arguments
+}
+
+func (ta *TruAPI) appAccountClaimsWithArgumentsResolver(ctx context.Context, q queryByAddress) []claim.Claim {
+	arguments := ta.appAccountArgumentsResolver(ctx, q)
+
+	// Use map to prevent duplicate claim IDs
+	claimIDsWithArgumentMap := make(map[uint64]uint64)
 	for _, argument := range arguments {
-		if !claimIDExists(claimsIDsWithArgument, argument.ClaimID) {
-			claimsIDsWithArgument = append(claimsIDsWithArgument, argument.ClaimID)
-		}
+		claimIDsWithArgumentMap[argument.ClaimID] = argument.ClaimID
 	}
 
-	queryRoute = path.Join(claim.QuerierRoute, claim.QueryClaimsByIDs)
-	res, err = ta.Query(queryRoute, claim.QueryClaimsParams{IDs: claimsIDsWithArgument}, claim.ModuleCodec)
+	claimIDsWithArgument := make([]uint64, 0)
+	for claimID := range claimIDsWithArgumentMap {
+		claimIDsWithArgument = append(claimIDsWithArgument, claimID)
+	}
+
+	sort.Slice(claimIDsWithArgument, func(i int, j int) bool {
+		return claimIDsWithArgument[i] > claimIDsWithArgument[j]
+	})
+
+	queryRoute := path.Join(claim.QuerierRoute, claim.QueryClaimsByIDs)
+	res, err := ta.Query(queryRoute, claim.QueryClaimsParams{IDs: claimIDsWithArgument}, claim.ModuleCodec)
 	if err != nil {
 		fmt.Println("appAccountClaimsWithArguments err: ", err)
 		return []claim.Claim{}
@@ -563,18 +564,26 @@ func (ta *TruAPI) appAccountClaimsWithArgumentsResolver(ctx context.Context, q q
 func (ta *TruAPI) appAccountClaimsWithAgreesResolver(ctx context.Context, q queryByAddress) []claim.Claim {
 	stakes := ta.agreesResolver(ctx, q)
 
-	claimsIDsWithAgrees := make([]uint64, 0)
+	// Use map to prevent duplicate claim IDs
+	claimIDsWithAgreesMap := make(map[uint64]uint64)
 	for _, stake := range stakes {
 		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{ID: stake.ArgumentID})
 		if argument != nil {
-			if !claimIDExists(claimsIDsWithAgrees, argument.ClaimID) {
-				claimsIDsWithAgrees = append(claimsIDsWithAgrees, argument.ClaimID)
-			}
+			claimIDsWithAgreesMap[argument.ClaimID] = argument.ClaimID
 		}
 	}
 
+	claimIDsWithAgrees := make([]uint64, 0)
+	for claimID := range claimIDsWithAgreesMap {
+		claimIDsWithAgrees = append(claimIDsWithAgrees, claimID)
+	}
+
+	sort.Slice(claimIDsWithAgrees, func(i int, j int) bool {
+		return claimIDsWithAgrees[i] > claimIDsWithAgrees[j]
+	})
+
 	queryRoute := path.Join(claim.QuerierRoute, claim.QueryClaimsByIDs)
-	res, err := ta.Query(queryRoute, claim.QueryClaimsParams{IDs: claimsIDsWithAgrees}, claim.ModuleCodec)
+	res, err := ta.Query(queryRoute, claim.QueryClaimsParams{IDs: claimIDsWithAgrees}, claim.ModuleCodec)
 	if err != nil {
 		fmt.Println("appAccountClaimsWithAgrees err: ", err)
 		return []claim.Claim{}

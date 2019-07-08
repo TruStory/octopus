@@ -68,11 +68,12 @@ type MetricsV2 struct {
 	StakeEarned        Coin `json:"stake_earned"`
 	StakeLost          Coin `json:"stake_lost"`
 	TotalAmountAtStake Coin `json:"total_amount_at_stake"`
-	AvailableStake     Coin `json:"available_stake"`
 }
 
 // UserMetricsV2 a summary of different metrics per user
 type UserMetricsV2 struct {
+	AvailableStake Coin `json:"available_stake"`
+
 	// For each community
 	CommunityMetrics map[string]*CommunityMetrics `json:"community_metrics"`
 }

@@ -24,7 +24,7 @@ type UserMetric struct {
 func (c *Client) AggregateUserMetricsByAddressBetweenDates(address string, from string, to string) ([]UserMetric, error) {
 	userMetrics := make([]UserMetric, 0)
 	err := c.Model(&userMetrics).
-		Column("as_on_date", "category_id").
+		Column("as_on_date", "community_id").
 		ColumnExpr(`
 			sum(total_amount_at_stake) as total_amount_at_stake,
 			sum(stake_earned) as stake_earned,

@@ -108,10 +108,6 @@ func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 	for address, userMetric := range metrics.Users {
 		fmt.Printf("\tCalculating for User... %s\n", address)
 		for communityID, communityMetric := range userMetric.CommunityMetrics {
-
-			// by default, assume that the user has no previous activity,
-			// thus, today's metrics become the daily metrics,
-			// thus, creating and initializing a default struct.
 			dayMetric := db.UserMetric{
 				Address:            address,
 				AsOnDate:           date,
@@ -120,7 +116,7 @@ func (statistia *service) seedInTxFor(tx *pg.Tx, date time.Time) error {
 				StakeEarned:        communityMetric.Metrics.StakeEarned.Amount,
 				StakeLost:          communityMetric.Metrics.StakeLost.Amount,
 				TotalAmountAtStake: communityMetric.Metrics.TotalAmountAtStake.Amount,
-				AvailableStake:     communityMetric.Metrics.AvailableStake.Amount,
+				AvailableStake:     userMetric.AvailableStake.Amount,
 			}
 
 			fmt.Printf("\t\tSaving...\n")

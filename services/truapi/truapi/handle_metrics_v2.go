@@ -174,6 +174,10 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 	for _, user := range users {
 		userMetrics := systemMetrics.getUserMetrics(user.Address)
 
+		for _, community := range communities {
+			userMetrics.CommunityMetrics[community.ID] = userMetrics.getMetricsByCommunity(community.ID)
+		}
+
 		transactions := ta.appAccountTransactionsResolver(r.Context(), queryByAddress{ID: user.Address})
 		for _, transaction := range transactions {
 			if !transaction.CreatedTime.Before(until) {

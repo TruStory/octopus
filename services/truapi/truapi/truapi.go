@@ -624,6 +624,16 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterPaginatedObjectResolver("Transaction", "iD", bank.Transaction{}, map[string]interface{}{
 		"id":        func(_ context.Context, q bank.Transaction) uint64 { return q.ID },
 		"reference": ta.transactionReferenceResolver,
+		"amount": func(_ context.Context, q bank.Transaction) sdk.Coin {
+			amount := q.Amount.Amount
+			if q.Type.AllowedForDeduction() {
+				amount = amount.Neg()
+			}
+			return sdk.Coin{
+				Amount: amount,
+				Denom:  q.Amount.Denom,
+			}
+		},
 	})
 
 	ta.GraphQLClient.RegisterPaginatedQueryResolver("appAccountClaimsCreated", ta.appAccountClaimsCreatedResolver)

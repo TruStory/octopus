@@ -9,7 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	truCtx "github.com/TruStory/octopus/services/truapi/context"
+	app "github.com/TruStory/truchain/types"
+	"github.com/TruStory/truchain/x/account"
 	"github.com/TruStory/truchain/x/users"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/utils"
@@ -21,10 +22,15 @@ import (
 	"github.com/oklog/ulid"
 	amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
+	crypto "github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/ed25519"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
+
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 )
 
 // MsgTypes is a map of `Msg` type names to empty instances
@@ -173,6 +179,22 @@ func generateAddress() []byte {
 	return addr
 }
 
+// toPubKey returns an instance of `crypto.PubKey` using the given algorithm
+func toPubKey(algo string, rawPubKeyBytes []byte) (crypto.PubKey, error) {
+	switch algo {
+	case "ed25519":
+		ek := ed25519.PubKeyEd25519{}
+		copy(ek[:], rawPubKeyBytes)
+		return ek, nil
+	case "secp256k1":
+		sk := secp256k1.PubKeySecp256k1{}
+		copy(sk[:], rawPubKeyBytes)
+		return sk, nil
+	default:
+		return secp256k1.PubKeySecp256k1{}, unsupportedAlgoError(algo, []string{"ed25519", "secp256k1"})
+	}
+}
+
 func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (res sdk.TxResponse, err error) {
 	cliCtx := a.apiCtx
 	config := cliCtx.Config.Registrar
@@ -185,13 +207,9 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	if err != nil {
 		return
 	}
-
-	msg := users.RegisterKeyMsg{
-		Address:    addr,
-		PubKey:     k,
-		PubKeyAlgo: algo,
-		Coins:      nil,
-	}
+	sk := secp256k1.PubKeySecp256k1{}
+	copy(sk[:], k)
+	msg := account.NewMsgRegisterKey(registrarAddr, addr, sk, algo, sdk.NewCoins(sdk.NewInt64Coin(app.StakeDenom, 300*app.Shanev)))
 	err = msg.ValidateBasic()
 	if err != nil {
 		return

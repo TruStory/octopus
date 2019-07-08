@@ -22,9 +22,6 @@ import (
 	"github.com/oklog/ulid"
 	amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
-	crypto "github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"golang.org/x/crypto/acme/autocert"
@@ -179,22 +176,6 @@ func generateAddress() []byte {
 	return addr
 }
 
-// toPubKey returns an instance of `crypto.PubKey` using the given algorithm
-func toPubKey(algo string, rawPubKeyBytes []byte) (crypto.PubKey, error) {
-	switch algo {
-	case "ed25519":
-		ek := ed25519.PubKeyEd25519{}
-		copy(ek[:], rawPubKeyBytes)
-		return ek, nil
-	case "secp256k1":
-		sk := secp256k1.PubKeySecp256k1{}
-		copy(sk[:], rawPubKeyBytes)
-		return sk, nil
-	default:
-		return secp256k1.PubKeySecp256k1{}, unsupportedAlgoError(algo, []string{"ed25519", "secp256k1"})
-	}
-}
-
 func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (res sdk.TxResponse, err error) {
 	cliCtx := a.apiCtx
 	config := cliCtx.Config.Registrar
@@ -207,11 +188,11 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	if err != nil {
 		return
 	}
-	sk, err := toPubKey(algo, k)
+	sk, err := StdKey(algo, k)
 	if err != nil {
 		return
 	}
-	msg := account.NewMsgRegisterKey(registrarAddr, addr, sk, algo, sdk.NewCoins(sdk.NewInt64Coin(app.StakeDenom, 300*app.Shanev)))
+	msg := account.NewMsgRegisterKey(registrarAddr, addr, sk, algo, sdk.NewCoins(app.InitialTruStake))
 	err = msg.ValidateBasic()
 	if err != nil {
 		return

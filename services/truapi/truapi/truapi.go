@@ -525,7 +525,7 @@ func (ta *TruAPI) RegisterResolvers() {
 			return len(ta.appAccountClaimsCreatedResolver(ctx, queryByAddress{ID: q.Address}))
 		},
 		"totalArguments": func(ctx context.Context, q AppAccount) int {
-			return len(ta.appAccountClaimsWithArgumentsResolver(ctx, queryByAddress{ID: q.Address}))
+			return len(ta.appAccountArgumentsResolver(ctx, queryByAddress{ID: q.Address}))
 		},
 		"totalAgrees": func(ctx context.Context, q AppAccount) int {
 			return len(ta.agreesResolver(ctx, queryByAddress{ID: q.Address}))

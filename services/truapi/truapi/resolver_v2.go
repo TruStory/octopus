@@ -79,6 +79,9 @@ type claimMetricsTrending struct {
 	TotalStakes    int64
 }
 
+// the communities need to be curated better before they are made public
+var communityBlacklist = []string{"cosmos", "sports", "tech", "entertainment"}
+
 func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *AppAccount {
 	address, err := sdk.AccAddressFromBech32(q.ID)
 	if err != nil {
@@ -166,19 +169,18 @@ func (ta *TruAPI) earnedStakeResolver(ctx context.Context, q queryByAddress) []E
 
 	earnedCoins := make([]EarnedCoin, 0)
 	for _, coin := range coins {
-		earnedCoins = append(earnedCoins, EarnedCoin{
-			coin,
-			coin.Denom,
-		})
+		if !contains(communityBlacklist, coin.Denom) {
+			earnedCoins = append(earnedCoins, EarnedCoin{
+				coin,
+				coin.Denom,
+			})
+		}
 	}
 
 	return earnedCoins
 }
 
 func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community {
-	// the communities need to be curated better before they are made public
-	communityBlacklist := []string{"sports", "tech", "entertainment"}
-
 	queryRoute := path.Join(community.QuerierRoute, community.QueryCommunities)
 	res, err := ta.Query(queryRoute, struct{}{}, community.ModuleCodec)
 	if err != nil {

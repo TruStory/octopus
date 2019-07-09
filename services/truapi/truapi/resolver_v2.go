@@ -86,9 +86,21 @@ type appAccountEarningsFilter struct {
 	To   string
 }
 
-type appAccountEarningsResponse struct {
-	NetEarnings    map[string]sdk.Coin `json:"net_earnings"`
-	AvailableStake map[string]sdk.Coin `json:"available_stake"`
+type appAccountCommunityEarning struct {
+	Address      string   `json:"address"`
+	CommunityID  string   `json:"community_id"`
+	TotalEarned  sdk.Coin `json:"total_earned"`
+	WeeklyEarned sdk.Coin `json:"weekly_earned"`
+}
+
+type appAccountEarning struct {
+	Date   string `json:"date"`
+	Amount int64  `json:"amount"`
+}
+
+type appAccountEarnings struct {
+	NetEarnings sdk.Coin            `json:"net_earnings"`
+	DataPoints  []appAccountEarning `json:"data_points"`
 }
 
 func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *AppAccount {
@@ -844,7 +856,43 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, fi
 	return claims
 }
 
-func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEarningsFilter) appAccountEarningsResponse {
+func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q queryByAddress) []appAccountCommunityEarning {
+	appAccount := ta.appAccountResolver(ctx, q)
+
+	to := time.Now()
+	from := to.Add(-7 * 24 * time.Hour)
+	metrics, err := ta.DBClient.AggregateUserMetricsByAddressBetweenDates(appAccount.Address, from.Format("2006-01-02"), to.Format("2006-01-02"))
+	if err != nil {
+		panic(err)
+	}
+
+	communityEarnings := make([]appAccountCommunityEarning, 0)
+	mappedCommunityEarnings := make(map[string]sdk.Coin)
+
+	for _, metric := range metrics {
+		runningEarning := mappedCommunityEarnings[metric.CommunityID]
+		if runningEarning.Denom == "" {
+			// not previously found
+			mappedCommunityEarnings[metric.CommunityID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
+		} else {
+			// previously found
+			mappedCommunityEarnings[metric.CommunityID] = runningEarning.Add(sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned))))
+		}
+	}
+
+	for communityID, earning := range mappedCommunityEarnings {
+		communityEarnings = append(communityEarnings, appAccountCommunityEarning{
+			Address:      q.ID,
+			CommunityID:  communityID,
+			WeeklyEarned: earning,
+			TotalEarned:  sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metrics[len(metrics)-1].StakeEarned))), // last item of the array
+		})
+	}
+
+	return communityEarnings
+}
+
+func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEarningsFilter) appAccountEarnings {
 	appAccount := ta.appAccountResolver(ctx, queryByAddress{ID: q.ID})
 
 	metrics, err := ta.DBClient.AggregateUserMetricsByAddressBetweenDates(appAccount.Address, q.From, q.To)
@@ -852,10 +900,8 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 		panic(err)
 	}
 
-	response := appAccountEarningsResponse{
-		NetEarnings:    make(map[string]sdk.Coin),
-		AvailableStake: make(map[string]sdk.Coin),
-	}
+	dataPoints := make([]appAccountEarning, 0)
+	mappedDataPoints := make(map[string]sdk.Coin)
 
 	// seeding empty dates
 	from, err := time.Parse("2006-01-02", q.From)
@@ -867,20 +913,22 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 		panic(err)
 	}
 	for date := from; date.Before(to); date = date.AddDate(0, 0, 1) {
-		response.AvailableStake[date.Format("2006-01-02")] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		mappedDataPoints[date.Format("2006-01-02")] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 	}
 
 	for _, metric := range metrics {
-		fmt.Println(metric)
-		runningNetEarnings := response.NetEarnings[metric.CommunityID]
-		if runningNetEarnings.Denom == "" {
-			response.NetEarnings[metric.CommunityID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
-		} else {
-			response.NetEarnings[metric.CommunityID] = runningNetEarnings.Add(sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned))))
-		}
-
-		response.AvailableStake[metric.AsOnDate.Format("2006-01-02")] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.AvailableStake)))
+		mappedDataPoints[metric.AsOnDate.Format("2006-01-02")] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.AvailableStake)))
 	}
 
-	return response
+	for date, earning := range mappedDataPoints {
+		dataPoints = append(dataPoints, appAccountEarning{
+			Date:   date,
+			Amount: earning.Amount.Quo(sdk.NewInt(app.Shanev)).ToDec().RoundInt64(),
+		})
+	}
+
+	return appAccountEarnings{
+		NetEarnings: sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metrics[len(metrics)-1].AvailableStake))), // last item of the array
+		DataPoints:  dataPoints,
+	}
 }

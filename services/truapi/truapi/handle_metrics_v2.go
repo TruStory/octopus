@@ -240,6 +240,10 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 }
 
 func getCommunityIDFromTransaction(ctx context.Context, ta *TruAPI, transaction exported.Transaction) string {
+	if transaction.Type == exported.TransactionRewardPayout {
+		return ""
+	}
+
 	var claimID uint64
 	if transaction.Type == exported.TransactionInterestUpvoteReceived {
 		stake := ta.stakeResolver(ctx, queryByStakeID{ID: transaction.ReferenceID})

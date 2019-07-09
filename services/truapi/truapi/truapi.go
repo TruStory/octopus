@@ -536,6 +536,12 @@ func (ta *TruAPI) RegisterResolvers() {
 		"earnedStake": func(ctx context.Context, q AppAccount) []EarnedCoin {
 			return ta.earnedStakeResolver(ctx, queryByAddress{ID: q.Address})
 		},
+		"pendingBalance": func(ctx context.Context, q AppAccount) sdk.Coin {
+			return ta.pendingBalanceResolver(ctx, queryByAddress{ID: q.Address})
+		},
+		"pendingStake": func(ctx context.Context, q AppAccount) []EarnedCoin {
+			return ta.pendingStakeResolver(ctx, queryByAddress{ID: q.Address})
+		},
 	})
 
 	ta.GraphQLClient.RegisterObjectResolver("EarnedCoin", EarnedCoin{}, map[string]interface{}{

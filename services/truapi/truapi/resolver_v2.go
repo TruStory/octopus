@@ -390,25 +390,30 @@ func (ta *TruAPI) topArgumentResolver(ctx context.Context, q claim.Claim) *staki
 	return argument
 }
 
-func (ta *TruAPI) claimStakersResolver(ctx context.Context, q claim.Claim) []AppAccount {
-	stakers := make([]AppAccount, 0)
+// returns all argument writer and upvoter stakes on a claim
+func (ta *TruAPI) claimStakesResolver(ctx context.Context, q claim.Claim) []staking.Stake {
+	stakes := make([]staking.Stake, 0)
 	arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID})
 	for _, argument := range arguments {
-		stakers = append(stakers, ta.claimArgumentStakersResolver(ctx, argument)...)
+		stakes = append(stakes, ta.claimArgumentStakesResolver(ctx, argument)...)
 	}
-	return stakers
+	return stakes
 }
 
 func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q claim.Claim) []AppAccount {
-	participants := ta.claimStakersResolver(ctx, q)
+	stakes := ta.claimStakesResolver(ctx, q)
 	comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 
 	// use map to prevent duplicate participants
 	participantsMap := make(map[string]string)
+	for _, stake := range stakes {
+		participantsMap[stake.Creator.String()] = stake.Creator.String()
+	}
 	for _, comment := range comments {
 		participantsMap[comment.Creator] = comment.Creator
 	}
 
+	participants := make([]AppAccount, 0)
 	for address := range participantsMap {
 		participants = append(participants, *ta.appAccountResolver(ctx, queryByAddress{ID: address}))
 	}
@@ -450,7 +455,7 @@ func (ta *TruAPI) claimArgumentStakesResolver(ctx context.Context, q staking.Arg
 	return stakes
 }
 
-func (ta *TruAPI) claimArgumentStakersResolver(ctx context.Context, q staking.Argument) []AppAccount {
+func (ta *TruAPI) claimArgumentUpvoteStakersResolver(ctx context.Context, q staking.Argument) []AppAccount {
 	stakes := ta.claimArgumentStakesResolver(ctx, q)
 	appAccounts := make([]AppAccount, 0)
 	for _, stake := range stakes {

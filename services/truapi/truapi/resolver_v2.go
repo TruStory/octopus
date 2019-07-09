@@ -180,6 +180,81 @@ func (ta *TruAPI) earnedStakeResolver(ctx context.Context, q queryByAddress) []E
 	return earnedCoins
 }
 
+func (ta *TruAPI) pendingBalanceResolver(ctx context.Context, q queryByAddress) sdk.Coin {
+	address, err := sdk.AccAddressFromBech32(q.ID)
+	if err != nil {
+		fmt.Println("pendingBalanceResolver err: ", err)
+		return sdk.Coin{}
+	}
+
+	queryRoute := path.Join(staking.QuerierRoute, staking.QueryUserStakes)
+	res, err := ta.Query(queryRoute, staking.QueryUserStakesParams{Address: address}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("pendingBalanceResolver err: ", err)
+		return sdk.Coin{}
+	}
+
+	stakes := make([]staking.Stake, 0)
+	err = staking.ModuleCodec.UnmarshalJSON(res, &stakes)
+	if err != nil {
+		fmt.Println("stakes UnmarshalJSON err: ", err)
+		return sdk.Coin{}
+	}
+
+	balance := sdk.NewCoin(app.StakeDenom, sdk.ZeroInt())
+	for _, stake := range stakes {
+		if !stake.Expired {
+			balance = balance.Add(stake.Amount)
+		}
+	}
+
+	return balance
+}
+
+func (ta *TruAPI) pendingStakeResolver(ctx context.Context, q queryByAddress) []EarnedCoin {
+	address, err := sdk.AccAddressFromBech32(q.ID)
+	if err != nil {
+		fmt.Println("pendingStakeResolver err: ", err)
+		return []EarnedCoin{}
+	}
+
+	communities := ta.communitiesResolver(ctx)
+	pendingStakes := make([]EarnedCoin, 0)
+
+	for _, community := range communities {
+		queryRoute := path.Join(staking.QuerierRoute, staking.QueryUserCommunityStakes)
+		res, err := ta.Query(queryRoute, staking.QueryUserCommunityStakesParams{Address: address, CommunityID: community.ID}, staking.ModuleCodec)
+		if err != nil {
+			fmt.Println("pendingStakeResolver err: ", err)
+			return []EarnedCoin{}
+		}
+
+		stakes := make([]staking.Stake, 0)
+		err = staking.ModuleCodec.UnmarshalJSON(res, &stakes)
+		if err != nil {
+			fmt.Println("stake UnmarshalJSON err: ", err)
+			return []EarnedCoin{}
+		}
+
+		total := sdk.ZeroInt()
+		for _, stake := range stakes {
+			if !stake.Expired {
+				total = total.Add(stake.Amount.Amount)
+			}
+		}
+
+		pendingStakes = append(pendingStakes, EarnedCoin{
+			sdk.Coin{
+				Amount: total,
+				Denom:  app.StakeDenom,
+			},
+			community.ID,
+		})
+	}
+
+	return pendingStakes
+}
+
 func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community {
 	queryRoute := path.Join(community.QuerierRoute, community.QueryCommunities)
 	res, err := ta.Query(queryRoute, struct{}{}, community.ModuleCodec)

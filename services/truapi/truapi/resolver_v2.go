@@ -79,6 +79,18 @@ type claimMetricsTrending struct {
 	TotalStakes    int64
 }
 
+// appAccountEarningsFilter is query params for filtering the app account's earnings
+type appAccountEarningsFilter struct {
+	ID   string
+	From string
+	To   string
+}
+
+type appAccountEarningsResponse struct {
+	NetEarnings    map[string]sdk.Coin `json:"net_earnings"`
+	AvailableStake map[string]sdk.Coin `json:"available_stake"`
+}
+
 func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *AppAccount {
 	address, err := sdk.AccAddressFromBech32(q.ID)
 	if err != nil {
@@ -830,4 +842,45 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, fi
 		return trendingClaims
 	}
 	return claims
+}
+
+func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEarningsFilter) appAccountEarningsResponse {
+	appAccount := ta.appAccountResolver(ctx, queryByAddress{ID: q.ID})
+
+	metrics, err := ta.DBClient.AggregateUserMetricsByAddressBetweenDates(appAccount.Address, q.From, q.To)
+	if err != nil {
+		panic(err)
+	}
+
+	response := appAccountEarningsResponse{
+		NetEarnings:    make(map[string]sdk.Coin),
+		AvailableStake: make(map[string]sdk.Coin),
+	}
+
+	// seeding empty dates
+	from, err := time.Parse("2006-01-02", q.From)
+	if err != nil {
+		panic(err)
+	}
+	to, err := time.Parse("2006-01-02", q.To)
+	if err != nil {
+		panic(err)
+	}
+	for date := from; date.Before(to); date = date.AddDate(0, 0, 1) {
+		response.AvailableStake[date.Format("2006-01-02")] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+	}
+
+	for _, metric := range metrics {
+		fmt.Println(metric)
+		runningNetEarnings := response.NetEarnings[metric.CommunityID]
+		if runningNetEarnings.Denom == "" {
+			response.NetEarnings[metric.CommunityID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
+		} else {
+			response.NetEarnings[metric.CommunityID] = runningNetEarnings.Add(sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned))))
+		}
+
+		response.AvailableStake[metric.AsOnDate.Format("2006-01-02")] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.AvailableStake)))
+	}
+
+	return response
 }

@@ -511,6 +511,16 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 	})
 
+	ta.GraphQLClient.RegisterQueryResolver("appAccountEarnings", ta.appAccountEarningsResolver)
+	ta.GraphQLClient.RegisterObjectResolver("AppAccountEarnings", appAccountEarningsResponse{}, map[string]interface{}{
+		"netEarnings": func(_ context.Context, q appAccountEarningsResponse) map[string]sdk.Coin {
+			return q.NetEarnings
+		},
+		"dataPoints": func(_ context.Context, q appAccountEarningsResponse) map[string]sdk.Coin {
+			return q.AvailableStake
+		},
+	})
+
 	// ########## V2 resolvers ################
 
 	ta.GraphQLClient.RegisterQueryResolver("appAccount", ta.appAccountResolver)

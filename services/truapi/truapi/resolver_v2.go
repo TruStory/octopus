@@ -867,24 +867,26 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 	}
 
 	communityEarnings := make([]appAccountCommunityEarning, 0)
-	mappedCommunityEarnings := make(map[string]sdk.Coin)
+	mappedCommunityOpeningBalance := make(map[string]sdk.Coin)
+	mappedCommunityClosingBalance := make(map[string]sdk.Coin)
 
 	for _, metric := range metrics {
-		runningEarning := mappedCommunityEarnings[metric.CommunityID]
+		runningEarning := mappedCommunityOpeningBalance[metric.CommunityID]
 		if runningEarning.Denom == "" {
 			// not previously found
-			mappedCommunityEarnings[metric.CommunityID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
+			mappedCommunityOpeningBalance[metric.CommunityID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
+			mappedCommunityClosingBalance[metric.CommunityID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
 		} else {
 			// previously found
-			mappedCommunityEarnings[metric.CommunityID] = runningEarning.Add(sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned))))
+			mappedCommunityClosingBalance[metric.CommunityID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
 		}
 	}
 
-	for communityID, earning := range mappedCommunityEarnings {
+	for communityID, openingBalance := range mappedCommunityOpeningBalance {
 		communityEarnings = append(communityEarnings, appAccountCommunityEarning{
 			Address:      q.ID,
 			CommunityID:  communityID,
-			WeeklyEarned: earning,
+			WeeklyEarned: mappedCommunityClosingBalance[communityID].Sub(openingBalance),
 			TotalEarned:  sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metrics[len(metrics)-1].StakeEarned))), // last item of the array
 		})
 	}

@@ -589,7 +589,19 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterQueryResolver("claimArgument", ta.claimArgumentResolver)
 	ta.GraphQLClient.RegisterQueryResolver("claimArguments", ta.claimArgumentsResolver)
 	ta.GraphQLClient.RegisterObjectResolver("ClaimArgument", staking.Argument{}, map[string]interface{}{
-		"id":          func(_ context.Context, q staking.Argument) uint64 { return q.ID },
+		"id": func(_ context.Context, q staking.Argument) uint64 { return q.ID },
+		"body": func(_ context.Context, q staking.Argument, args struct {
+			Raw bool `graphql:",optional"`
+		}) string {
+			if args.Raw {
+				return q.Body
+			}
+			body, err := ta.DBClient.TranslateToUsersMentions(q.Body)
+			if err != nil {
+				return q.Body
+			}
+			return body
+		},
 		"claimId":     func(_ context.Context, q staking.Argument) uint64 { return q.ClaimID },
 		"vote":        func(_ context.Context, q staking.Argument) bool { return q.StakeType == staking.StakeBacking },
 		"createdTime": func(_ context.Context, q staking.Argument) string { return q.CreatedTime.String() },

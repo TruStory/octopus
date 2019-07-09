@@ -12,6 +12,7 @@ import (
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/account"
 	"github.com/TruStory/truchain/x/bank"
+	"github.com/TruStory/truchain/x/bank/exported"
 	"github.com/TruStory/truchain/x/claim"
 	"github.com/TruStory/truchain/x/community"
 	"github.com/TruStory/truchain/x/staking"
@@ -923,8 +924,12 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, fi
 func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q queryByAddress) []appAccountCommunityEarning {
 	appAccount := ta.appAccountResolver(ctx, q)
 
-	to := time.Now()
-	from := to.Add(-7 * 24 * time.Hour)
+	now := time.Now()
+	year, month, day := now.Date()
+	today := time.Date(year, month, day, 0, 0, 0, 0, now.Location()) // beginning of the day
+
+	to := today.Add(-1 * 24 * time.Hour) // till yesterday
+	from := to.Add(-6 * 24 * time.Hour)  // starting from 6 days before yesterday
 	metrics, err := ta.DBClient.AggregateUserMetricsByAddressBetweenDates(appAccount.Address, from.Format("2006-01-02"), to.Format("2006-01-02"))
 	if err != nil {
 		panic(err)
@@ -943,6 +948,33 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 		} else {
 			// previously found
 			mappedCommunityClosingBalance[metric.CommunityID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
+		}
+	}
+
+	// reconciling with today's real-time data
+	transactions := ta.appAccountTransactionsResolver(ctx, q)
+	for _, transaction := range transactions {
+		if !transaction.CreatedTime.After(today) {
+			continue
+		}
+
+		// Stake Earned
+		if transaction.Type.OneOf([]exported.TransactionType{
+			exported.TransactionInterestArgumentCreation,
+			exported.TransactionInterestUpvoteReceived,
+			exported.TransactionInterestUpvoteGiven,
+			exported.TransactionRewardPayout,
+		}) {
+			communityID := getCommunityIDFromTransaction(ctx, ta, transaction)
+			runningEarning := mappedCommunityOpeningBalance[communityID]
+			if runningEarning.Denom == "" {
+				// not previously found
+				mappedCommunityOpeningBalance[communityID] = transaction.Amount
+				mappedCommunityClosingBalance[communityID] = transaction.Amount
+			} else {
+				// previously found
+				mappedCommunityClosingBalance[communityID] = transaction.Amount
+			}
 		}
 	}
 
@@ -981,7 +1013,7 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 	for date := from; date.Before(to); date = date.AddDate(0, 0, 1) {
 		key := date.Format("2006-01-02")
 		mappedDataPoints[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
-		mappedSortedKeys = append(mappedSortedKeys, key)
+		mappedSortedKeys = append(mappedSortedKeys, key) // storing the key so that we can later sort the map in the same order
 	}
 
 	for _, metric := range metrics {

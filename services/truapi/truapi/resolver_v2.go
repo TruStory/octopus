@@ -902,7 +902,7 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 
 	dataPoints := make([]appAccountEarning, 0)
 	mappedDataPoints := make(map[string]sdk.Coin)
-
+	var mappedSortedKeys []string
 	// seeding empty dates
 	from, err := time.Parse("2006-01-02", q.From)
 	if err != nil {
@@ -913,17 +913,19 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 		panic(err)
 	}
 	for date := from; date.Before(to); date = date.AddDate(0, 0, 1) {
-		mappedDataPoints[date.Format("2006-01-02")] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		key := date.Format("2006-01-02")
+		mappedDataPoints[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		mappedSortedKeys = append(mappedSortedKeys, key)
 	}
 
 	for _, metric := range metrics {
 		mappedDataPoints[metric.AsOnDate.Format("2006-01-02")] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.AvailableStake)))
 	}
 
-	for date, earning := range mappedDataPoints {
+	for _, key := range mappedSortedKeys {
 		dataPoints = append(dataPoints, appAccountEarning{
-			Date:   date,
-			Amount: earning.Amount.Quo(sdk.NewInt(app.Shanev)).ToDec().RoundInt64(),
+			Date:   key,
+			Amount: mappedDataPoints[key].Amount.Quo(sdk.NewInt(app.Shanev)).ToDec().RoundInt64(),
 		})
 	}
 

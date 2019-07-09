@@ -451,43 +451,6 @@ func (ta *TruAPI) RegisterResolvers() {
 		"url": func(_ context.Context, q url.URL) string { return q.String() },
 	})
 
-	ta.GraphQLClient.RegisterQueryResolver("notifications", ta.notificationsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("NotificationMeta", db.NotificationMeta{}, map[string]interface{}{})
-	ta.GraphQLClient.RegisterObjectResolver("NotificationEvent", db.NotificationEvent{}, map[string]interface{}{
-		"id": func(_ context.Context, q db.NotificationEvent) int64 { return q.ID },
-		"userId": func(_ context.Context, q db.NotificationEvent) int64 {
-			if q.SenderProfile != nil {
-				return q.SenderProfileID
-			}
-			return q.TwitterProfileID
-		},
-		"title": func(_ context.Context, q db.NotificationEvent) string {
-			if q.SenderProfile != nil {
-				return q.SenderProfile.Username
-			}
-			return "Story Update"
-		},
-		"createdTime": func(_ context.Context, q db.NotificationEvent) time.Time {
-			return q.Timestamp
-		},
-		"body": func(_ context.Context, q db.NotificationEvent) string {
-			return q.Message
-		},
-		"typeId": func(_ context.Context, q db.NotificationEvent) int64 { return q.TypeID },
-		"image": func(_ context.Context, q db.NotificationEvent) string {
-			if q.SenderProfile != nil {
-				return q.SenderProfile.AvatarURI
-			}
-			return q.TwitterProfile.AvatarURI
-		},
-		"meta": func(_ context.Context, q db.NotificationEvent) db.NotificationMeta {
-			return q.Meta
-		},
-	})
-
-	ta.GraphQLClient.RegisterQueryResolver("unreadNotificationsCount", ta.unreadNotificationsCountResolver)
-	ta.GraphQLClient.RegisterQueryResolver("unseenNotificationsCount", ta.unseenNotificationsCountResolver)
-
 	ta.GraphQLClient.RegisterQueryResolver("credArguments", ta.credArguments)
 	ta.GraphQLClient.RegisterObjectResolver("CredArgument", CredArgument{}, map[string]interface{}{
 		"creator": func(ctx context.Context, q CredArgument) users.User {
@@ -660,6 +623,43 @@ func (ta *TruAPI) RegisterResolvers() {
 
 	ta.GraphQLClient.RegisterQueryResolver("settings", ta.settingsResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Settings", Settings{}, map[string]interface{}{})
+
+	ta.GraphQLClient.RegisterPaginatedQueryResolver("notifications", ta.notificationsResolver)
+	ta.GraphQLClient.RegisterObjectResolver("NotificationMeta", db.NotificationMeta{}, map[string]interface{}{})
+	ta.GraphQLClient.RegisterPaginatedObjectResolver("NotificationEvent", "iD", db.NotificationEvent{}, map[string]interface{}{
+		"id": func(_ context.Context, q db.NotificationEvent) int64 { return q.ID },
+		"userId": func(_ context.Context, q db.NotificationEvent) int64 {
+			if q.SenderProfile != nil {
+				return q.SenderProfileID
+			}
+			return q.TwitterProfileID
+		},
+		"title": func(_ context.Context, q db.NotificationEvent) string {
+			if q.SenderProfile != nil {
+				return q.SenderProfile.Username
+			}
+			return "Story Update"
+		},
+		"createdTime": func(_ context.Context, q db.NotificationEvent) time.Time {
+			return q.Timestamp
+		},
+		"body": func(_ context.Context, q db.NotificationEvent) string {
+			return q.Message
+		},
+		"typeId": func(_ context.Context, q db.NotificationEvent) int64 { return q.TypeID },
+		"image": func(_ context.Context, q db.NotificationEvent) string {
+			if q.SenderProfile != nil {
+				return q.SenderProfile.AvatarURI
+			}
+			return q.TwitterProfile.AvatarURI
+		},
+		"meta": func(_ context.Context, q db.NotificationEvent) db.NotificationMeta {
+			return q.Meta
+		},
+	})
+
+	ta.GraphQLClient.RegisterQueryResolver("unreadNotificationsCount", ta.unreadNotificationsCountResolver)
+	ta.GraphQLClient.RegisterQueryResolver("unseenNotificationsCount", ta.unseenNotificationsCountResolver)
 
 	ta.GraphQLClient.BuildSchema()
 }

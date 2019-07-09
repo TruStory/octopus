@@ -536,7 +536,7 @@ func (ta *TruAPI) RegisterResolvers() {
 			return len(ta.appAccountClaimsCreatedResolver(ctx, queryByAddress{ID: q.Address}))
 		},
 		"totalArguments": func(ctx context.Context, q AppAccount) int {
-			return len(ta.appAccountClaimsWithArgumentsResolver(ctx, queryByAddress{ID: q.Address}))
+			return len(ta.appAccountArgumentsResolver(ctx, queryByAddress{ID: q.Address}))
 		},
 		"totalAgrees": func(ctx context.Context, q AppAccount) int {
 			return len(ta.agreesResolver(ctx, queryByAddress{ID: q.Address}))
@@ -600,7 +600,19 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterQueryResolver("claimArgument", ta.claimArgumentResolver)
 	ta.GraphQLClient.RegisterQueryResolver("claimArguments", ta.claimArgumentsResolver)
 	ta.GraphQLClient.RegisterObjectResolver("ClaimArgument", staking.Argument{}, map[string]interface{}{
-		"id":          func(_ context.Context, q staking.Argument) uint64 { return q.ID },
+		"id": func(_ context.Context, q staking.Argument) uint64 { return q.ID },
+		"body": func(_ context.Context, q staking.Argument, args struct {
+			Raw bool `graphql:",optional"`
+		}) string {
+			if args.Raw {
+				return q.Body
+			}
+			body, err := ta.DBClient.TranslateToUsersMentions(q.Body)
+			if err != nil {
+				return q.Body
+			}
+			return body
+		},
 		"claimId":     func(_ context.Context, q staking.Argument) uint64 { return q.ClaimID },
 		"vote":        func(_ context.Context, q staking.Argument) bool { return q.StakeType == staking.StakeBacking },
 		"createdTime": func(_ context.Context, q staking.Argument) string { return q.CreatedTime.String() },
@@ -610,7 +622,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		"hasSlashed":      func(_ context.Context, q staking.Argument) bool { return false },
 		"appAccountStake": ta.appAccountStakeResolver,
 		"appAccountSlash": func(_ context.Context, q staking.Argument) *Slash { return nil },
-		"stakers":         ta.claimArgumentStakersResolver,
+		"stakers":         ta.claimArgumentUpvoteStakersResolver,
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
@@ -635,6 +647,16 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterPaginatedObjectResolver("Transaction", "iD", bank.Transaction{}, map[string]interface{}{
 		"id":        func(_ context.Context, q bank.Transaction) uint64 { return q.ID },
 		"reference": ta.transactionReferenceResolver,
+		"amount": func(_ context.Context, q bank.Transaction) sdk.Coin {
+			amount := q.Amount.Amount
+			if q.Type.AllowedForDeduction() {
+				amount = amount.Neg()
+			}
+			return sdk.Coin{
+				Amount: amount,
+				Denom:  q.Amount.Denom,
+			}
+		},
 	})
 
 	ta.GraphQLClient.RegisterPaginatedQueryResolver("appAccountClaimsCreated", ta.appAccountClaimsCreatedResolver)

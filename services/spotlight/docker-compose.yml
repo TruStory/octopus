@@ -6,8 +6,8 @@ services:
     env_file:
       - spotlightd.env
     restart: always
+    user: ${CURRENT_UID}
     ports:
       - "54448:54448"
     volumes:
       - ./storage/:/usr/spotlight/storage
-      - ./claim.svg:/usr/spotlight/claim.svg

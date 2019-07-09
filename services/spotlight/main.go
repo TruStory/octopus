@@ -66,7 +66,7 @@ func renderStorySpotlight(s *service) http.Handler {
 		}
 
 		box := packr.New("Templates", "./templates")
-		rawPreview, err := box.Find("claim.svg")
+		rawPreview, err := box.Find("claim-v2.svg")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "URL Preview error", http.StatusInternalServerError)
@@ -102,7 +102,7 @@ func renderArgumentSpotlight(s *service) http.Handler {
 		}
 
 		box := packr.New("Templates", "./templates")
-		rawPreview, err := box.Find("argument.svg")
+		rawPreview, err := box.Find("argument-v2.svg")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "URL Preview error", http.StatusInternalServerError)
@@ -124,18 +124,17 @@ func renderArgumentSpotlight(s *service) http.Handler {
 func compileStoryPreview(raw []byte, story StoryObject) string {
 	// BODY
 	bodyLines := wordWrap(story.Body)
-	// make sure to have 4 lines atleast
-	if len(bodyLines) < 4 {
-		for i := len(bodyLines); i < 4; i++ {
+	// make sure to have 3 lines atleast
+	if len(bodyLines) < 3 {
+		for i := len(bodyLines); i < 3; i++ {
 			bodyLines = append(bodyLines, "")
 		}
-	} else if len(bodyLines) >= 4 {
-		bodyLines[3] += "..." // ellipsis if the entire body couldn't be contained in this preview
+	} else if len(bodyLines) > 3 {
+		bodyLines[2] += "..." // ellipsis if the entire body couldn't be contained in this preview
 	}
 	compiled := bytes.Replace(raw, []byte("$PLACEHOLDER__BODY_LINE_1"), []byte(bodyLines[0]), -1)
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_2"), []byte(bodyLines[1]), -1)
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_3"), []byte(bodyLines[2]), -1)
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_4"), []byte(bodyLines[3]), -1)
 
 	// ARGUMENT COUNT
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__ARGUMENT_COUNT"), []byte(strconv.Itoa(story.GetArgumentCount())), -1)
@@ -145,7 +144,7 @@ func compileStoryPreview(raw []byte, story StoryObject) string {
 
 	// SOURCE
 	if story.HasSource() {
-		compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__SOURCE"), []byte(story.Source), -1)
+		compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__SOURCE"), []byte(story.GetSource()), -1)
 	} else {
 		compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__SOURCE"), []byte("—"), -1)
 	}
@@ -156,18 +155,17 @@ func compileStoryPreview(raw []byte, story StoryObject) string {
 func compileArgumentPreview(raw []byte, argument ArgumentObject) string {
 	// BODY
 	bodyLines := wordWrap(argument.Summary)
-	// make sure to have 4 lines atleast
-	if len(bodyLines) < 4 {
-		for i := len(bodyLines); i < 4; i++ {
+	// make sure to have 3 lines atleast
+	if len(bodyLines) < 3 {
+		for i := len(bodyLines); i < 3; i++ {
 			bodyLines = append(bodyLines, "")
 		}
-	} else if len(bodyLines) >= 4 {
-		bodyLines[3] += "..." // ellipsis if the entire body couldn't be contained in this preview
+	} else if len(bodyLines) > 3 {
+		bodyLines[2] += "..." // ellipsis if the entire body couldn't be contained in this preview
 	}
 	compiled := bytes.Replace(raw, []byte("$PLACEHOLDER__BODY_LINE_1"), []byte(bodyLines[0]), -1)
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_2"), []byte(bodyLines[1]), -1)
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_3"), []byte(bodyLines[2]), -1)
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_4"), []byte(bodyLines[3]), -1)
 
 	// AGREE COUNT
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__AGREE_COUNT"), []byte(strconv.Itoa(argument.UpvoteCount)), -1)
@@ -190,6 +188,12 @@ func wordWrap(body string) []string {
 	// convert string to slice
 	words := strings.Fields(body)
 	wordsPerLine := defaultWordsPerLine
+
+	if len(words) < wordsPerLine {
+		lines = append(lines, strings.Join(words, " "))
+		return lines
+	}
+
 	for len(words) >= 1 {
 		candidate := strings.Join(words[:wordsPerLine], " ")
 		for len(candidate) > 40 {
@@ -222,9 +226,10 @@ func storySpotlightHandler(s *service) http.Handler {
 
 		ifs := make(wkhtmltox.ImageFlagSet)
 		ifs.SetCacheDir(filepath.Join(s.storagePath, "web-cache"))
+		ifs.SetFormat("jpeg")
 
 		renderURL := fmt.Sprintf("http://localhost:%s/story/%s/render-spotlight", s.port, storyID)
-		imageName := fmt.Sprintf("story-%s.png", storyID)
+		imageName := fmt.Sprintf("story-%s.jpeg", storyID)
 		filePath := filepath.Join(s.storagePath, imageName)
 
 		_, err := ifs.Generate(renderURL, filePath)
@@ -246,9 +251,10 @@ func argumentSpotlightHandler(s *service) http.Handler {
 
 		ifs := make(wkhtmltox.ImageFlagSet)
 		ifs.SetCacheDir(filepath.Join(s.storagePath, "web-cache"))
+		ifs.SetFormat("jpeg")
 
 		renderURL := fmt.Sprintf("http://localhost:%s/argument/%s/render-spotlight", s.port, argumentID)
-		imageName := fmt.Sprintf("argument-%s.png", argumentID)
+		imageName := fmt.Sprintf("argument-%s.jpeg", argumentID)
 		filePath := filepath.Join(s.storagePath, imageName)
 
 		_, err := ifs.Generate(renderURL, filePath)

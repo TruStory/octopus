@@ -9,7 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	truCtx "github.com/TruStory/octopus/services/truapi/context"
+	app "github.com/TruStory/truchain/types"
+	"github.com/TruStory/truchain/x/account"
 	"github.com/TruStory/truchain/x/users"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/utils"
@@ -25,6 +26,8 @@ import (
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
+
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 )
 
 // MsgTypes is a map of `Msg` type names to empty instances
@@ -185,13 +188,11 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	if err != nil {
 		return
 	}
-
-	msg := users.RegisterKeyMsg{
-		Address:    addr,
-		PubKey:     k,
-		PubKeyAlgo: algo,
-		Coins:      nil,
+	sk, err := StdKey(algo, k)
+	if err != nil {
+		return
 	}
+	msg := account.NewMsgRegisterKey(registrarAddr, addr, sk, algo, sdk.NewCoins(app.InitialTruStake))
 	err = msg.ValidateBasic()
 	if err != nil {
 		return

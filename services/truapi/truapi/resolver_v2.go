@@ -910,16 +910,16 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, fi
 		}
 		return bestClaims
 	} else if filter == Trending {
-		// highest volume of activity in last 24 hours
+		// highest volume of activity in last 72 hours
 		// # of new arguments
-		// # of new agree stakes    TODO: for now its only stakes created on arguments written in the last 24 hours
+		// # of new agree stakes    TODO: for now its only stakes created on arguments written in the last 72 hours
 		// # of new comments
 		metrics := make([]claimMetricsTrending, 0)
 		for _, claim := range claims {
 			comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: claim.ID})
 			totalComments := 0
 			for _, comment := range comments {
-				if comment.CreatedAt.After(time.Now().AddDate(0, 0, -1)) {
+				if comment.CreatedAt.After(time.Now().AddDate(0, 0, -3)) {
 					totalComments++
 				}
 			}
@@ -927,19 +927,21 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, fi
 			totalArguments := 0
 			var totalStakes int64
 			for _, argument := range arguments {
-				if argument.CreatedTime.After(time.Now().AddDate(0, 0, -1)) {
+				if argument.CreatedTime.After(time.Now().AddDate(0, 0, -3)) {
 					totalArguments++
 					totalStakes += argument.TotalStake.Amount.Int64()
 				}
 			}
 
-			metric := claimMetricsTrending{
-				Claim:          claim,
-				TotalComments:  totalComments,
-				TotalArguments: totalArguments,
-				TotalStakes:    totalStakes,
+			if totalArguments+totalComments > 0 {
+				metric := claimMetricsTrending{
+					Claim:          claim,
+					TotalComments:  totalComments,
+					TotalArguments: totalArguments,
+					TotalStakes:    totalStakes,
+				}
+				metrics = append(metrics, metric)
 			}
-			metrics = append(metrics, metric)
 		}
 		sort.Slice(metrics, func(i, j int) bool {
 			if metrics[i].TotalArguments > metrics[j].TotalArguments {

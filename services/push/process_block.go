@@ -8,6 +8,7 @@ import (
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	truchain "github.com/TruStory/truchain/types"
+	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/types"
 )
@@ -92,6 +93,24 @@ func getResultMessage(t truchain.StakeDistributionResultsType, isBacker bool, st
 	return ""
 }
 
+func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notifications chan<- *Notification) {
+	for _, tag := range blockEvt.ResultEndBlock.Tags {
+
+		if string(tag.Key) == "expired-stakes" {
+			expiredStakes := make([]staking.Stake, 0)
+			err := staking.ModuleCodec.UnmarshalJSON(tag.Value, &expiredStakes)
+			if err != nil {
+				s.log.WithError(err).Error("error decoding expired stakes")
+				continue
+			}
+			for _, expiredStake := range expiredStakes {
+				fmt.Println(expiredStake)
+			}
+		}
+	}
+}
+
+// deprecated
 func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, notifications chan<- *Notification) {
 	for _, tag := range newBlockEvent.ResultEndBlock.Tags {
 		if string(tag.Key) == "tru.event.completedStories" {

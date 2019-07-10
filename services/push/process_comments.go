@@ -31,7 +31,7 @@ func (s *service) parseCosmosMentions(body string) (string, []string) {
 	addresses := mention.GetTagsAsUniqueStrings('@', body, terminators...)
 	for _, address := range addresses {
 		twitterProfile, err := s.db.TwitterProfileByAddress(address)
-		if err != nil {
+		if err != nil || twitterProfile == nil {
 			s.log.WithError(err).Errorf("could not find profile for address %s", address)
 			continue
 		}
@@ -52,6 +52,13 @@ func contains(values []string, value string) bool {
 	return false
 }
 
+func (s *service) getCommentParticipants(c *CommentNotificationRequest) ([]string, error) {
+	if c.ClaimID > 0 {
+		return s.db.CommentsParticipantsByClaimID(c.ClaimID)
+	}
+	return s.db.CommentsParticipantsByArgumentID(c.ArgumentID)
+}
+
 func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNotificationRequest, notifications chan<- *Notification) {
 	for n := range cNotifications {
 		c, err := s.db.CommentByID(n.ID)
@@ -59,9 +66,9 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			s.log.WithError(err).Errorf("could not retrieve comment for id [%d]\n", n.ID)
 			continue
 		}
-		participants, err := s.db.CommentsParticipantsByArgumentID(c.ArgumentID)
+		participants, err := s.getCommentParticipants(n)
 		if err != nil {
-			s.log.WithError(err).Errorf("could not retrieve participants for comments argument_id[%d]\n", n.ArgumentID)
+			s.log.WithError(err).Errorf("could not retrieve participants for comments claim_id[%d] argument_id[%d]\n", n.ClaimID, n.ArgumentID)
 			continue
 		}
 
@@ -70,15 +77,20 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 		participants = append(participants, addresses...)
 		participants = unique(participants)
 		meta := db.NotificationMeta{
+			ClaimID:    &c.ClaimID,
 			ArgumentID: &c.ArgumentID,
 			StoryID:    &n.StoryID,
 			CommentID:  &n.ID,
+		}
+		typeId := c.ClaimID
+		if typeId == 0 {
+			typeId = c.ArgumentID
 		}
 		if c.Creator != n.ArgumentCreator {
 			notifications <- &Notification{
 				From:   &c.Creator,
 				To:     n.ArgumentCreator,
-				TypeID: c.ArgumentID,
+				TypeID: typeId,
 				Type:   db.NotificationCommentAction,
 				Msg:    parsedComment,
 				Meta:   meta,
@@ -94,14 +106,14 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			}
 			var action string
 			if contains(addresses, p) {
-				action = "Mentioned you in a comment"
+				action = "Mentioned you in a reply"
 			}
 			notifications <- &Notification{
 				From:   &c.Creator,
 				To:     p,
-				TypeID: n.ArgumentID,
+				TypeID: typeId,
 				Type:   db.NotificationMentionAction,
-				Msg:    parsedComment,
+				Msg:    fmt.Sprintf("mentioned you %s: %s", mentionType.String(), parsedComment),
 				Meta:   meta,
 				Action: action,
 				Trim:   true,
@@ -125,7 +137,7 @@ func (s *service) startHTTP(stop <-chan struct{}, notifications chan<- *CommentN
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		s.log.WithField("commentId", n.ID).Info("comment notification request recevied")
+		s.log.WithField("commentId", n.ID).Info("comment notification request received")
 		notifications <- n
 		w.WriteHeader(http.StatusAccepted)
 	})

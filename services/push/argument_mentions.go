@@ -19,6 +19,7 @@ type argumentMention struct {
 	Backing bool
 }
 
+// deprecated
 func (s *service) mentionChecker(notifications chan<- *Notification, stop <-chan struct{}) {
 	for {
 		select {

@@ -29,6 +29,11 @@ func intPtr(i int) *int {
 	return &i
 }
 
+func uint64Ptr(i uint64) *int64 {
+	n := int64(i)
+	return &n
+}
+
 func strPtr(s string) *string {
 	return &s
 }
@@ -85,7 +90,7 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 		select {
 		case notification := <-notifications:
 			msg := notification.Msg
-			title := "Story Update"
+			title := notification.Type.String()
 			receiverProfile, err := s.db.TwitterProfileByAddress(notification.To)
 			if err != nil {
 				s.log.WithError(err).Errorf("could not retrieve twitter profile for address %s", notification.To)
@@ -288,15 +293,14 @@ func (s *service) run(stop <-chan struct{}) {
 	go s.startHTTP(stop, cNotificationsCh)
 	go s.processCommentsNotifications(cNotificationsCh, notificationsCh)
 	go s.notificationSender(notificationsCh, stop)
-	go s.mentionChecker(notificationsCh, stop)
 	for {
 		select {
 		case event := <-txsCh:
 			switch v := event.Data.(type) {
 			case types.EventDataTx:
-				s.processTransactionEvent(v, notificationsCh)
+				s.processTxEvent(v, notificationsCh)
 			case types.EventDataNewBlock:
-				s.processNewBlockEvent(v, notificationsCh)
+				s.processBlockEvent(v, notificationsCh)
 			}
 		case <-stop:
 			// program is exiting

@@ -62,6 +62,7 @@ type CommentNotificationRequest struct {
 	// ID is the comment id.
 	ID              int64     `json:"id"`
 	ArgumentCreator string    `json:"argument_creator"`
+	ClaimID         int64     `json:"claimID"`
 	ArgumentID      int64     `json:"argumentId"`
 	StoryID         int64     `json:"storyId"`
 	Creator         string    `json:"creator"`
@@ -146,3 +147,61 @@ const ArgumentByStakeIDQuery = `
 		}
 	}
 `
+
+const ClaimArgumentByIDQuery = `
+query ClaimArgumentQuery($argumentId: ID!) {
+  claimArgument(id: $argumentId) {
+    id
+    claimId
+    claim {
+      id
+      creator {
+        address
+      }
+      participants {
+        address
+      }
+    }
+  }
+}
+`
+
+const argumentSummaryByIDQuery = `
+query ClaimArgumentQuery($argumentId: ID!) {
+  claimArgument(id: $argumentId) {
+    id
+    claimId
+    summary
+	creator{
+      address
+    }
+  }
+}
+`
+
+// Creator represents the user that backed/challenge.
+type Creator struct {
+	Address string `json:"address"`
+}
+
+// ClaimArgumentResponse is the response from the graphql endpoint.
+type ClaimArgumentResponse struct {
+	ClaimArgument struct {
+		ID      int64 `json:"id"`
+		ClaimID int64 `json:"claimId"`
+		Claim   struct {
+			Creator      Creator   `json:"creator"`
+			Participants []Creator `json:"participants"`
+		} `json:"claim"`
+	} `json:"claimArgument"`
+}
+
+// ArgumentSummaryResponse is the response from the graphql endpoint.
+type ArgumentSummaryResponse struct {
+	ClaimArgument struct {
+		ID      int64   `json:"id"`
+		ClaimID int64   `json:"claimId"`
+		Creator Creator `json:"creator"`
+		Summary string  `json:"summary"`
+	} `json:"claimArgument"`
+}

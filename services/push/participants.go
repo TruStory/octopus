@@ -39,16 +39,12 @@ func (s *service) getClaimParticipantsByArgumentId(argumentId int64) (claimParti
 	if err != nil {
 		return claimParticipants{}, err
 	}
-	mappedParticipants := make(map[string]bool)
-	for _, p := range res.ClaimArgument.Claim.Participants {
-		mappedParticipants[p.Address] = true
-	}
 	participants := make([]string, 0, len(res.ClaimArgument.Claim.Participants))
-	for p := range mappedParticipants {
-		if p == res.ClaimArgument.Claim.Creator.Address {
+	for _, p := range res.ClaimArgument.Claim.Participants {
+		if p.Address == res.ClaimArgument.Claim.Creator.Address {
 			continue
 		}
-		participants = append(participants, p)
+		participants = append(participants, p.Address)
 	}
 	return claimParticipants{
 		Creator:      res.ClaimArgument.Claim.Creator.Address,

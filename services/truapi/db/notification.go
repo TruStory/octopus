@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -11,6 +12,9 @@ type NotificationType int
 type NotificationsCountResponse struct {
 	Count int64 `json:"count"`
 }
+
+// CoinDisplayName is the name of the coin presented to end users.
+const CoinDisplayName = "TruStake"
 
 // Types of notifications.
 const (
@@ -35,7 +39,7 @@ var NotificationTypeName = []string{
 	NotificationNewArgument:    "New Argument",
 	NotificationAgreeReceived:  "Agree received on Argument",
 	NotificationNotHelpful:     "Not Helpful",
-	NotificationEarnedStake:    "Earned TruStake",
+	NotificationEarnedStake:    fmt.Sprintf("Earned %s", CoinDisplayName),
 	NotificationSlashed:        "Slashed",
 	NotificationJailed:         "Jailed",
 	NotificationUnjailed:       "Unjailed",

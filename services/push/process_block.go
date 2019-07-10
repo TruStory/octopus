@@ -67,8 +67,9 @@ func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notificati
 				if expiredStake.Result.Type == staking.RewardResultArgumentCreation {
 					notifications <- &Notification{
 						To: expiredStake.Creator.String(),
-						Msg: fmt.Sprintf("You just earned %s TruStake from your Argument on Claim: %s",
+						Msg: fmt.Sprintf("You just earned %s %s from your Argument on Claim: %s",
 							humanReadable(expiredStake.Result.ArgumentCreatorReward),
+							db.CoinDisplayName,
 							argument.ClaimArgument.Claim.Body),
 						TypeID: int64(expiredStake.ArgumentID),
 						Type:   db.NotificationEarnedStake,
@@ -79,7 +80,8 @@ func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notificati
 				}
 				notifications <- &Notification{
 					To: expiredStake.Result.ArgumentCreator.String(),
-					Msg: fmt.Sprintf("You just earned %s TruStake on an argument someone agreed on",
+					Msg: fmt.Sprintf("You just earned %s %s on an argument someone agreed on",
+						db.CoinDisplayName,
 						humanReadable(expiredStake.Result.ArgumentCreatorReward)),
 					TypeID: int64(expiredStake.ArgumentID),
 					Type:   db.NotificationEarnedStake,
@@ -88,7 +90,8 @@ func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notificati
 				}
 				notifications <- &Notification{
 					To: expiredStake.Result.StakeCreator.String(),
-					Msg: fmt.Sprintf("You just earned %s TruStake on an argument you agreed on",
+					Msg: fmt.Sprintf("You just earned %s %s on an argument you agreed on",
+						db.CoinDisplayName,
 						humanReadable(expiredStake.Result.StakeCreatorReward)),
 					TypeID: int64(expiredStake.ArgumentID),
 					Type:   db.NotificationEarnedStake,

@@ -72,7 +72,7 @@ func (s *service) processArgumentCreated(data []byte, notifications chan<- *Noti
 		notifications <- &Notification{
 			From:   strPtr(argument.Creator.String()),
 			To:     p,
-			Msg:    fmt.Sprintf("added a new argument on a claim you participated: %s", argument.Summary),
+			Msg:    fmt.Sprintf("added a new argument on a claim you participated in: %s", argument.Summary),
 			TypeID: int64(argument.ID),
 			Type:   db.NotificationNewArgument,
 			Meta:   meta,

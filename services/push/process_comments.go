@@ -118,6 +118,7 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			Type:   db.NotificationCommentAction,
 			Msg:    fmt.Sprintf("added a Reply: %s", parsedComment),
 			Meta:   meta,
+			Action: "Added a new reply",
 			Trim:   true,
 		}
 

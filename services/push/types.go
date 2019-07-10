@@ -110,7 +110,6 @@ type Creator struct {
 // ClaimArgumentResponse is the response from the graphql endpoint.
 type ClaimArgumentResponse struct {
 	ClaimArgument struct {
-		ID      int64 `json:"id"`
 		ClaimID int64 `json:"claimId"`
 		Claim   struct {
 			Body         string    `json:"body"`
@@ -123,7 +122,6 @@ type ClaimArgumentResponse struct {
 // ArgumentSummaryResponse is the response from the graphql endpoint.
 type ArgumentSummaryResponse struct {
 	ClaimArgument struct {
-		ID      int64   `json:"id"`
 		ClaimID int64   `json:"claimId"`
 		Creator Creator `json:"creator"`
 		Summary string  `json:"summary"`

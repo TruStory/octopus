@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/TruStory/octopus/services/truapi/db"
-	stripmd "github.com/writeas/go-strip-markdown"
 
 	"github.com/TruStory/truchain/x/staking"
 	"github.com/tendermint/tendermint/types"
@@ -28,11 +27,10 @@ func (s *service) processArgumentCreated(data []byte, notifications chan<- *Noti
 	}
 
 	creatorAddress := argument.Creator.String()
-	notified := make(map[string]bool, 0)
+	notified := make(map[string]bool)
 
 	// check mentions first
-	parsedBody, addresses := s.parseCosmosMentions(argument.Body)
-	parsedBody = stripmd.Strip(parsedBody)
+	_, addresses := s.parseCosmosMentions(argument.Body)
 	mentionType := db.MentionArgument
 	addresses = unique(addresses)
 	for _, address := range addresses {

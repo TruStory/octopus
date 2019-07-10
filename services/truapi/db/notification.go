@@ -30,7 +30,7 @@ const (
 var NotificationTypeName = []string{
 	NotificationStoryAction:    "Story Update",
 	NotificationArgumentAction: "Argument Update",
-	NotificationCommentAction:  "Comment Added",
+	NotificationCommentAction:  "Reply Added",
 	NotificationMentionAction:  "Mentioned",
 	NotificationNewArgument:    "New Argument",
 	NotificationAgreeReceived:  "Agree received on Argument",

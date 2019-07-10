@@ -18,7 +18,4 @@ type service struct {
 	gorushHTTPAddress string
 	// graphql
 	graphqlClient *graphql.Client
-
-	// argumentMentions
-	argumentMentionsCh chan argumentMention
 }

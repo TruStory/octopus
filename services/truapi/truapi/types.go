@@ -25,13 +25,12 @@ type CredArgument struct {
 // CommentNotificationRequest is the payload sent to pushd for sending notifications.
 type CommentNotificationRequest struct {
 	// ID is the comment id.
-	ID              int64     `json:"id"`
-	ArgumentCreator string    `json:"argument_creator"`
-	ClaimID         int64     `json:"claimId"`
-	ArgumentID      int64     `json:"argumentId"`
-	StoryID         int64     `json:"storyId"`
-	Creator         string    `json:"creator"`
-	Timestamp       time.Time `json:"timestamp"`
+	ID           int64     `json:"id"`
+	ClaimCreator string    `json:"claim_creator"`
+	ClaimID      int64     `json:"claimId"`
+	ArgumentID   int64     `json:"argumentId"`
+	Creator      string    `json:"creator"`
+	Timestamp    time.Time `json:"timestamp"`
 }
 
 // V2 Truchain structs

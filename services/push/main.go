@@ -345,9 +345,8 @@ func main() {
 		httpClient: &http.Client{
 			Timeout: time.Second * 5,
 		},
-		gorushHTTPAddress:  gorushHTTPAddress,
-		graphqlClient:      graphqlClient,
-		argumentMentionsCh: make(chan argumentMention),
+		gorushHTTPAddress: gorushHTTPAddress,
+		graphqlClient:     graphqlClient,
 	}
 
 	srvc.run(quit)

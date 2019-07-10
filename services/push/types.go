@@ -154,6 +154,7 @@ query ClaimArgumentQuery($argumentId: ID!) {
     id
     claimId
     claim {
+      body
       id
       creator {
         address
@@ -190,6 +191,7 @@ type ClaimArgumentResponse struct {
 		ID      int64 `json:"id"`
 		ClaimID int64 `json:"claimId"`
 		Claim   struct {
+			Body         string    `json:"body"`
 			Creator      Creator   `json:"creator"`
 			Participants []Creator `json:"participants"`
 		} `json:"claim"`

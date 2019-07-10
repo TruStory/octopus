@@ -23,12 +23,20 @@ func (s *service) getArgumentSummary(argumentId int64) (*ArgumentSummaryResponse
 	return res, nil
 }
 
-func (s *service) getClaimParticipantsByArgumentId(argumentId int64) (claimParticipants, error) {
+func (s *service) getClaimArgument(argumentId int64) (*ClaimArgumentResponse, error) {
 	req := graphql.NewRequest(ClaimArgumentByIDQuery)
 	req.Var("argumentId", argumentId)
 	res := &ClaimArgumentResponse{}
 	ctx := context.Background()
 	if err := s.graphqlClient.Run(ctx, req, &res); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (s *service) getClaimParticipantsByArgumentId(argumentId int64) (claimParticipants, error) {
+	res, err := s.getClaimArgument(argumentId)
+	if err != nil {
 		return claimParticipants{}, err
 	}
 	mappedParticipants := make(map[string]bool)

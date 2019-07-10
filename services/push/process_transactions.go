@@ -89,7 +89,6 @@ func (s *service) processArgumentCreated(data []byte, notifications chan<- *Noti
 }
 
 func (s *service) processUpvote(data []byte, notifications chan<- *Notification) {
-	fmt.Println("processing upvote")
 	stake := staking.Stake{}
 	err := staking.ModuleCodec.UnmarshalJSON(data, &stake)
 	if err != nil {
@@ -97,7 +96,6 @@ func (s *service) processUpvote(data []byte, notifications chan<- *Notification)
 		return
 	}
 	argument, err := s.getArgumentSummary(int64(stake.ArgumentID))
-	fmt.Println("argument summary", argument)
 	if err != nil {
 		s.log.WithError(err).Error("error getting participants ")
 		return
@@ -108,7 +106,6 @@ func (s *service) processUpvote(data []byte, notifications chan<- *Notification)
 	}
 
 	argumentCreatorAddress := argument.ClaimArgument.Creator.Address
-	fmt.Println("sending notification from ", stake.Creator.String(), argumentCreatorAddress)
 	notifications <- &Notification{
 		From:   strPtr(stake.Creator.String()),
 		To:     argumentCreatorAddress,

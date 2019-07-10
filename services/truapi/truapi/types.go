@@ -7,6 +7,8 @@ import (
 	"github.com/TruStory/truchain/x/bank"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	tcmn "github.com/tendermint/tendermint/libs/common"
+
+	"github.com/TruStory/octopus/services/truapi/db"
 )
 
 // CredArgument represents an argument that earned cred based on likes.
@@ -113,4 +115,12 @@ type Settings struct {
 	MaxCommentLength  int64    `json:"maxCommentLength"`
 	BlockIntervalTime int64    `json:"blockIntervalTime"`
 	DefaultStake      sdk.Coin `json:"defaultStake"`
+}
+
+var NotificationIcons = map[db.NotificationType]string{
+	db.NotificationEarnedStake: "earned_trustake.png",
+	db.NotificationJailed:      "jailed.png",
+	db.NotificationNotHelpful:  "not_helpful.png",
+	db.NotificationSlashed:     "slashed.png",
+	db.NotificationUnjailed:    "unjailed.png",
 }

@@ -31,7 +31,7 @@ func (s *service) parseCosmosMentions(body string) (string, []string) {
 	addresses := mention.GetTagsAsUniqueStrings('@', body, terminators...)
 	for _, address := range addresses {
 		twitterProfile, err := s.db.TwitterProfileByAddress(address)
-		if err != nil {
+		if err != nil || twitterProfile == nil {
 			s.log.WithError(err).Errorf("could not find profile for address %s", address)
 			continue
 		}
@@ -43,15 +43,6 @@ func (s *service) parseCosmosMentions(body string) (string, []string) {
 	return parsedBody, addresses
 }
 
-func contains(values []string, value string) bool {
-	for _, v := range values {
-		if v == value {
-			return true
-		}
-	}
-	return false
-}
-
 func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNotificationRequest, notifications chan<- *Notification) {
 	for n := range cNotifications {
 		c, err := s.db.CommentByID(n.ID)
@@ -59,53 +50,76 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			s.log.WithError(err).Errorf("could not retrieve comment for id [%d]\n", n.ID)
 			continue
 		}
-		participants, err := s.db.CommentsParticipantsByArgumentID(c.ArgumentID)
+		participants, err := s.db.CommentsParticipantsByClaimID(c.ClaimID)
 		if err != nil {
-			s.log.WithError(err).Errorf("could not retrieve participants for comments argument_id[%d]\n", n.ArgumentID)
+			s.log.WithError(err).Errorf("could not retrieve participants for comments claim_id[%d] argument_id[%d]\n", n.ClaimID, n.ArgumentID)
 			continue
 		}
 
-		parsedComment, addresses := s.parseCosmosMentions(c.Body)
+		notified := make(map[string]bool)
+		// skip comment creator
+		notified[n.Creator] = true
+		parsedComment, mentions := s.parseCosmosMentions(c.Body)
 		parsedComment = stripmd.Strip(parsedComment)
-		participants = append(participants, addresses...)
-		participants = unique(participants)
 		meta := db.NotificationMeta{
+			ClaimID:    &c.ClaimID,
 			ArgumentID: &c.ArgumentID,
-			StoryID:    &n.StoryID,
 			CommentID:  &n.ID,
 		}
-		if c.Creator != n.ArgumentCreator {
-			notifications <- &Notification{
-				From:   &c.Creator,
-				To:     n.ArgumentCreator,
-				TypeID: c.ArgumentID,
-				Type:   db.NotificationCommentAction,
-				Msg:    parsedComment,
-				Meta:   meta,
-				Trim:   true,
-			}
+		typeId := c.ClaimID
+		if typeId == 0 {
+			typeId = c.ArgumentID
 		}
 
 		mentionType := db.MentionComment
 		meta.MentionType = &mentionType
-		for _, p := range participants {
-			if p == c.Creator || p == n.ArgumentCreator {
+		for _, p := range mentions {
+			if _, ok := notified[p]; ok {
 				continue
 			}
-			var action string
-			if contains(addresses, p) {
-				action = "Mentioned you in a comment"
-			}
+			notified[p] = true
 			notifications <- &Notification{
 				From:   &c.Creator,
 				To:     p,
-				TypeID: n.ArgumentID,
+				TypeID: typeId,
 				Type:   db.NotificationMentionAction,
-				Msg:    parsedComment,
+				Msg:    fmt.Sprintf("mentioned you %s: %s", mentionType.String(), parsedComment),
 				Meta:   meta,
-				Action: action,
+				Action: "Mentioned you in a reply",
 				Trim:   true,
 			}
+		}
+
+		for _, p := range participants {
+			if _, ok := notified[p]; ok {
+				continue
+			}
+			notified[p] = true
+			notifications <- &Notification{
+				From:   &c.Creator,
+				To:     p,
+				TypeID: typeId,
+				Type:   db.NotificationCommentAction,
+				Msg:    fmt.Sprintf("added a Reply: %s", parsedComment),
+				Meta:   meta,
+				Action: "Added a new reply",
+				Trim:   true,
+			}
+		}
+
+		// if claim creator was previously notified skip it
+		if _, ok := notified[n.ClaimCreator]; ok {
+			continue
+		}
+		notifications <- &Notification{
+			From:   &c.Creator,
+			To:     n.ClaimCreator,
+			TypeID: typeId,
+			Type:   db.NotificationCommentAction,
+			Msg:    fmt.Sprintf("added a Reply: %s", parsedComment),
+			Meta:   meta,
+			Action: "Added a new reply",
+			Trim:   true,
 		}
 
 	}
@@ -125,7 +139,7 @@ func (s *service) startHTTP(stop <-chan struct{}, notifications chan<- *CommentN
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		s.log.WithField("commentId", n.ID).Info("comment notification request recevied")
+		s.log.WithField("commentId", n.ID).Info("comment notification request received")
 		notifications <- n
 		w.WriteHeader(http.StatusAccepted)
 	})

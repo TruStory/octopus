@@ -717,7 +717,7 @@ func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByA
 	}
 
 	queryRoute := path.Join(bank.QuerierRoute, bank.QueryTransactionsByAddress)
-	res, err := ta.Query(queryRoute, bank.QueryTransactionsByAddressParams{Address: creator}, staking.ModuleCodec)
+	res, err := ta.Query(queryRoute, bank.QueryTransactionsByAddressParams{Address: creator}, bank.ModuleCodec)
 	if err != nil {
 		fmt.Println("appAccountTransactionsResolver err: ", err)
 		return []bank.Transaction{}

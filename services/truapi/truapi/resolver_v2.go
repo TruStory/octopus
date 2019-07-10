@@ -82,7 +82,7 @@ type claimMetricsTrending struct {
 
 // appAccountEarningsFilter is query params for filtering the app account's earnings
 type appAccountEarningsFilter struct {
-	ID   string
+	ID   string `graphql:"id"`
 	From string
 	To   string
 }

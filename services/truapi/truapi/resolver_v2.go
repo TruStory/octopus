@@ -205,6 +205,81 @@ func (ta *TruAPI) earnedStakeResolver(ctx context.Context, q queryByAddress) []E
 	return earnedCoins
 }
 
+func (ta *TruAPI) pendingBalanceResolver(ctx context.Context, q queryByAddress) sdk.Coin {
+	address, err := sdk.AccAddressFromBech32(q.ID)
+	if err != nil {
+		fmt.Println("pendingBalanceResolver err: ", err)
+		return sdk.Coin{}
+	}
+
+	queryRoute := path.Join(staking.QuerierRoute, staking.QueryUserStakes)
+	res, err := ta.Query(queryRoute, staking.QueryUserStakesParams{Address: address}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("pendingBalanceResolver err: ", err)
+		return sdk.Coin{}
+	}
+
+	stakes := make([]staking.Stake, 0)
+	err = staking.ModuleCodec.UnmarshalJSON(res, &stakes)
+	if err != nil {
+		fmt.Println("stakes UnmarshalJSON err: ", err)
+		return sdk.Coin{}
+	}
+
+	balance := sdk.NewCoin(app.StakeDenom, sdk.ZeroInt())
+	for _, stake := range stakes {
+		if !stake.Expired {
+			balance = balance.Add(stake.Amount)
+		}
+	}
+
+	return balance
+}
+
+func (ta *TruAPI) pendingStakeResolver(ctx context.Context, q queryByAddress) []EarnedCoin {
+	address, err := sdk.AccAddressFromBech32(q.ID)
+	if err != nil {
+		fmt.Println("pendingStakeResolver err: ", err)
+		return []EarnedCoin{}
+	}
+
+	communities := ta.communitiesResolver(ctx)
+	pendingStakes := make([]EarnedCoin, 0)
+
+	for _, community := range communities {
+		queryRoute := path.Join(staking.QuerierRoute, staking.QueryUserCommunityStakes)
+		res, err := ta.Query(queryRoute, staking.QueryUserCommunityStakesParams{Address: address, CommunityID: community.ID}, staking.ModuleCodec)
+		if err != nil {
+			fmt.Println("pendingStakeResolver err: ", err)
+			return []EarnedCoin{}
+		}
+
+		stakes := make([]staking.Stake, 0)
+		err = staking.ModuleCodec.UnmarshalJSON(res, &stakes)
+		if err != nil {
+			fmt.Println("stake UnmarshalJSON err: ", err)
+			return []EarnedCoin{}
+		}
+
+		total := sdk.ZeroInt()
+		for _, stake := range stakes {
+			if !stake.Expired {
+				total = total.Add(stake.Amount.Amount)
+			}
+		}
+
+		pendingStakes = append(pendingStakes, EarnedCoin{
+			sdk.Coin{
+				Amount: total,
+				Denom:  app.StakeDenom,
+			},
+			community.ID,
+		})
+	}
+
+	return pendingStakes
+}
+
 func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community {
 	queryRoute := path.Join(community.QuerierRoute, community.QueryCommunities)
 	res, err := ta.Query(queryRoute, struct{}{}, community.ModuleCodec)
@@ -860,16 +935,16 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, fi
 		}
 		return bestClaims
 	} else if filter == Trending {
-		// highest volume of activity in last 24 hours
+		// highest volume of activity in last 72 hours
 		// # of new arguments
-		// # of new agree stakes    TODO: for now its only stakes created on arguments written in the last 24 hours
+		// # of new agree stakes    TODO: for now its only stakes created on arguments written in the last 72 hours
 		// # of new comments
 		metrics := make([]claimMetricsTrending, 0)
 		for _, claim := range claims {
 			comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: claim.ID})
 			totalComments := 0
 			for _, comment := range comments {
-				if comment.CreatedAt.After(time.Now().AddDate(0, 0, -1)) {
+				if comment.CreatedAt.After(time.Now().AddDate(0, 0, -3)) {
 					totalComments++
 				}
 			}
@@ -877,19 +952,21 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, fi
 			totalArguments := 0
 			var totalStakes int64
 			for _, argument := range arguments {
-				if argument.CreatedTime.After(time.Now().AddDate(0, 0, -1)) {
+				if argument.CreatedTime.After(time.Now().AddDate(0, 0, -3)) {
 					totalArguments++
 					totalStakes += argument.TotalStake.Amount.Int64()
 				}
 			}
 
-			metric := claimMetricsTrending{
-				Claim:          claim,
-				TotalComments:  totalComments,
-				TotalArguments: totalArguments,
-				TotalStakes:    totalStakes,
+			if totalArguments+totalComments > 0 {
+				metric := claimMetricsTrending{
+					Claim:          claim,
+					TotalComments:  totalComments,
+					TotalArguments: totalArguments,
+					TotalStakes:    totalStakes,
+				}
+				metrics = append(metrics, metric)
 			}
-			metrics = append(metrics, metric)
 		}
 		sort.Slice(metrics, func(i, j int) bool {
 			if metrics[i].TotalArguments > metrics[j].TotalArguments {

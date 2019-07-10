@@ -1076,6 +1076,7 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 	}
 
 	dataPoints := make([]appAccountEarning, 0)
+	mappedEarnings := make(map[string]sdk.Coin)
 	mappedDataPoints := make(map[string]sdk.Coin)
 	var mappedSortedKeys []string
 	// seeding empty dates
@@ -1090,11 +1091,13 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 	for date := from; date.Before(to); date = date.AddDate(0, 0, 1) {
 		key := date.Format("2006-01-02")
 		mappedDataPoints[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		mappedEarnings[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 		mappedSortedKeys = append(mappedSortedKeys, key) // storing the key so that we can later sort the map in the same order
 	}
 
 	for _, metric := range metrics {
 		mappedDataPoints[metric.AsOnDate.Format("2006-01-02")] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.AvailableStake)))
+		mappedEarnings[metric.AsOnDate.Format("2006-01-02")] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
 	}
 
 	for _, key := range mappedSortedKeys {
@@ -1104,8 +1107,10 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 		})
 	}
 
+	openingEarningBalance := mappedEarnings[mappedSortedKeys[0]]
+	closingEarningBalance := mappedEarnings[mappedSortedKeys[len(mappedSortedKeys)-1]]
 	return appAccountEarnings{
-		NetEarnings: sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metrics[len(metrics)-1].AvailableStake))), // last item of the array
+		NetEarnings: closingEarningBalance.Sub(openingEarningBalance),
 		DataPoints:  dataPoints,
 	}
 }

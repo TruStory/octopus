@@ -1070,7 +1070,12 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEarningsFilter) appAccountEarnings {
 	appAccount := ta.appAccountResolver(ctx, queryByAddress{ID: q.ID})
 
-	metrics, err := ta.DBClient.AggregateUserMetricsByAddressBetweenDates(appAccount.Address, q.From, q.To)
+	now := time.Now()
+	year, month, day := now.Date()
+	today := time.Date(year, month, day, 0, 0, 0, 0, now.Location()) // beginning of the day
+
+	to := today.Add(-1 * 24 * time.Hour) // till yesterday
+	metrics, err := ta.DBClient.AggregateUserMetricsByAddressBetweenDates(appAccount.Address, q.From, to.Format("2006-01-02"))
 	if err != nil {
 		panic(err)
 	}
@@ -1081,10 +1086,6 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 	var mappedSortedKeys []string
 	// seeding empty dates
 	from, err := time.Parse("2006-01-02", q.From)
-	if err != nil {
-		panic(err)
-	}
-	to, err := time.Parse("2006-01-02", q.To)
 	if err != nil {
 		panic(err)
 	}
@@ -1109,6 +1110,24 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 
 	openingEarningBalance := mappedEarnings[mappedSortedKeys[0]]
 	closingEarningBalance := mappedEarnings[mappedSortedKeys[len(mappedSortedKeys)-1]]
+	// reconciling with today's real-time data
+	transactions := ta.appAccountTransactionsResolver(ctx, queryByAddress{ID: q.ID})
+	for _, transaction := range transactions {
+		if !transaction.CreatedTime.After(today) {
+			continue
+		}
+
+		// Stake Earned
+		if transaction.Type.OneOf([]exported.TransactionType{
+			exported.TransactionInterestArgumentCreation,
+			exported.TransactionInterestUpvoteReceived,
+			exported.TransactionInterestUpvoteGiven,
+			exported.TransactionRewardPayout,
+		}) {
+			closingEarningBalance = transaction.Amount
+		}
+	}
+
 	return appAccountEarnings{
 		NetEarnings: closingEarningBalance.Sub(openingEarningBalance),
 		DataPoints:  dataPoints,

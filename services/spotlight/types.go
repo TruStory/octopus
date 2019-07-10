@@ -79,11 +79,11 @@ type ClaimObject struct {
 
 // ArgumentObject defines the schema of an argument
 type ArgumentObject struct {
-	ID          int64      `json:"id"`
-	Body        string     `json:"body"`
-	Summary     string     `json:"summary"`
-	Creator     UserObject `json:"creator"`
-	UpvoteCount int        `json:"upvoteCount"`
+	ID           int64      `json:"id"`
+	Body         string     `json:"body"`
+	Summary      string     `json:"summary"`
+	Creator      UserObject `json:"creator"`
+	UpvotedCount int        `json:"upvotedCount"`
 }
 
 // HasSource returns whether a story has a source or not

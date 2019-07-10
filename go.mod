@@ -1,27 +1,31 @@
 module github.com/TruStory/octopus
 
 require (
+	bou.ke/monkey v1.0.1 // indirect
 	cloud.google.com/go v0.41.0
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
-	github.com/TruStory/truchain v0.1.26-0.20190708055538-d22f1461c1e6
+	github.com/TruStory/truchain v0.1.26-0.20190708220024-669c3c4ca6c5
 	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32
+	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
 	github.com/corpix/uarand v0.1.0 // indirect
 	github.com/cosmos/cosmos-sdk v0.28.2-0.20190601143109-dcdabc7e6e20
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d // indirect
 	github.com/dghubble/go-twitter v0.0.0-20190512073027-53f972dc4b06
 	github.com/dghubble/gologin v2.1.0+incompatible
 	github.com/dghubble/oauth1 v0.5.0
+	github.com/dghubble/sling v1.2.0 // indirect
 	github.com/gernest/mention v2.0.0+incompatible
 	github.com/go-kit/kit v0.9.0 // indirect
 	github.com/go-pg/migrations v6.7.3+incompatible
 	github.com/go-pg/pg v8.0.3+incompatible
 	github.com/gobuffalo/logger v1.0.1 // indirect
 	github.com/gobuffalo/packr/v2 v2.5.2
+	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/securecookie v1.1.1
@@ -37,6 +41,9 @@ require (
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/matryer/is v1.2.0 // indirect
 	github.com/oklog/ulid v1.3.1
+	github.com/otiai10/copy v0.0.0-20180813032824-7e9a647135a1 // indirect
+	github.com/otiai10/curr v0.0.0-20150429015615-9b4961190c95 // indirect
+	github.com/otiai10/mint v1.2.3 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/prometheus/procfs v0.0.3 // indirect
@@ -44,6 +51,7 @@ require (
 	github.com/samsarahq/go v0.0.0-20190126203740-720caea591c9 // indirect
 	github.com/samsarahq/thunder v0.5.0
 	github.com/satori/go.uuid v1.2.0 // indirect
+	github.com/shanev/cosmos-record-keeper v0.0.0-20190618225545-be10673bb24d // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5

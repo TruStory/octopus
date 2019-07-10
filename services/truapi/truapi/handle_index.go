@@ -257,7 +257,7 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 	return &Tags{
 		Title:       html.EscapeString(claimObj.Body),
 		Description: fmt.Sprintf("%d participant%s, %s TruStake", totalParticipants, totalParticipantsPlural, totalStaked.Amount.Quo(sdk.NewInt(app.Shanev))),
-		Image:       fmt.Sprintf("%s/api/v1/spotlight?story_id=%v", ta.APIContext.Config.App.URL, claimID),
+		Image:       fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v", ta.APIContext.Config.App.URL, claimID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

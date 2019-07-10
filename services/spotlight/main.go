@@ -26,9 +26,9 @@ type service struct {
 }
 
 func (s *service) run() {
-	s.router.Handle("/story/{id:[0-9]+}/render-spotlight", renderStorySpotlight(s))
+	s.router.Handle("/claim/{id:[0-9]+}/render-spotlight", renderClaimSpotlight(s))
 	s.router.Handle("/argument/{id:[0-9]+}/render-spotlight", renderArgumentSpotlight(s))
-	s.router.Handle("/story/{id:[0-9]+}/spotlight", storySpotlightHandler(s))
+	s.router.Handle("/claim/{id:[0-9]+}/spotlight", claimSpotlightHandler(s))
 	s.router.Handle("/argument/{id:[0-9]+}/spotlight", argumentSpotlightHandler(s))
 	http.Handle("/", s.router)
 	err := http.ListenAndServe(":"+s.port, nil)
@@ -49,16 +49,16 @@ func main() {
 	spotlight.run()
 }
 
-func renderStorySpotlight(s *service) http.Handler {
+func renderClaimSpotlight(s *service) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		storyID, err := strconv.ParseInt(vars["id"], 10, 64)
+		claimID, err := strconv.ParseInt(vars["id"], 10, 64)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, "Invalid story ID passed.", http.StatusBadRequest)
+			http.Error(w, "Invalid claim ID passed.", http.StatusBadRequest)
 			return
 		}
-		data, err := getStory(s, storyID)
+		data, err := getClaim(s, claimID)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "", http.StatusInternalServerError)
@@ -73,7 +73,7 @@ func renderStorySpotlight(s *service) http.Handler {
 			return
 		}
 
-		compiledPreview := compileStoryPreview(rawPreview, data.Story)
+		compiledPreview := compileClaimPreview(rawPreview, data.Claim)
 		w.Header().Add("Content-Type", "image/svg+xml")
 		_, err = fmt.Fprint(w, compiledPreview)
 		if err != nil {
@@ -121,9 +121,9 @@ func renderArgumentSpotlight(s *service) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func compileStoryPreview(raw []byte, story StoryObject) string {
+func compileClaimPreview(raw []byte, claim ClaimObject) string {
 	// BODY
-	bodyLines := wordWrap(story.Body)
+	bodyLines := wordWrap(claim.Body)
 	// make sure to have 3 lines atleast
 	if len(bodyLines) < 3 {
 		for i := len(bodyLines); i < 3; i++ {
@@ -137,14 +137,14 @@ func compileStoryPreview(raw []byte, story StoryObject) string {
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_3"), []byte(bodyLines[2]), -1)
 
 	// ARGUMENT COUNT
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__ARGUMENT_COUNT"), []byte(strconv.Itoa(story.GetArgumentCount())), -1)
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__ARGUMENT_COUNT"), []byte(strconv.Itoa(claim.ArgumentCount)), -1)
 
 	// CREATED BY
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte(story.Creator.TwitterProfile.FullName), -1)
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte(claim.Creator.TwitterProfile.FullName), -1)
 
 	// SOURCE
-	if story.HasSource() {
-		compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__SOURCE"), []byte(story.GetSource()), -1)
+	if claim.HasSource() {
+		compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__SOURCE"), []byte(claim.GetSource()), -1)
 	} else {
 		compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__SOURCE"), []byte("—"), -1)
 	}
@@ -218,18 +218,18 @@ func wordWrap(body string) []string {
 	return lines
 }
 
-func storySpotlightHandler(s *service) http.Handler {
+func claimSpotlightHandler(s *service) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		storyID := vars["id"]
-		log.Printf("serving spotlight for storyId : [%s]", storyID)
+		claimID := vars["id"]
+		log.Printf("serving spotlight for claimID : [%s]", claimID)
 
 		ifs := make(wkhtmltox.ImageFlagSet)
 		ifs.SetCacheDir(filepath.Join(s.storagePath, "web-cache"))
 		ifs.SetFormat("jpeg")
 
-		renderURL := fmt.Sprintf("http://localhost:%s/story/%s/render-spotlight", s.port, storyID)
-		imageName := fmt.Sprintf("story-%s.jpeg", storyID)
+		renderURL := fmt.Sprintf("http://localhost:%s/claim/%s/render-spotlight", s.port, claimID)
+		imageName := fmt.Sprintf("claim-%s.jpeg", claimID)
 		filePath := filepath.Join(s.storagePath, imageName)
 
 		_, err := ifs.Generate(renderURL, filePath)
@@ -268,11 +268,11 @@ func argumentSpotlightHandler(s *service) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func getStory(s *service, storyID int64) (StoryByIDResponse, error) {
-	graphqlReq := graphql.NewRequest(StoryByIDQuery)
+func getClaim(s *service, claimID int64) (ClaimByIDResponse, error) {
+	graphqlReq := graphql.NewRequest(ClaimByIDQuery)
 
-	graphqlReq.Var("storyId", storyID)
-	var graphqlRes StoryByIDResponse
+	graphqlReq.Var("claimId", claimID)
+	var graphqlRes ClaimByIDResponse
 	ctx := context.Background()
 	if err := s.graphqlClient.Run(ctx, graphqlReq, &graphqlRes); err != nil {
 		return graphqlRes, err

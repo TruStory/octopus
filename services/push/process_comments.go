@@ -56,7 +56,7 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			continue
 		}
 
-		notified := make(map[string]bool, 0)
+		notified := make(map[string]bool)
 		// skip comment creator
 		notified[n.Creator] = true
 		parsedComment, mentions := s.parseCosmosMentions(c.Body)

@@ -182,40 +182,6 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 	}
 }
 
-func (s *service) getStoryParticipants(storyID int64, creator, staker string) ([]string, error) {
-	participants := make([]string, 0)
-	req := graphql.NewRequest(StoryParticipantsQuery)
-	req.Var("storyId", storyID)
-
-	var res StoryParticipantsResponse
-	ctx := context.Background()
-	if err := s.graphqlClient.Run(ctx, req, &res); err != nil {
-		return nil, err
-	}
-	mappedParticipants := make(map[string]bool)
-	for _, b := range res.Story.Backings {
-		if b.Creator.Address == creator || b.Creator.Address == staker {
-			continue
-		}
-		mappedParticipants[b.Creator.Address] = true
-
-	}
-	for _, c := range res.Story.Challenges {
-		if c.Creator.Address == creator || c.Creator.Address == staker {
-			continue
-		}
-		mappedParticipants[c.Creator.Address] = true
-
-	}
-	if res.Story.Creator.Address != creator && res.Story.Creator.Address != staker {
-		mappedParticipants[res.Story.Creator.Address] = true
-	}
-	for p := range mappedParticipants {
-		participants = append(participants, p)
-	}
-	return participants, nil
-}
-
 func getEnv(env, defaultValue string) string {
 	val := os.Getenv(env)
 	if val != "" {

@@ -4,68 +4,28 @@ import (
 	"net/url"
 )
 
-// StoryByIDQuery fetches a story by the given ID
-const StoryByIDQuery = `
-  query Story($storyId: ID!) {
-	story(iD: $storyId) {
+// ClaimByIDQuery fetches a claim by the given ID
+const ClaimByIDQuery = `
+  query ClaimQuery($claimId: ID!) {
+	claim(id: $claimId) {
 		id
-		body
-		source
-	  category {
-			title
-			id
-	  }
-	  creator {
-			address
+		community {
+      id
+    	name
+    }
+    body
+    creator {
+      id
 			twitterProfile {
 				avatarURI
 				fullName
 				username
 			}
-		}
-		backings {
-			argument {
-				creator {
-					address
-					twitterProfile {
-						avatarURI
-						fullName
-						username
-					}
-				}
-			}
-      creator {
-        address
-				twitterProfile {
-					avatarURI
-					fullName
-					username
-				}
-      }
     }
-    challenges {
-			argument {
-				creator {
-					address
-					twitterProfile {
-						avatarURI
-						fullName
-						username
-					}
-				}
-			}
-      creator {
-        address
-				twitterProfile {
-					avatarURI
-					fullName
-					username
-				}
-      }
-    }
+    source
+		argumentCount
 	}
-  }
-  
+}
 `
 
 // ArgumentByIDQuery fetches an argument by the given ID
@@ -88,10 +48,10 @@ const ArgumentByIDQuery = `
 	}
 `
 
-// CategoryObject defines the schema of a category
-type CategoryObject struct {
-	ID    int64  `json:"id"`
-	Title string `json:"title"`
+// CommunityObject defines the schema of a category
+type CommunityObject struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 // UserObject defines the schema of a user
@@ -107,26 +67,14 @@ type TwitterProfileObject struct {
 	Username  string `json:"username"`
 }
 
-// Argument defines the schema of the argument
-type Argument struct {
-	Creator UserObject `json:"creator"`
-}
-
-// StoryAction defines the schema of either the backings or the challenges
-type StoryAction struct {
-	Argument Argument   `json:"argument"`
-	Creator  UserObject `json:"creator"`
-}
-
-// StoryObject defines the schema of a story
-type StoryObject struct {
-	ID         int64          `json:"id"`
-	Body       string         `json:"body"`
-	Source     string         `json:"source"`
-	Category   CategoryObject `json:"category"`
-	Creator    UserObject     `json:"creator"`
-	Backings   []StoryAction  `json:"backings"`
-	Challenges []StoryAction  `json:"challenges"`
+// ClaimObject defines the schema of a story
+type ClaimObject struct {
+	ID            int64           `json:"id"`
+	Body          string          `json:"body"`
+	Source        string          `json:"source"`
+	Community     CommunityObject `json:"community"`
+	Creator       UserObject      `json:"creator"`
+	ArgumentCount int             `json:"argumentCount"`
 }
 
 // ArgumentObject defines the schema of an argument
@@ -138,57 +86,23 @@ type ArgumentObject struct {
 	UpvoteCount int        `json:"upvoteCount"`
 }
 
-// GetArgumentCount returns the total count of backings + challenges
-func (story StoryObject) GetArgumentCount() int {
-	count := 0
-
-	for _, backing := range story.Backings {
-		if backing.Creator.Address == backing.Argument.Creator.Address {
-			count++
-		}
-	}
-
-	for _, challenge := range story.Challenges {
-		if challenge.Creator.Address == challenge.Argument.Creator.Address {
-			count++
-		}
-	}
-	return count
-}
-
 // HasSource returns whether a story has a source or not
-func (story StoryObject) HasSource() bool {
-	return story.Source != ""
+func (claim ClaimObject) HasSource() bool {
+	return claim.Source != ""
 }
 
 // GetSource returns the hostname of the source
-func (story StoryObject) GetSource() string {
-	u, err := url.Parse(story.Source)
+func (claim ClaimObject) GetSource() string {
+	u, err := url.Parse(claim.Source)
 	if err != nil {
 		return ""
 	}
 	return u.Hostname()
 }
 
-// GetTopParticipants returns the top participants of a story
-func (story StoryObject) GetTopParticipants() []UserObject {
-	limit := 3
-	var participants []UserObject
-
-	participants = append(participants, story.Creator)
-	for i := 0; len(participants) < limit && i < len(story.Backings); i++ {
-		participants = append(participants, story.Backings[i].Creator)
-	}
-	for i := 0; len(participants) < limit && i < len(story.Challenges); i++ {
-		participants = append(participants, story.Challenges[i].Creator)
-	}
-
-	return participants
-}
-
-// StoryByIDResponse defines the JSON response
-type StoryByIDResponse struct {
-	Story StoryObject `json:"story"`
+// ClaimByIDResponse defines the JSON response
+type ClaimByIDResponse struct {
+	Claim ClaimObject `json:"claim"`
 }
 
 // ArgumentByIDResponse defines the JSON response

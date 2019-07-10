@@ -60,89 +60,70 @@ type GorushResponse struct {
 // CommentNotificationRequest is the payload sent to pushd for sending notifications.
 type CommentNotificationRequest struct {
 	// ID is the comment id.
-	ID              int64     `json:"id"`
-	ArgumentCreator string    `json:"argument_creator"`
-	ArgumentID      int64     `json:"argumentId"`
-	StoryID         int64     `json:"storyId"`
-	Creator         string    `json:"creator"`
-	Timestamp       time.Time `json:"timestamp"`
+	ID           int64     `json:"id"`
+	ClaimCreator string    `json:"claim_creator"`
+	ClaimID      int64     `json:"claimId"`
+	ArgumentID   int64     `json:"argumentId"`
+	Creator      string    `json:"creator"`
+	Timestamp    time.Time `json:"timestamp"`
 }
 
 // GraphQL responses
 
-// Staker represents the user that backed/challenge.
-type Staker struct {
-	Creator struct {
-		Address string `json:"address"`
-	}
-}
-
-// StoryParticipants contains challenges and backings.
-type StoryParticipants struct {
-	Creator struct {
-		Address string `json:"address"`
-	} `json:"creator"`
-	Backings   []Staker `json:"backings"`
-	Challenges []Staker `json:"challenges"`
-}
-
-// StoryParticipantsResponse is the response from the graphql endpoint.
-type StoryParticipantsResponse struct {
-	Story StoryParticipants `json:"story"`
-}
-
-// StoryParticipantsQuery is the GraphQL query to get all address staking in a story.
-const StoryParticipantsQuery = `
-  query Story($storyId: ID!) {
-	story(iD: $storyId) {
-	  creator {
-		address
-	  }
-	  backings {
-		creator {
-		  address
-		}
-	  }
-	  challenges {
-		creator {
-		  address
-		}
-	  }
-	}
+const ClaimArgumentByIDQuery = `
+query ClaimArgumentQuery($argumentId: ID!) {
+  claimArgument(id: $argumentId) {
+    id
+    claimId
+    claim {
+      body
+      id
+      creator {
+        address
+      }
+      participants {
+        address
+      }
+    }
   }
-  
+}
 `
 
-// Argument represents the argument.
-type Argument struct {
-	ID      int64  `json:"id"`
-	Body    string `json:"body"`
-	StoryID int64  `json:"storyId"`
+const argumentSummaryByIDQuery = `
+query ClaimArgumentQuery($argumentId: ID!) {
+  claimArgument(id: $argumentId) {
+    id
+    claimId
+    summary
+	creator{
+      address
+    }
+  }
 }
-
-// BackingResponse is the response from the graphql endpoint.
-type BackingResponse struct {
-	BackingArgument struct {
-		Argument Argument `json:"argument"`
-	} `json:"backing"`
-}
-
-// ChallengeResponse is the response from the graphql endpoint.
-type ChallengeResponse struct {
-	ChallengeArgument struct {
-		Argument Argument `json:"argument"`
-	} `json:"challenge"`
-}
-
-// ArgumentByStakeIDQuery is the GraphQL query to get the argument tied to a stake (backing/challenge)
-const ArgumentByStakeIDQuery = ` 
-	query ArgumentByStakeID($id: ID!) {
-		%s(iD: $id) {
-			argument(raw: true) {
-				id
-				body
-				storyId
-			}
-		}
-	}
 `
+
+// Creator represents the user that backed/challenge.
+type Creator struct {
+	Address string `json:"address"`
+}
+
+// ClaimArgumentResponse is the response from the graphql endpoint.
+type ClaimArgumentResponse struct {
+	ClaimArgument struct {
+		ClaimID int64 `json:"claimId"`
+		Claim   struct {
+			Body         string    `json:"body"`
+			Creator      Creator   `json:"creator"`
+			Participants []Creator `json:"participants"`
+		} `json:"claim"`
+	} `json:"claimArgument"`
+}
+
+// ArgumentSummaryResponse is the response from the graphql endpoint.
+type ArgumentSummaryResponse struct {
+	ClaimArgument struct {
+		ClaimID int64   `json:"claimId"`
+		Creator Creator `json:"creator"`
+		Summary string  `json:"summary"`
+	} `json:"claimArgument"`
+}

@@ -592,6 +592,10 @@ func (ta *TruAPI) RegisterResolvers() {
 		"appAccountStake": ta.appAccountStakeResolver,
 		"appAccountSlash": func(_ context.Context, q staking.Argument) *Slash { return nil },
 		"stakers":         ta.claimArgumentUpvoteStakersResolver,
+		"claim": func(ctx context.Context, q staking.Argument) *claim.Claim {
+			claim := ta.claimResolver(ctx, queryByClaimID{ID: q.ClaimID})
+			return &claim
+		},
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
@@ -646,10 +650,13 @@ func (ta *TruAPI) RegisterResolvers() {
 			return q.TwitterProfileID
 		},
 		"title": func(_ context.Context, q db.NotificationEvent) string {
+			return q.Type.String()
+		},
+		"senderProfile": func(ctx context.Context, q db.NotificationEvent) *AppAccount {
 			if q.SenderProfile != nil {
-				return q.SenderProfile.Username
+				return ta.appAccountResolver(ctx, queryByAddress{ID: q.SenderProfile.Address})
 			}
-			return "Story Update"
+			return nil
 		},
 		"createdTime": func(_ context.Context, q db.NotificationEvent) time.Time {
 			return q.Timestamp
@@ -659,6 +666,10 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"typeId": func(_ context.Context, q db.NotificationEvent) int64 { return q.TypeID },
 		"image": func(_ context.Context, q db.NotificationEvent) string {
+			icon, ok := NotificationIcons[q.Type]
+			if ok {
+				return path.Join(ta.APIContext.Config.App.S3AssetsURL, "notifications", icon)
+			}
 			if q.SenderProfile != nil {
 				return q.SenderProfile.AvatarURI
 			}

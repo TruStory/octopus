@@ -168,7 +168,7 @@ func compileArgumentPreview(raw []byte, argument ArgumentObject) string {
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_3"), []byte(bodyLines[2]), -1)
 
 	// AGREE COUNT
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__AGREE_COUNT"), []byte(strconv.Itoa(argument.UpvoteCount)), -1)
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__AGREE_COUNT"), []byte(strconv.Itoa(argument.UpvotedCount)), -1)
 
 	// CREATED BY
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte(argument.Creator.TwitterProfile.FullName), -1)

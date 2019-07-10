@@ -1,15 +1,14 @@
 package main
 
 import (
-	"encoding/json"
+	"fmt"
 	"strings"
 
-	"fmt"
-
-	"github.com/TruStory/octopus/services/truapi/db"
-	truchain "github.com/TruStory/truchain/types"
+	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/types"
+
+	"github.com/TruStory/octopus/services/truapi/db"
 )
 
 // Copied from truchain/truapi until truapi is moved into Octopus
@@ -41,159 +40,64 @@ func humanReadable(coin sdk.Coin) string {
 	return fmt.Sprintf("%s%s%s", number, ".", decimal)
 }
 
-func getWinnerMsg(stake, reward, interest sdk.Coin) string {
-	s, r, i := humanReadable(stake), humanReadable(reward), humanReadable(interest)
-	// case when you were the only staker
-	if reward.IsZero() {
-		msg := fmt.Sprintf("You were refunded %s TruStake", s)
-		if i == "0" {
-			return msg
-		}
-		return fmt.Sprintf("%s and earned an interest payment of %s TruStake", msg, i)
-	}
-	msg := fmt.Sprintf("You won %s TruStake", r)
-	if i == "0" {
-		return msg
-	}
-	return fmt.Sprintf("%s and earned an interest payment of %s TruStake", msg, i)
-}
-func getLoserMsg(stake, interest sdk.Coin) string {
-	s, i := humanReadable(stake), humanReadable(interest)
-	msg := fmt.Sprintf("You lost %s TruStake", s)
-	if i == "0" {
-		return msg
-	}
-	return fmt.Sprintf("%s but earned an interest payment of %s TruStake", msg, i)
-}
+func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notifications chan<- *Notification) {
+	for _, tag := range blockEvt.ResultEndBlock.Tags {
 
-func getResultMessage(t truchain.StakeDistributionResultsType, isBacker bool, staker truchain.Staker, earns UserEarns) string {
-	switch t {
-	case truchain.DistributionMajorityNotReached:
-		i := humanReadable(earns.Interest)
-		if i == "0" {
-			return fmt.Sprintf("It's a tie! You were refunded %s TruStake", humanReadable(staker.Amount))
-		}
-		return fmt.Sprintf("It's a tie! You were refunded %s TruStake and earned an interest payment of %s TruStake",
-			humanReadable(staker.Amount),
-			humanReadable(earns.Interest),
-		)
-	case truchain.DistributionBackersWin:
-		if isBacker {
-			return getWinnerMsg(staker.Amount, earns.Reward, earns.Interest)
-		}
-		return getLoserMsg(staker.Amount, earns.Interest)
-	case truchain.DistributionChallengersWin:
-		if isBacker {
-			return getLoserMsg(staker.Amount, earns.Interest)
-		}
-		return getWinnerMsg(staker.Amount, earns.Reward, earns.Interest)
-
-	}
-	return ""
-}
-
-func (s *service) processNewBlockEvent(newBlockEvent types.EventDataNewBlock, notifications chan<- *Notification) {
-	for _, tag := range newBlockEvent.ResultEndBlock.Tags {
-		if string(tag.Key) == "tru.event.completedStories" {
-			completed := &truchain.CompletedStoriesNotificationResult{}
-			err := json.Unmarshal(tag.Value, completed)
+		if string(tag.Key) == "expired-stakes" {
+			expiredStakes := make([]staking.Stake, 0)
+			err := staking.ModuleCodec.UnmarshalJSON(tag.Value, &expiredStakes)
 			if err != nil {
-				s.log.WithError(err).Error("error decoding completed stories")
+				s.log.WithError(err).Error("error decoding expired stakes")
 				continue
 			}
-			for _, story := range completed.Stories {
-				var creatorStaked bool
-
-				usersEarns := processStorySummary(story)
+			for _, expiredStake := range expiredStakes {
+				if expiredStake.Result == nil {
+					s.log.Errorf("stake result is nil for stake id %d", expiredStake.ID)
+					continue
+				}
+				argument, err := s.getClaimArgument(int64(expiredStake.ArgumentID))
+				if err != nil {
+					s.log.WithError(err).Error("error getting argument ")
+					continue
+				}
 				meta := db.NotificationMeta{
-					StoryID: &story.ID,
+					ClaimID:    &argument.ClaimArgument.ClaimID,
+					ArgumentID: uint64Ptr(expiredStake.ArgumentID),
 				}
-				for _, backer := range story.Backers {
-					if story.Creator.String() == backer.Address.String() {
-						creatorStaked = true
-					}
-					earns, ok := usersEarns[backer.Address.String()]
-
-					if !ok {
-						s.log.WithField("address", backer.Address.String()).Info("earns not found")
-					}
-
-					msg := getResultMessage(story.StakeDistributionResults.Type, true, backer, earns)
+				if expiredStake.Result.Type == staking.RewardResultArgumentCreation {
 					notifications <- &Notification{
-						To:     backer.Address.String(),
-						Msg:    fmt.Sprintf("A claim you backed has completed. %s", msg),
-						TypeID: story.ID,
-						Type:   db.NotificationStoryAction,
+						To: expiredStake.Creator.String(),
+						Msg: fmt.Sprintf("You just earned %s %s from your Argument on Claim: %s",
+							humanReadable(expiredStake.Result.ArgumentCreatorReward), db.CoinDisplayName,
+							argument.ClaimArgument.Claim.Body),
+						TypeID: int64(expiredStake.ArgumentID),
+						Type:   db.NotificationEarnedStake,
 						Meta:   meta,
+						Action: "Earned TruStake",
 					}
-				}
-				for _, challenger := range story.Challengers {
-					if story.Creator.String() == challenger.Address.String() {
-						creatorStaked = true
-					}
-
-					earns, ok := usersEarns[challenger.Address.String()]
-					if !ok {
-						s.log.WithField("address", challenger.Address.String()).Info("earns not found")
-					}
-
-					msg := getResultMessage(story.StakeDistributionResults.Type, false, challenger, earns)
-					notifications <- &Notification{
-						To:     challenger.Address.String(),
-						Msg:    fmt.Sprintf("A claim you challenged has completed. %s", msg),
-						TypeID: story.ID,
-						Type:   db.NotificationStoryAction,
-						Meta:   meta,
-					}
-				}
-				// if creator also staked he will receive the summary otherwise just a regular notification.
-				if creatorStaked {
 					continue
 				}
 				notifications <- &Notification{
-					To:     story.Creator.String(),
-					Msg:    "A claim you made has completed",
-					TypeID: story.ID,
-					Type:   db.NotificationStoryAction,
+					To: expiredStake.Result.ArgumentCreator.String(),
+					Msg: fmt.Sprintf("You just earned %s %s on an argument someone agreed on",
+						humanReadable(expiredStake.Result.ArgumentCreatorReward), db.CoinDisplayName,
+					),
+					TypeID: int64(expiredStake.ArgumentID),
+					Type:   db.NotificationEarnedStake,
 					Meta:   meta,
+					Action: "Earned TruStake",
+				}
+				notifications <- &Notification{
+					To: expiredStake.Result.StakeCreator.String(),
+					Msg: fmt.Sprintf("You just earned %s %s on an argument you agreed on",
+						humanReadable(expiredStake.Result.StakeCreatorReward), db.CoinDisplayName,
+					),
+					TypeID: int64(expiredStake.ArgumentID),
+					Type:   db.NotificationEarnedStake,
+					Meta:   meta,
+					Action: "Earned TruStake",
 				}
 			}
 		}
 	}
-}
-
-// UserEarns contains users information of stake earned
-// when a story completes.
-type UserEarns struct {
-	Reward   sdk.Coin
-	Interest sdk.Coin
-}
-
-func processStorySummary(story truchain.CompletedStory) map[string]UserEarns {
-	users := make(map[string]UserEarns)
-	for _, reward := range story.StakeDistributionResults.Rewards {
-		acc := reward.Account.String()
-		user, ok := users[acc]
-		if !ok {
-
-			user = UserEarns{}
-			users[acc] = user
-		}
-		user.Reward = reward.Amount
-		users[acc] = user
-
-	}
-
-	for _, interest := range story.InterestDistributionResults.Interests {
-		acc := interest.Account.String()
-		user, ok := users[acc]
-		if !ok {
-			user = UserEarns{}
-			users[acc] = user
-		}
-		user.Interest = interest.Amount
-		users[acc] = user
-	}
-
-	return users
 }

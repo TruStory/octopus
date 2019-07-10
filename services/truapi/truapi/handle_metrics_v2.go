@@ -1,7 +1,6 @@
 package truapi
 
 import (
-	"context"
 	"net/http"
 	"path"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/claim"
-	"github.com/TruStory/truchain/x/community"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -140,21 +138,7 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get all communities
-	communities := make([]community.Community, 0)
-	result, err = ta.Query(
-		path.Join(community.QuerierRoute, community.QueryCommunities),
-		struct{}{},
-		community.ModuleCodec,
-	)
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = community.ModuleCodec.UnmarshalJSON(result, &communities)
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	communities := ta.communitiesResolver(r.Context())
 	if len(communities) == 0 {
 		render.Error(w, r, "no communities found", http.StatusInternalServerError)
 		return
@@ -197,7 +181,7 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 				exported.TransactionInterestUpvoteGiven,
 				exported.TransactionRewardPayout,
 			}) {
-				userMetrics.addStakeEarned(getCommunityIDFromTransaction(r.Context(), ta, transaction), transaction.Amount)
+				userMetrics.addStakeEarned(transaction.CommunityID, transaction.Amount)
 			}
 
 			// AmountStaked
@@ -206,7 +190,7 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 				exported.TransactionChallenge,
 				exported.TransactionUpvote,
 			}) {
-				userMetrics.addAmoutStaked(getCommunityIDFromTransaction(r.Context(), ta, transaction), transaction.Amount)
+				userMetrics.addAmoutStaked(transaction.CommunityID, transaction.Amount)
 			}
 
 		}
@@ -237,23 +221,4 @@ func (ta *TruAPI) HandleMetricsV2(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(w, r, systemMetrics, http.StatusOK)
-}
-
-func getCommunityIDFromTransaction(ctx context.Context, ta *TruAPI, transaction exported.Transaction) string {
-	if transaction.Type == exported.TransactionRewardPayout {
-		return ""
-	}
-
-	var claimID uint64
-	if transaction.Type == exported.TransactionInterestUpvoteReceived {
-		stake := ta.stakeResolver(ctx, queryByStakeID{ID: transaction.ReferenceID})
-		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{ID: stake.ArgumentID})
-		claimID = argument.ClaimID
-	} else {
-		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{ID: transaction.ReferenceID})
-		claimID = argument.ClaimID
-	}
-	claim := ta.claimResolver(ctx, queryByClaimID{ID: claimID})
-
-	return claim.CommunityID
 }

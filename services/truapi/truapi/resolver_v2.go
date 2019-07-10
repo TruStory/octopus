@@ -1042,7 +1042,7 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 			exported.TransactionInterestUpvoteGiven,
 			exported.TransactionRewardPayout,
 		}) {
-			communityID := getCommunityIDFromTransaction(ctx, ta, transaction)
+			communityID := transaction.CommunityID
 			runningEarning := mappedCommunityOpeningBalance[communityID]
 			if runningEarning.Denom == "" {
 				// not previously found

@@ -1,12 +1,11 @@
 module github.com/TruStory/octopus
 
 require (
-	bou.ke/monkey v1.0.1 // indirect
 	cloud.google.com/go v0.41.0
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
-	github.com/TruStory/truchain v0.1.26-0.20190708220024-669c3c4ca6c5
+	github.com/TruStory/truchain v0.1.26-0.20190710205854-4e862de1add9
 	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
@@ -41,9 +40,6 @@ require (
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/matryer/is v1.2.0 // indirect
 	github.com/oklog/ulid v1.3.1
-	github.com/otiai10/copy v0.0.0-20180813032824-7e9a647135a1 // indirect
-	github.com/otiai10/curr v0.0.0-20150429015615-9b4961190c95 // indirect
-	github.com/otiai10/mint v1.2.3 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/prometheus/procfs v0.0.3 // indirect
@@ -51,7 +47,6 @@ require (
 	github.com/samsarahq/go v0.0.0-20190126203740-720caea591c9 // indirect
 	github.com/samsarahq/thunder v0.5.0
 	github.com/satori/go.uuid v1.2.0 // indirect
-	github.com/shanev/cosmos-record-keeper v0.0.0-20190618225545-be10673bb24d // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -12,12 +13,44 @@ type NotificationsCountResponse struct {
 	Count int64 `json:"count"`
 }
 
+// CoinDisplayName is the name of the coin presented to end users.
+const CoinDisplayName = "TruStake"
+
 // Types of notifications.
 const (
-	NotificationStoryAction NotificationType = iota
+	NotificationStoryAction    NotificationType = iota // deprecated
+	NotificationArgumentAction                         // deprecated
 	NotificationCommentAction
 	NotificationMentionAction
+	NotificationNewArgument
+	NotificationAgreeReceived
+	NotificationNotHelpful
+	NotificationEarnedStake
+	NotificationSlashed
+	NotificationJailed
+	NotificationUnjailed
 )
+
+var NotificationTypeName = []string{
+	NotificationStoryAction:    "Story Update",
+	NotificationArgumentAction: "Argument Update",
+	NotificationCommentAction:  "Reply Added",
+	NotificationMentionAction:  "Mentioned",
+	NotificationNewArgument:    "New Argument",
+	NotificationAgreeReceived:  "Agree received on Argument",
+	NotificationNotHelpful:     "Not Helpful",
+	NotificationEarnedStake:    fmt.Sprintf("Earned %s", CoinDisplayName),
+	NotificationSlashed:        "Slashed",
+	NotificationJailed:         "Jailed",
+	NotificationUnjailed:       "Unjailed",
+}
+
+func (t NotificationType) String() string {
+	if int(t) >= len(NotificationTypeName) {
+		return ""
+	}
+	return NotificationTypeName[t]
+}
 
 // MentionType represents  the types on how an user can be mentioned.
 type MentionType int64
@@ -28,8 +61,21 @@ const (
 	MentionComment
 )
 
+var MentionTypeName = []string{
+	MentionArgument: "in an Argument",
+	MentionComment:  "in a Reply",
+}
+
+func (t MentionType) String() string {
+	if int(t) >= len(MentionTypeName) {
+		return ""
+	}
+	return MentionTypeName[t]
+}
+
 // NotificationMeta  contains extra payload information.
 type NotificationMeta struct {
+	ClaimID     *int64       `json:"claimId,omitempty" graphql:"claimId"`
 	ArgumentID  *int64       `json:"argumentId,omitempty" graphql:"argumentId"`
 	StoryID     *int64       `json:"storyId,omitempty" graphql:"storyId"`
 	CommentID   *int64       `json:"commentId,omitempty" graphql:"commentId"`

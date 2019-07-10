@@ -7,6 +7,8 @@ import (
 	"github.com/TruStory/truchain/x/bank"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	tcmn "github.com/tendermint/tendermint/libs/common"
+
+	"github.com/TruStory/octopus/services/truapi/db"
 )
 
 // CredArgument represents an argument that earned cred based on likes.
@@ -23,13 +25,12 @@ type CredArgument struct {
 // CommentNotificationRequest is the payload sent to pushd for sending notifications.
 type CommentNotificationRequest struct {
 	// ID is the comment id.
-	ID              int64     `json:"id"`
-	ArgumentCreator string    `json:"argument_creator"`
-	ClaimID         int64     `json:"claimId"`
-	ArgumentID      int64     `json:"argumentId"`
-	StoryID         int64     `json:"storyId"`
-	Creator         string    `json:"creator"`
-	Timestamp       time.Time `json:"timestamp"`
+	ID           int64     `json:"id"`
+	ClaimCreator string    `json:"claim_creator"`
+	ClaimID      int64     `json:"claimId"`
+	ArgumentID   int64     `json:"argumentId"`
+	Creator      string    `json:"creator"`
+	Timestamp    time.Time `json:"timestamp"`
 }
 
 // V2 Truchain structs
@@ -113,4 +114,12 @@ type Settings struct {
 	MaxCommentLength  int64    `json:"maxCommentLength"`
 	BlockIntervalTime int64    `json:"blockIntervalTime"`
 	DefaultStake      sdk.Coin `json:"defaultStake"`
+}
+
+var NotificationIcons = map[db.NotificationType]string{
+	db.NotificationEarnedStake: "earned_trustake.png",
+	db.NotificationJailed:      "jailed.png",
+	db.NotificationNotHelpful:  "not_helpful.png",
+	db.NotificationSlashed:     "slashed.png",
+	db.NotificationUnjailed:    "unjailed.png",
 }

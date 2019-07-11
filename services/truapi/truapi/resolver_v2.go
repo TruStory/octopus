@@ -988,39 +988,29 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, fi
 }
 
 func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q queryByAddress) []appAccountCommunityEarning {
-	appAccount := ta.appAccountResolver(ctx, q)
-
 	now := time.Now()
-	year, month, day := now.Date()
-	today := time.Date(year, month, day, 0, 0, 0, 0, now.Location()) // beginning of the day
 
-	to := today.Add(-1 * 24 * time.Hour) // till yesterday
-	from := to.Add(-6 * 24 * time.Hour)  // starting from 6 days before yesterday
-	metrics, err := ta.DBClient.AggregateUserMetricsByAddressBetweenDates(appAccount.Address, from.Format("2006-01-02"), to.Format("2006-01-02"))
-	if err != nil {
-		panic(err)
-	}
+	from := now.Add(-7 * 24 * time.Hour) // starting from 6 days before yesterday
 
 	communityEarnings := make([]appAccountCommunityEarning, 0)
 	mappedCommunityOpeningBalance := make(map[string]sdk.Coin)
 	mappedCommunityClosingBalance := make(map[string]sdk.Coin)
 
-	for _, metric := range metrics {
-		runningEarning := mappedCommunityOpeningBalance[metric.CommunityID]
-		if runningEarning.Denom == "" {
-			// not previously found
-			mappedCommunityOpeningBalance[metric.CommunityID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
-			mappedCommunityClosingBalance[metric.CommunityID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
-		} else {
-			// previously found
-			mappedCommunityClosingBalance[metric.CommunityID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
-		}
+	// seeding empty communities
+	communities := ta.communitiesResolver(ctx)
+	for _, community := range communities {
+		mappedCommunityOpeningBalance[community.ID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		mappedCommunityClosingBalance[community.ID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 	}
 
-	// reconciling with today's real-time data
 	transactions := ta.appAccountTransactionsResolver(ctx, q)
+	// reversing the order of transactions
+	for i := len(transactions)/2 - 1; i >= 0; i-- {
+		opp := len(transactions) - 1 - i
+		transactions[i], transactions[opp] = transactions[opp], transactions[i]
+	}
 	for _, transaction := range transactions {
-		if !transaction.CreatedTime.After(today) {
+		if !transaction.CreatedTime.After(from) {
 			continue
 		}
 
@@ -1032,15 +1022,12 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 			exported.TransactionRewardPayout,
 		}) {
 			communityID := transaction.CommunityID
-			runningEarning := mappedCommunityOpeningBalance[communityID]
-			if runningEarning.Denom == "" {
+			runningEarning := mappedCommunityClosingBalance[communityID]
+			if runningEarning.IsZero() {
 				// not previously found
 				mappedCommunityOpeningBalance[communityID] = transaction.Amount
-				mappedCommunityClosingBalance[communityID] = transaction.Amount
-			} else {
-				// previously found
-				mappedCommunityClosingBalance[communityID] = transaction.Amount
 			}
+			mappedCommunityClosingBalance[communityID] = runningEarning.Add(transaction.Amount)
 		}
 	}
 
@@ -1049,7 +1036,7 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 			Address:      q.ID,
 			CommunityID:  communityID,
 			WeeklyEarned: mappedCommunityClosingBalance[communityID].Sub(openingBalance),
-			TotalEarned:  sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metrics[len(metrics)-1].StakeEarned))), // last item of the array
+			TotalEarned:  mappedCommunityClosingBalance[communityID],
 		})
 	}
 

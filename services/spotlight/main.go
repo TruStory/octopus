@@ -127,6 +127,11 @@ func renderCommentSpotlight(s *service) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		claimID, err := strconv.ParseInt(vars["claimID"], 10, 64)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Invalid claim ID passed.", http.StatusBadRequest)
+			return
+		}
 		commentID, err := strconv.ParseInt(vars["id"], 10, 64)
 		if err != nil {
 			log.Println(err)

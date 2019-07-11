@@ -1071,7 +1071,6 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 
 	runningBalance := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 	dailyRunningBalances := make(map[string]sdk.Coin)
-	var dailyRunningBalancesKeys []string
 	firstTxnDate := transactions[0].CreatedTime
 	firstDataPointDate, err := time.Parse("2006-01-02", mappedSortedKeys[0])
 	if err != nil {
@@ -1086,7 +1085,6 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 	for date := from; date.Before(now); date = date.AddDate(0, 0, 1) {
 		key := date.Format("2006-01-02")
 		dailyRunningBalances[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
-		dailyRunningBalancesKeys = append(dailyRunningBalancesKeys, key) // storing the key so that we can later sort the map in the same order
 	}
 
 	for _, transaction := range transactions {

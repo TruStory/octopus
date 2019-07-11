@@ -668,7 +668,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		"image": func(_ context.Context, q db.NotificationEvent) string {
 			icon, ok := NotificationIcons[q.Type]
 			if ok {
-				return path.Join(ta.APIContext.Config.App.S3AssetsURL, "notifications", icon)
+				return joinPath(ta.APIContext.Config.App.S3AssetsURL, path.Join("notifications", icon))
 			}
 			if q.SenderProfile != nil {
 				return q.SenderProfile.AvatarURI

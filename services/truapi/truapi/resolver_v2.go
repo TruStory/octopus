@@ -148,27 +148,12 @@ func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *App
 }
 
 func (ta *TruAPI) earnedBalanceResolver(ctx context.Context, q queryByAddress) sdk.Coin {
-	address, err := sdk.AccAddressFromBech32(q.ID)
-	if err != nil {
-		fmt.Println("earnedBalanceResolver err: ", err)
-		return sdk.Coin{}
+	earnedCoins := ta.earnedStakeResolver(ctx, q)
+	balance := sdk.ZeroInt()
+	for _, coin := range earnedCoins {
+		balance = balance.Add(coin.Coin.Amount)
 	}
-
-	queryRoute := path.Join(staking.QuerierRoute, staking.QueryTotalEarnedCoins)
-	res, err := ta.Query(queryRoute, staking.QueryTotalEarnedCoinsParams{Address: address}, staking.ModuleCodec)
-	if err != nil {
-		fmt.Println("earnedBalanceResolver err: ", err)
-		return sdk.Coin{}
-	}
-
-	balance := new(sdk.Coin)
-	err = staking.ModuleCodec.UnmarshalJSON(res, balance)
-	if err != nil {
-		fmt.Println("totalEarnedCoin UnmarshalJSON err: ", err)
-		return sdk.Coin{}
-	}
-
-	return *balance
+	return sdk.NewCoin(app.StakeDenom, balance)
 }
 
 func (ta *TruAPI) earnedStakeResolver(ctx context.Context, q queryByAddress) []EarnedCoin {
@@ -742,7 +727,7 @@ func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByA
 	}
 
 	queryRoute := path.Join(bank.QuerierRoute, bank.QueryTransactionsByAddress)
-	res, err := ta.Query(queryRoute, bank.QueryTransactionsByAddressParams{Address: creator}, staking.ModuleCodec)
+	res, err := ta.Query(queryRoute, bank.QueryTransactionsByAddressParams{Address: creator}, bank.ModuleCodec)
 	if err != nil {
 		fmt.Println("appAccountTransactionsResolver err: ", err)
 		return []bank.Transaction{}
@@ -942,18 +927,22 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, fi
 		metrics := make([]claimMetricsTrending, 0)
 		for _, claim := range claims {
 			comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: claim.ID})
+			recentComments := 0
 			totalComments := 0
 			for _, comment := range comments {
+				totalComments++
 				if comment.CreatedAt.After(time.Now().AddDate(0, 0, -3)) {
-					totalComments++
+					recentComments++
 				}
 			}
 			arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claim.ID})
+			recentArguments := 0
 			totalArguments := 0
 			var totalStakes int64
 			for _, argument := range arguments {
+				totalArguments++
 				if argument.CreatedTime.After(time.Now().AddDate(0, 0, -3)) {
-					totalArguments++
+					recentArguments++
 					totalStakes += argument.TotalStake.Amount.Int64()
 				}
 			}
@@ -961,8 +950,8 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, fi
 			if totalArguments+totalComments > 0 {
 				metric := claimMetricsTrending{
 					Claim:          claim,
-					TotalComments:  totalComments,
-					TotalArguments: totalArguments,
+					TotalComments:  recentComments,
+					TotalArguments: recentArguments,
 					TotalStakes:    totalStakes,
 				}
 				metrics = append(metrics, metric)

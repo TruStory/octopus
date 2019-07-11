@@ -1068,17 +1068,11 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 }
 
 func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEarningsFilter) appAccountEarnings {
-	appAccount := ta.appAccountResolver(ctx, queryByAddress{ID: q.ID})
-
 	now := time.Now()
 	year, month, day := now.Date()
 	today := time.Date(year, month, day, 0, 0, 0, 0, now.Location()) // beginning of the day
 
 	to := today.Add(-1 * 24 * time.Hour) // till yesterday
-	metrics, err := ta.DBClient.AggregateUserMetricsByAddressBetweenDates(appAccount.Address, q.From, to.Format("2006-01-02"))
-	if err != nil {
-		panic(err)
-	}
 
 	dataPoints := make([]appAccountEarning, 0)
 	mappedEarnings := make(map[string]sdk.Coin)
@@ -1096,9 +1090,30 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 		mappedSortedKeys = append(mappedSortedKeys, key) // storing the key so that we can later sort the map in the same order
 	}
 
-	for _, metric := range metrics {
-		mappedDataPoints[metric.AsOnDate.Format("2006-01-02")] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.AvailableStake)))
-		mappedEarnings[metric.AsOnDate.Format("2006-01-02")] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(int64(metric.StakeEarned)))
+	// reconciling with today's real-time data
+	transactions := ta.appAccountTransactionsResolver(ctx, queryByAddress{ID: q.ID})
+	for _, transaction := range transactions {
+		if !transaction.CreatedTime.After(from) || !transaction.CreatedTime.Before(now) {
+			continue
+		}
+
+		key := transaction.CreatedTime.Format("2006-01-02")
+
+		if transaction.Type.AllowedForDeduction() {
+			mappedDataPoints[key] = mappedDataPoints[key].Sub(transaction.Amount)
+		} else {
+			mappedDataPoints[key] = mappedDataPoints[key].Add(transaction.Amount)
+		}
+
+		// Stake Earned
+		if transaction.Type.OneOf([]exported.TransactionType{
+			exported.TransactionInterestArgumentCreation,
+			exported.TransactionInterestUpvoteReceived,
+			exported.TransactionInterestUpvoteGiven,
+			exported.TransactionRewardPayout,
+		}) {
+			mappedEarnings[key] = transaction.Amount
+		}
 	}
 
 	for _, key := range mappedSortedKeys {
@@ -1110,23 +1125,6 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 
 	openingEarningBalance := mappedEarnings[mappedSortedKeys[0]]
 	closingEarningBalance := mappedEarnings[mappedSortedKeys[len(mappedSortedKeys)-1]]
-	// reconciling with today's real-time data
-	transactions := ta.appAccountTransactionsResolver(ctx, queryByAddress{ID: q.ID})
-	for _, transaction := range transactions {
-		if !transaction.CreatedTime.After(today) {
-			continue
-		}
-
-		// Stake Earned
-		if transaction.Type.OneOf([]exported.TransactionType{
-			exported.TransactionInterestArgumentCreation,
-			exported.TransactionInterestUpvoteReceived,
-			exported.TransactionInterestUpvoteGiven,
-			exported.TransactionRewardPayout,
-		}) {
-			closingEarningBalance = transaction.Amount
-		}
-	}
 
 	return appAccountEarnings{
 		NetEarnings: closingEarningBalance.Sub(openingEarningBalance),

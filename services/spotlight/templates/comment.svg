@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1920px" height="1080px" viewBox="0 0 1920 1080" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 47.1 (45422) - http://www.bohemiancoding.com/sketch -->
+    <defs>
+        <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1238 471.5) rotate(114.554) scale(668.996 1189.33)">
+            <stop stop-color="#E1FFCF"/>
+            <stop offset="1" stop-color="#9FFFA3"/>
+        </radialGradient>
+        <style type="text/css">
+            @import url('https://fonts.googleapis.com/css?family=Poppins:400,700');
+        </style>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="claim-2">
+            <rect id="Rectangle-path" fill="url(#paint0_radial)" fill-rule="nonzero" x="0" y="0" width="1920" height="1080"></rect>
+            <g id="Group" opacity="0.25" transform="translate(708.000000, 291.000000)">
+                <path d="M339.13,52.208 L434.16,25.698 C476.59,13.859 520.81,39.004 532.74,81.756 C544.67,124.508 519.85,168.912 477.41,180.751 L332.64,221.139 C317.62,225.33 302.01,216.456 297.79,201.319 L283.807,151.203 C272.083,108.394 296.7,64.047 339.13,52.208 Z" id="Shape" fill="#68CF00" fill-rule="nonzero"></path>
+                <path d="M444.04,393.725 C486.48,381.887 511.29,337.483 499.37,294.731 C487.44,251.979 443.22,226.834 400.78,238.673 L351.04,252.551 C336.01,256.743 327.25,272.415 331.48,287.552 L345.46,337.668 C357.59,380.363 401.6,405.564 444.04,393.725 Z" id="Shape" fill="#68CF00" fill-rule="nonzero"></path>
+                <path d="M160.333,136.189 L65.308,162.699 C22.871,174.538 -1.945,218.942 9.982,261.693 C21.909,304.445 66.128,329.59 108.564,317.751 L253.335,277.363 C268.36,273.172 277.119,257.5 272.896,242.363 L258.915,192.247 C246.785,149.551 202.769,124.35 160.333,136.189 Z" id="Shape" fill="#68CF00" fill-rule="nonzero"></path>
+                <path d="M267.094,460.18 C224.658,472.019 180.439,446.874 168.512,404.122 C156.585,361.37 181.401,316.966 223.838,305.128 L273.584,291.249 C288.609,287.058 304.22,295.932 308.44,311.069 L322.42,361.185 C334.14,403.994 309.53,448.341 267.094,460.18 Z" id="Shape" fill="#68CF00" fill-rule="nonzero"></path>
+                <path d="M313.65,55.349 L411.11,8.441 C453.37,-11.901 504.45,6.177 524.96,48.796 C545.48,91.414 527.74,142.616 485.48,162.958 L337,234.423 C322.85,241.234 305.78,235.207 298.9,220.911 L274.168,169.522 C274.167,169.521 274.167,169.519 274.166,169.517 C253.85,126.785 271.396,75.686 313.65,55.349 Z M508.89,264.796 C529.41,307.414 511.67,358.616 469.41,378.958 C427.16,399.294 376.28,381.133 355.55,338.6 C355.55,338.598 355.55,338.595 355.55,338.592 L330.81,287.204 C323.93,272.908 329.87,255.808 344.02,248.998 L395.04,224.441 C437.3,204.099 488.38,222.178 508.89,264.796 Z M48.346,183.045 L145.803,136.137 C188.054,115.8 238.936,133.962 259.663,176.496 C259.664,176.498 259.665,176.5 259.666,176.502 L284.4,227.891 C291.281,242.187 285.345,259.286 271.195,266.097 L122.718,337.562 C80.455,357.904 29.374,339.826 8.86,297.207 C-11.653,254.589 6.083,203.387 48.346,183.045 Z M301.57,459.745 C259.302,480.087 208.221,462.008 187.707,419.39 C167.194,376.772 184.93,325.57 227.193,305.228 L278.212,280.671 C292.36,273.86 309.43,279.887 316.31,294.184 L341.05,345.572 C341.05,345.573 341.05,345.575 341.05,345.577 C361.36,388.309 343.82,439.408 301.57,459.745 Z" id="Shape" stroke="#56AB00" stroke-width="5"></path>
+            </g>
+            <text id="Participants" fill="#000000" font-family="Poppins-Regular, Poppins" font-size="50" font-weight="normal">
+                <tspan x="960" y="905" text-anchor="middle">$PLACEHOLDER__CREATOR</tspan>
+            </text>
+            <text id="PLACEHOLDER__BODY_LINE_1" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
+                <tspan x="960" y="341.75" text-anchor="middle">$PLACEHOLDER__BODY_LINE_1</tspan>
+            </text>
+            <text id="PLACEHOLDER__BODY_LINE_2" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
+                <tspan x="960" y="466.75" text-anchor="middle">$PLACEHOLDER__BODY_LINE_2</tspan>
+            </text>
+            <text id="PLACEHOLDER__BODY_LINE_3" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="75" font-weight="bold">
+                <tspan x="960" y="591.75" text-anchor="middle">$PLACEHOLDER__BODY_LINE_3</tspan>
+            </text>
+            <text id="TruStory" fill="#000000" font-family="Poppins-Bold, Poppins" font-size="50" font-weight="bold">
+                <tspan x="850.541" y="130.5">TruStory</tspan>
+            </text>
+        </g>
+    </g>
+</svg>

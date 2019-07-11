@@ -48,6 +48,27 @@ const ArgumentByIDQuery = `
 	}
 `
 
+// CommentsByClaimIDQuery fetches comments of a given claim
+const CommentsByClaimIDQuery = `
+  query ClaimQuery($claimId: ID!) {
+	claim(id: $claimId) {
+		id
+		comments {
+			id
+			body
+			creator {
+				address
+				twitterProfile {
+					avatarURI
+					fullName
+					username
+				}
+			}
+		}
+	}
+}
+`
+
 // CommunityObject defines the schema of a category
 type CommunityObject struct {
 	ID   string `json:"id"`
@@ -75,6 +96,7 @@ type ClaimObject struct {
 	Community     CommunityObject `json:"community"`
 	Creator       UserObject      `json:"creator"`
 	ArgumentCount int             `json:"argumentCount"`
+	Comments      []CommentObject `json:"comments"`
 }
 
 // ArgumentObject defines the schema of an argument
@@ -84,6 +106,13 @@ type ArgumentObject struct {
 	Summary      string     `json:"summary"`
 	Creator      UserObject `json:"creator"`
 	UpvotedCount int        `json:"upvotedCount"`
+}
+
+// CommentObject defines the schema of a comment
+type CommentObject struct {
+	ID      int64      `json:"id"`
+	Body    string     `json:"body"`
+	Creator UserObject `json:"creator"`
 }
 
 // HasSource returns whether a story has a source or not
@@ -108,4 +137,9 @@ type ClaimByIDResponse struct {
 // ArgumentByIDResponse defines the JSON response
 type ArgumentByIDResponse struct {
 	ClaimArgument ArgumentObject `json:"claimArgument"`
+}
+
+// CommentsByClaimIDResponse defines the JSON response
+type CommentsByClaimIDResponse struct {
+	Claim ClaimObject `json:"claim"`
 }

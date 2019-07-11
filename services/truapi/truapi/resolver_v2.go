@@ -1009,9 +1009,6 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 		transactions[i], transactions[opp] = transactions[opp], transactions[i]
 	}
 	for _, transaction := range transactions {
-		if !transaction.CreatedTime.After(from) {
-			continue
-		}
 
 		// Stake Earned
 		if transaction.Type.OneOf([]bank.TransactionType{
@@ -1022,9 +1019,9 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 		}) {
 			communityID := transaction.CommunityID
 			runningEarning := mappedCommunityClosingBalance[communityID]
-			if runningEarning.IsZero() {
-				// not previously found
-				mappedCommunityOpeningBalance[communityID] = transaction.Amount
+			// set the opening balance equal to the last cumulative balance before the 7 day window starts
+			if transaction.CreatedTime.Before(from) {
+				mappedCommunityOpeningBalance[communityID] = runningEarning
 			}
 			mappedCommunityClosingBalance[communityID] = runningEarning.Add(transaction.Amount)
 		}

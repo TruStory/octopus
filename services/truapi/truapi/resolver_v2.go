@@ -145,21 +145,21 @@ func (ta *TruAPI) earnedStakeResolver(ctx context.Context, q queryByAddress) []E
 		return []EarnedCoin{}
 	}
 
-	coins := make([]sdk.Coin, 0)
-	err = staking.ModuleCodec.UnmarshalJSON(res, &coins)
+	coins := new(sdk.Coins)
+	err = staking.ModuleCodec.UnmarshalJSON(res, coins)
 	if err != nil {
 		fmt.Println("earnedCoin UnmarshalJSON err: ", err)
 		return []EarnedCoin{}
 	}
 
+	communities := ta.communitiesResolver(ctx)
+
 	earnedCoins := make([]EarnedCoin, 0)
-	for _, coin := range coins {
-		if !contains(communityBlacklist, coin.Denom) {
-			earnedCoins = append(earnedCoins, EarnedCoin{
-				coin,
-				coin.Denom,
-			})
-		}
+	for _, community := range communities {
+		earnedCoins = append(earnedCoins, EarnedCoin{
+			sdk.NewCoin(community.ID, coins.AmountOf(community.ID)),
+			community.ID,
+		})
 	}
 
 	return earnedCoins

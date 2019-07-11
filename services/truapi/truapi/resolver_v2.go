@@ -1058,10 +1058,6 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 
 func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEarningsFilter) appAccountEarnings {
 	now := time.Now()
-	year, month, day := now.Date()
-	today := time.Date(year, month, day, 0, 0, 0, 0, now.Location()) // beginning of the day
-
-	to := today.Add(-1 * 24 * time.Hour) // till yesterday
 
 	dataPoints := make([]appAccountEarning, 0)
 	mappedEarnings := make(map[string]sdk.Coin)
@@ -1072,27 +1068,49 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 	if err != nil {
 		panic(err)
 	}
-	for date := from; date.Before(to); date = date.AddDate(0, 0, 1) {
+	for date := from; date.Before(now); date = date.AddDate(0, 0, 1) {
 		key := date.Format("2006-01-02")
 		mappedDataPoints[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 		mappedEarnings[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 		mappedSortedKeys = append(mappedSortedKeys, key) // storing the key so that we can later sort the map in the same order
 	}
 
-	// reconciling with today's real-time data
 	transactions := ta.appAccountTransactionsResolver(ctx, queryByAddress{ID: q.ID})
-	for _, transaction := range transactions {
-		if !transaction.CreatedTime.After(from) || !transaction.CreatedTime.Before(now) {
-			continue
-		}
+	// reversing the order of transactions
+	for i := len(transactions)/2 - 1; i >= 0; i-- {
+		opp := len(transactions) - 1 - i
+		transactions[i], transactions[opp] = transactions[opp], transactions[i]
+	}
 
+	runningBalance := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+	dailyRunningBalances := make(map[string]sdk.Coin)
+	var dailyRunningBalancesKeys []string
+	firstTxnDate := transactions[0].CreatedTime
+	firstDataPointDate, err := time.Parse("2006-01-02", mappedSortedKeys[0])
+	if err != nil {
+		panic(err)
+	}
+
+	if firstTxnDate.Before(firstDataPointDate) {
+		from = firstTxnDate
+	} else {
+		from = firstDataPointDate
+	}
+	for date := from; date.Before(now); date = date.AddDate(0, 0, 1) {
+		key := date.Format("2006-01-02")
+		dailyRunningBalances[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		dailyRunningBalancesKeys = append(dailyRunningBalancesKeys, key) // storing the key so that we can later sort the map in the same order
+	}
+
+	for _, transaction := range transactions {
 		key := transaction.CreatedTime.Format("2006-01-02")
 
 		if transaction.Type.AllowedForDeduction() {
-			mappedDataPoints[key] = mappedDataPoints[key].Sub(transaction.Amount)
+			runningBalance = runningBalance.Sub(transaction.Amount)
 		} else {
-			mappedDataPoints[key] = mappedDataPoints[key].Add(transaction.Amount)
+			runningBalance = runningBalance.Add(transaction.Amount)
 		}
+		dailyRunningBalances[key] = runningBalance
 
 		// Stake Earned
 		if transaction.Type.OneOf([]exported.TransactionType{
@@ -1105,10 +1123,21 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 		}
 	}
 
+	// seeding the dates that are missing in between
+	runningBalance = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+	for date := from; date.Before(now); date = date.AddDate(0, 0, 1) {
+		key := date.Format("2006-01-02")
+		if !dailyRunningBalances[key].IsZero() {
+			runningBalance = dailyRunningBalances[key]
+		}
+
+		dailyRunningBalances[key] = runningBalance
+	}
+
 	for _, key := range mappedSortedKeys {
 		dataPoints = append(dataPoints, appAccountEarning{
 			Date:   key,
-			Amount: mappedDataPoints[key].Amount.Quo(sdk.NewInt(app.Shanev)).ToDec().RoundInt64(),
+			Amount: dailyRunningBalances[key].Amount.Quo(sdk.NewInt(app.Shanev)).ToDec().RoundInt64(),
 		})
 	}
 

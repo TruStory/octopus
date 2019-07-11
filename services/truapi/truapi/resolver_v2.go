@@ -79,6 +79,30 @@ type claimMetricsTrending struct {
 	TotalStakes    int64
 }
 
+// appAccountEarningsFilter is query params for filtering the app account's earnings
+type appAccountEarningsFilter struct {
+	ID   string `graphql:"id"`
+	From string
+	To   string
+}
+
+type appAccountCommunityEarning struct {
+	Address      string   `json:"address"`
+	CommunityID  string   `json:"community_id"`
+	TotalEarned  sdk.Coin `json:"total_earned"`
+	WeeklyEarned sdk.Coin `json:"weekly_earned"`
+}
+
+type appAccountEarning struct {
+	Date   string `json:"date"`
+	Amount int64  `json:"amount"`
+}
+
+type appAccountEarnings struct {
+	NetEarnings sdk.Coin            `json:"net_earnings"`
+	DataPoints  []appAccountEarning `json:"data_points"`
+}
+
 // the communities need to be curated better before they are made public
 var communityBlacklist = []string{"cosmos", "sports", "tech", "entertainment"}
 
@@ -960,4 +984,165 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, fi
 		return trendingClaims
 	}
 	return claims
+}
+
+func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q queryByAddress) []appAccountCommunityEarning {
+	now := time.Now()
+
+	from := now.Add(-7 * 24 * time.Hour) // starting from 6 days before yesterday
+
+	communityEarnings := make([]appAccountCommunityEarning, 0)
+	mappedCommunityOpeningBalance := make(map[string]sdk.Coin)
+	mappedCommunityClosingBalance := make(map[string]sdk.Coin)
+
+	// seeding empty communities
+	communities := ta.communitiesResolver(ctx)
+	for _, community := range communities {
+		mappedCommunityOpeningBalance[community.ID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		mappedCommunityClosingBalance[community.ID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+	}
+
+	transactions := ta.appAccountTransactionsResolver(ctx, q)
+	// reversing the order of transactions
+	for i := len(transactions)/2 - 1; i >= 0; i-- {
+		opp := len(transactions) - 1 - i
+		transactions[i], transactions[opp] = transactions[opp], transactions[i]
+	}
+	for _, transaction := range transactions {
+		if !transaction.CreatedTime.After(from) {
+			continue
+		}
+
+		// Stake Earned
+		if transaction.Type.OneOf([]bank.TransactionType{
+			bank.TransactionInterestArgumentCreation,
+			bank.TransactionInterestUpvoteReceived,
+			bank.TransactionInterestUpvoteGiven,
+			bank.TransactionRewardPayout,
+		}) {
+			communityID := transaction.CommunityID
+			runningEarning := mappedCommunityClosingBalance[communityID]
+			if runningEarning.IsZero() {
+				// not previously found
+				mappedCommunityOpeningBalance[communityID] = transaction.Amount
+			}
+			mappedCommunityClosingBalance[communityID] = runningEarning.Add(transaction.Amount)
+		}
+	}
+
+	for communityID, openingBalance := range mappedCommunityOpeningBalance {
+		communityEarnings = append(communityEarnings, appAccountCommunityEarning{
+			Address:      q.ID,
+			CommunityID:  communityID,
+			WeeklyEarned: mappedCommunityClosingBalance[communityID].Sub(openingBalance),
+			TotalEarned:  mappedCommunityClosingBalance[communityID],
+		})
+	}
+
+	return communityEarnings
+}
+
+func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEarningsFilter) appAccountEarnings {
+	now := time.Now()
+
+	dataPoints := make([]appAccountEarning, 0)
+	mappedEarnings := make(map[string]sdk.Coin)
+	mappedDataPoints := make(map[string]sdk.Coin)
+	var mappedSortedKeys []string
+	// seeding empty dates
+	from, err := time.Parse("2006-01-02", q.From)
+	if err != nil {
+		panic(err)
+	}
+	for date := from; date.Before(now); date = date.AddDate(0, 0, 1) {
+		key := date.Format("2006-01-02")
+		mappedDataPoints[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		mappedEarnings[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		mappedSortedKeys = append(mappedSortedKeys, key) // storing the key so that we can later sort the map in the same order
+	}
+
+	transactions := ta.appAccountTransactionsResolver(ctx, queryByAddress{ID: q.ID})
+	// reversing the order of transactions
+	for i := len(transactions)/2 - 1; i >= 0; i-- {
+		opp := len(transactions) - 1 - i
+		transactions[i], transactions[opp] = transactions[opp], transactions[i]
+	}
+
+	runningBalance := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+	dailyRunningBalances := make(map[string]sdk.Coin)
+	firstTxnDate := transactions[0].CreatedTime
+	firstDataPointDate, err := time.Parse("2006-01-02", mappedSortedKeys[0])
+	if err != nil {
+		panic(err)
+	}
+
+	if firstTxnDate.Before(firstDataPointDate) {
+		from = firstTxnDate
+	} else {
+		from = firstDataPointDate
+	}
+	for date := from; date.Before(now); date = date.AddDate(0, 0, 1) {
+		key := date.Format("2006-01-02")
+		dailyRunningBalances[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+	}
+
+	for _, transaction := range transactions {
+		key := transaction.CreatedTime.Format("2006-01-02")
+
+		if transaction.Type.AllowedForDeduction() {
+			runningBalance = runningBalance.Sub(transaction.Amount)
+		} else {
+			runningBalance = runningBalance.Add(transaction.Amount)
+		}
+		dailyRunningBalances[key] = runningBalance
+
+		// Stake Earned
+		if transaction.Type.OneOf([]bank.TransactionType{
+			bank.TransactionInterestArgumentCreation,
+			bank.TransactionInterestUpvoteReceived,
+			bank.TransactionInterestUpvoteGiven,
+			bank.TransactionRewardPayout,
+		}) {
+			mappedEarnings[key] = transaction.Amount
+		}
+	}
+
+	// seeding the dates that are missing in between
+	runningBalance = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+	for date := from; date.Before(now); date = date.AddDate(0, 0, 1) {
+		key := date.Format("2006-01-02")
+		if !dailyRunningBalances[key].IsZero() {
+			runningBalance = dailyRunningBalances[key]
+		}
+
+		dailyRunningBalances[key] = runningBalance
+	}
+
+	for _, key := range mappedSortedKeys {
+		dataPoints = append(dataPoints, appAccountEarning{
+			Date:   key,
+			Amount: dailyRunningBalances[key].Amount.Quo(sdk.NewInt(app.Shanev)).ToDec().RoundInt64(),
+		})
+	}
+
+	openingEarningBalance := mappedEarnings[mappedSortedKeys[0]]
+	closingEarningBalance := mappedEarnings[mappedSortedKeys[len(mappedSortedKeys)-1]]
+
+	// reduced data points
+	var reducedDataPoints []appAccountEarning
+	maximumDataPoints := 51
+	if len(dataPoints) > maximumDataPoints {
+		gap := len(dataPoints) / maximumDataPoints
+		for i := 0; i < len(dataPoints); i++ {
+			if i%gap == 0 { // removing every element at the nth-gap
+				reducedDataPoints = append(reducedDataPoints, dataPoints[i])
+			}
+		}
+	} else {
+		reducedDataPoints = dataPoints
+	}
+	return appAccountEarnings{
+		NetEarnings: closingEarningBalance.Sub(openingEarningBalance),
+		DataPoints:  reducedDataPoints,
+	}
 }

@@ -473,6 +473,16 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 	})
 
+	ta.GraphQLClient.RegisterQueryResolver("appAccountCommunityEarnings", ta.appAccountCommunityEarningsResolver)
+	ta.GraphQLClient.RegisterObjectResolver("AppAccountCommunityEarnings", appAccountCommunityEarning{}, map[string]interface{}{
+		"id": func(_ context.Context, q appAccountCommunityEarning) string { return q.CommunityID },
+		"community": func(ctx context.Context, q appAccountCommunityEarning) *community.Community {
+			return ta.communityResolver(ctx, queryByCommunityID{CommunityID: q.CommunityID})
+		},
+	})
+
+	ta.GraphQLClient.RegisterQueryResolver("appAccountEarnings", ta.appAccountEarningsResolver)
+
 	// ########## V2 resolvers ################
 
 	ta.GraphQLClient.RegisterQueryResolver("appAccount", ta.appAccountResolver)

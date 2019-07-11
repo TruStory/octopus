@@ -1144,8 +1144,21 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 	openingEarningBalance := mappedEarnings[mappedSortedKeys[0]]
 	closingEarningBalance := mappedEarnings[mappedSortedKeys[len(mappedSortedKeys)-1]]
 
+	// reduced data points
+	var reducedDataPoints []appAccountEarning
+	maximumDataPoints := 51
+	if len(dataPoints) > maximumDataPoints {
+		gap := len(dataPoints) / maximumDataPoints
+		for i := 0; i < len(dataPoints); i++ {
+			if i%gap == 0 { // removing every element at the nth-gap
+				reducedDataPoints = append(reducedDataPoints, dataPoints[i])
+			}
+		}
+	} else {
+		reducedDataPoints = dataPoints
+	}
 	return appAccountEarnings{
 		NetEarnings: closingEarningBalance.Sub(openingEarningBalance),
-		DataPoints:  dataPoints,
+		DataPoints:  reducedDataPoints,
 	}
 }

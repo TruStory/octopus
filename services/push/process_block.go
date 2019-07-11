@@ -79,7 +79,7 @@ func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notificati
 				}
 				notifications <- &Notification{
 					To: expiredStake.Result.ArgumentCreator.String(),
-					Msg: fmt.Sprintf("You just earned %s %s on an argument someone agreed on",
+					Msg: fmt.Sprintf("You just earned %s %s because someone Agreed with you",
 						humanReadable(expiredStake.Result.ArgumentCreatorReward), db.CoinDisplayName,
 					),
 					TypeID: int64(expiredStake.ArgumentID),

@@ -103,9 +103,6 @@ type appAccountEarnings struct {
 	DataPoints  []appAccountEarning `json:"data_points"`
 }
 
-// the communities need to be curated better before they are made public
-var communityBlacklist = []string{"cosmos", "sports", "tech", "entertainment"}
-
 func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *AppAccount {
 	address, err := sdk.AccAddressFromBech32(q.ID)
 	if err != nil {
@@ -284,10 +281,12 @@ func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community
 		return (cs)[j].Name > (cs)[i].Name
 	})
 
+	fmt.Println("inactive", ta.APIContext.Config.Community.InactiveCommunities)
+
 	// exclude blacklisted communities
 	filteredCommunities := make([]community.Community, 0)
 	for _, c := range cs {
-		if !contains(communityBlacklist, c.ID) {
+		if !contains(ta.APIContext.Config.Community.InactiveCommunities, c.ID) {
 			filteredCommunities = append(filteredCommunities, c)
 		}
 	}

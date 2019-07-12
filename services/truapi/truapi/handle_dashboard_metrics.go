@@ -82,6 +82,9 @@ func (ta *TruAPI) getEarnedCoins(address string) (sdk.Coins, error) {
 
 	queryRoute := path.Join(staking.QuerierRoute, staking.QueryEarnedCoins)
 	res, err := ta.Query(queryRoute, staking.QueryEarnedCoinsParams{Address: a}, staking.ModuleCodec)
+	if err != nil {
+		return nil, err
+	}
 	coins := make([]sdk.Coin, 0)
 	err = staking.ModuleCodec.UnmarshalJSON(res, &coins)
 	if err != nil {
@@ -285,11 +288,11 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 			// "interest_slashed", "stake_slashed"
 			record = append(record, fmt.Sprintf("%d", 0))
 			record = append(record, fmt.Sprintf("%d", 0))
-			csvw.Write(record)
-		}
-
-		if err != nil {
-			render.Error(w, r, err.Error(), http.StatusInternalServerError)
+			err = csvw.Write(record)
+			if err != nil {
+				render.Error(w, r, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 		csvw.Flush()
 	}

@@ -157,11 +157,17 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 	chainMetrics := &Metrics{UserMetrics: make(map[string]*UserMetrics)}
 
 	for _, claim := range claims {
+		if !claim.CreatedTime.Before(beforeDate) {
+			continue
+		}
 		argumentIDCreator := make(map[uint64]string)
 		ucm := chainMetrics.getUserCommunityMetric(claim.Creator.String(), claim.CommunityID)
 		ucm.Claims++
 		arguments, err := ta.getClaimArguments(claim.ID)
 		for _, argument := range arguments {
+			if !argument.CreatedTime.Before(beforeDate) {
+				continue
+			}
 			acm := chainMetrics.getUserCommunityMetric(argument.Creator.String(), claim.CommunityID)
 			acm.Arguments++
 			argumentIDCreator[argument.ID] = argument.Creator.String()
@@ -219,6 +225,9 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 	}
 	openedClaims, err := ta.DBClient.OpenedClaimsSummary(beforeDate)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+	}
 	for _, userOpenedClaims := range openedClaims {
 		userMetrics := chainMetrics.getUserCommunityMetric(userOpenedClaims.Address, userOpenedClaims.CommunityID)
 		userMetrics.ClaimsOpened = userOpenedClaims.OpenedClaims
@@ -276,11 +285,11 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 			record = append(record, fmt.Sprintf("%d", m.Claims))
 			record = append(record, fmt.Sprintf("%d", m.ClaimsOpened))
 			record = append(record, fmt.Sprintf("%d", m.UniqueClaimsOpened))
-			// 	"arguments_created", "agrees_received", "agrees_given",
+			// "arguments_created", "agrees_received", "agrees_given",
 			record = append(record, fmt.Sprintf("%d", m.Arguments))
 			record = append(record, fmt.Sprintf("%d", m.AgreesReceived))
 			record = append(record, fmt.Sprintf("%d", m.AgreesGiven))
-			// 	"interest_argument_creation", "interest_agree_received", "interest_agree_given", "curator_reward",
+			// "interest_argument_creation", "interest_agree_received", "interest_agree_given", "curator_reward",
 			record = append(record, m.InterestArgumentCreated.Amount.String())
 			record = append(record, m.InterestAgreeReceived.Amount.String())
 			record = append(record, m.InterestAgreeGiven.Amount.String())

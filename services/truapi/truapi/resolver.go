@@ -495,18 +495,6 @@ func (ta *TruAPI) reactionsResolver(ctx context.Context, rxnable db.Reactionable
 	return reactions
 }
 
-func (ta *TruAPI) userMetricsResolver(ctx context.Context, q UserMetricsFilter) []db.UserMetric {
-	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
-	if !ok {
-		return make([]db.UserMetric, 0)
-	}
-	response, err := ta.DBClient.AggregateUserMetricsByAddressBetweenDates(user.Address, q.From, q.To)
-	if err != nil {
-		panic(err)
-	}
-	return response
-}
-
 func contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {

@@ -465,14 +465,6 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 	})
 
-	ta.GraphQLClient.RegisterQueryResolver("userMetrics", ta.userMetricsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("UserMetrics", db.UserMetric{}, map[string]interface{}{
-		"asOnDate": func(_ context.Context, q db.UserMetric) string { return q.AsOnDate.Format("2006-01-02") },
-		"category": func(ctx context.Context, q db.UserMetric) category.Category {
-			return ta.categoryResolver(ctx, category.QueryCategoryByIDParams{ID: q.CategoryID})
-		},
-	})
-
 	ta.GraphQLClient.RegisterQueryResolver("appAccountCommunityEarnings", ta.appAccountCommunityEarningsResolver)
 	ta.GraphQLClient.RegisterObjectResolver("AppAccountCommunityEarnings", appAccountCommunityEarning{}, map[string]interface{}{
 		"id": func(_ context.Context, q appAccountCommunityEarning) string { return q.CommunityID },

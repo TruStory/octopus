@@ -24,14 +24,18 @@ func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
 	}
 	claimID := req.FormValue("claim_id")
 	argumentID := req.FormValue("argument_id")
-	if claimID == "" && argumentID == "" {
-		render.Error(res, req, "provide a valid claim or argument", http.StatusBadRequest)
+	commentID := req.FormValue("comment_id")
+	if claimID == "" && argumentID == "" && commentID == "" {
+		render.Error(res, req, "provide a valid claim or argument or comment", http.StatusBadRequest)
 		return
 	}
 
 	// preparing the request
 	spotlightURL := ""
-	if claimID != "" {
+	if claimID != "" && commentID != "" {
+		spotlightURL = strings.Replace("http://localhost:54448/claim/CLAIM_ID/comment/COMMENT_ID/spotlight", "CLAIM_ID", claimID, -1)
+		spotlightURL = strings.Replace(spotlightURL, "COMMENT_ID", commentID, -1)
+	} else if claimID != "" {
 		spotlightURL = strings.Replace("http://localhost:54448/claim/CLAIM_ID/spotlight", "CLAIM_ID", claimID, -1)
 	} else if argumentID != "" {
 		spotlightURL = strings.Replace("http://localhost:54448/argument/ARGUMENT_ID/spotlight", "ARGUMENT_ID", argumentID, -1)

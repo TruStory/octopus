@@ -240,7 +240,8 @@ workflows:
   nightly-backup:
     triggers:
       - schedule:
-          cron: "0 0 * * *"
+          # 4 am in PST
+          cron: "0 11 * * *"
           filters:
             branches:
               only:

@@ -992,14 +992,14 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 	from := now.Add(-7 * 24 * time.Hour) // starting from 6 days before yesterday
 
 	communityEarnings := make([]appAccountCommunityEarning, 0)
-	mappedCommunityOpeningBalance := make(map[string]sdk.Coin)
-	mappedCommunityClosingBalance := make(map[string]sdk.Coin)
+	communityWeeklyEarnings := make(map[string]sdk.Coin)
+	communityAllTimeEarnings := make(map[string]sdk.Coin)
 
 	// seeding empty communities
 	communities := ta.communitiesResolver(ctx)
 	for _, community := range communities {
-		mappedCommunityOpeningBalance[community.ID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
-		mappedCommunityClosingBalance[community.ID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		communityWeeklyEarnings[community.ID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
+		communityAllTimeEarnings[community.ID] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 	}
 
 	transactions := ta.appAccountTransactionsResolver(ctx, q)
@@ -1017,22 +1017,25 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 			bank.TransactionInterestUpvoteGiven,
 			bank.TransactionRewardPayout,
 		}) {
-			communityID := transaction.CommunityID
-			runningEarning := mappedCommunityClosingBalance[communityID]
-			// set the opening balance equal to the last cumulative balance before the 7 day window starts
-			if transaction.CreatedTime.Before(from) {
-				mappedCommunityOpeningBalance[communityID] = runningEarning
+			// some transactions are in blacklisted communities so make sure to check the community exists in the map
+			if _, ok := communityAllTimeEarnings[transaction.CommunityID]; ok {
+				communityAllTimeEarnings[transaction.CommunityID] = communityAllTimeEarnings[transaction.CommunityID].Add(transaction.Amount)
 			}
-			mappedCommunityClosingBalance[communityID] = runningEarning.Add(transaction.Amount)
+			if transaction.CreatedTime.After(from) {
+				// some transactions are in blacklisted communities so make sure to check the community exists in the map
+				if _, ok := communityWeeklyEarnings[transaction.CommunityID]; ok {
+					communityWeeklyEarnings[transaction.CommunityID] = communityWeeklyEarnings[transaction.CommunityID].Add(transaction.Amount)
+				}
+			}
 		}
 	}
 
-	for communityID, openingBalance := range mappedCommunityOpeningBalance {
+	for communityID := range communityAllTimeEarnings {
 		communityEarnings = append(communityEarnings, appAccountCommunityEarning{
 			Address:      q.ID,
 			CommunityID:  communityID,
-			WeeklyEarned: mappedCommunityClosingBalance[communityID].Sub(openingBalance),
-			TotalEarned:  mappedCommunityClosingBalance[communityID],
+			WeeklyEarned: communityWeeklyEarnings[communityID],
+			TotalEarned:  communityAllTimeEarnings[communityID],
 		})
 	}
 
@@ -1043,7 +1046,7 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 	now := time.Now()
 
 	dataPoints := make([]appAccountEarning, 0)
-	mappedEarnings := make(map[string]sdk.Coin)
+	netEarnings := sdk.NewCoin(app.StakeDenom, sdk.ZeroInt())
 	mappedDataPoints := make(map[string]sdk.Coin)
 	var mappedSortedKeys []string
 	// seeding empty dates
@@ -1054,7 +1057,6 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 	for date := from; date.Before(now); date = date.AddDate(0, 0, 1) {
 		key := date.Format("2006-01-02")
 		mappedDataPoints[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
-		mappedEarnings[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 		mappedSortedKeys = append(mappedSortedKeys, key) // storing the key so that we can later sort the map in the same order
 	}
 
@@ -1073,12 +1075,11 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 		panic(err)
 	}
 
+	beginning := firstDataPointDate
 	if firstTxnDate.Before(firstDataPointDate) {
-		from = firstTxnDate
-	} else {
-		from = firstDataPointDate
+		beginning = firstTxnDate
 	}
-	for date := from; date.Before(now); date = date.AddDate(0, 0, 1) {
+	for date := beginning; date.Before(now); date = date.AddDate(0, 0, 1) {
 		key := date.Format("2006-01-02")
 		dailyRunningBalances[key] = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 	}
@@ -1100,13 +1101,15 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 			bank.TransactionInterestUpvoteGiven,
 			bank.TransactionRewardPayout,
 		}) {
-			mappedEarnings[key] = transaction.Amount
+			if transaction.CreatedTime.After(from) {
+				netEarnings = netEarnings.Add(transaction.Amount)
+			}
 		}
 	}
 
 	// seeding the dates that are missing in between
 	runningBalance = sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
-	for date := from; date.Before(now); date = date.AddDate(0, 0, 1) {
+	for date := beginning; date.Before(now); date = date.AddDate(0, 0, 1) {
 		key := date.Format("2006-01-02")
 		if !dailyRunningBalances[key].IsZero() {
 			runningBalance = dailyRunningBalances[key]
@@ -1122,9 +1125,6 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 		})
 	}
 
-	openingEarningBalance := mappedEarnings[mappedSortedKeys[0]]
-	closingEarningBalance := mappedEarnings[mappedSortedKeys[len(mappedSortedKeys)-1]]
-
 	// reduced data points
 	var reducedDataPoints []appAccountEarning
 	maximumDataPoints := 51
@@ -1139,7 +1139,7 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 		reducedDataPoints = dataPoints
 	}
 	return appAccountEarnings{
-		NetEarnings: closingEarningBalance.Sub(openingEarningBalance),
+		NetEarnings: netEarnings,
 		DataPoints:  reducedDataPoints,
 	}
 }

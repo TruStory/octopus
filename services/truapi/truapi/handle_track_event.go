@@ -9,7 +9,6 @@ import (
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
-	"github.com/TruStory/truchain/x/story"
 )
 
 // EventProperties holds tracking event information
@@ -57,18 +56,19 @@ func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		story := ta.storyResolver(r.Context(), story.QueryStoryByIDParams{ID: *evt.Properties.ClaimID})
-		if story.ID == 0 {
+		claim := ta.claimResolver(r.Context(), queryByClaimID{ID: uint64(*evt.Properties.ClaimID)})
+		if claim.ID == 0 {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
+		claimID := int64(claim.ID)
 		dbEvent := db.TrackEvent{
 			Address:          user.Address,
 			TwitterProfileID: user.TwitterProfileID,
 			Event:            TrackEventClaimOpened,
 			Meta: db.TrackEventMeta{
-				ClaimID:    &story.ID,
-				CategoryID: &story.CategoryID,
+				ClaimID:     &claimID,
+				CommunityID: &claim.CommunityID,
 			},
 		}
 		err := ta.DBClient.Add(&dbEvent)

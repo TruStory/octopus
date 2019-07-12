@@ -3,8 +3,8 @@ package db
 import "time"
 
 type TrackEventMeta struct {
-	ClaimID    *int64 `json:"claimId,omitempty"`
-	CategoryID *int64 `json:"categoryId,omitempty"`
+	ClaimID     *int64  `json:"claimId,omitempty"`
+	CommunityID *string `json:"communityId,omitempty"`
 }
 
 // TrackEvent represents analytics events track from the app.
@@ -20,7 +20,7 @@ type TrackEvent struct {
 // UserOpenedClaimsSummary represents a metric of opened claims by user.
 type UserOpenedClaimsSummary struct {
 	Address            string `json:"string"`
-	CategoryID         int64  `json:"category_id"`
+	CommunityID        string `json:"community_id"`
 	OpenedClaims       int64  `json:"opened_claims"`
 	UniqueOpenedClaims int64  `json:"unique_opened_claims"`
 }
@@ -28,16 +28,16 @@ type UserOpenedClaimsSummary struct {
 func (c *Client) OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error) {
 	openedClaimsSummary := make([]UserOpenedClaimsSummary, 0)
 	query := `
-		SELECT address, meta->'categoryId' category_id,  
+		SELECT address, meta->>'communityId' community_id,  
 			COUNT(meta->'claimId') opened_claims ,
 			COUNT(DISTINCT meta->'claimId') unique_opened_claims
 		FROM track_events 
 		WHERE
 			created_at < ?
 			AND address is not null 
-			AND meta->'categoryId' is not null 
+			AND meta->'communityId' is not null 
 			AND meta->'claimId' is not null 
-		GROUP BY address, meta->'categoryId';
+		GROUP BY address, meta->>'communityId';
 	`
 	_, err := c.Query(&openedClaimsSummary, query, date)
 	if err != nil {

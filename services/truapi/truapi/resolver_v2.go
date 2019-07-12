@@ -845,14 +845,15 @@ func (ta *TruAPI) sourceURLPreviewResolver(ctx context.Context, q claim.Claim) s
 	return sourceURLPreview
 }
 
-func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
+func (ta *TruAPI) settingsResolver(ctx context.Context) Settings {
+	params := ta.paramsResolver(ctx)
 	return Settings{
-		MinClaimLength:    25,
-		MaxClaimLength:    140,
-		MinArgumentLength: 25,
-		MaxArgumentLength: 1250,
-		MinSummaryLength:  25,
-		MaxSummaryLength:  140,
+		MinClaimLength:    params.ClaimParams.MinClaimLength,
+		MaxClaimLength:    params.ClaimParams.MaxClaimLength,
+		MinArgumentLength: params.StakingParams.ArgumentBodyMinLength,
+		MaxArgumentLength: params.StakingParams.ArgumentBodyMaxLength,
+		MinSummaryLength:  params.StakingParams.ArgumentSummaryMinLength,
+		MaxSummaryLength:  params.StakingParams.ArgumentSummaryMaxLength,
 		MinCommentLength:  5,
 		MaxCommentLength:  1000,
 		BlockIntervalTime: 5000,

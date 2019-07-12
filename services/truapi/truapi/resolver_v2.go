@@ -847,6 +847,7 @@ func (ta *TruAPI) sourceURLPreviewResolver(ctx context.Context, q claim.Claim) s
 
 func (ta *TruAPI) settingsResolver(ctx context.Context) Settings {
 	params := ta.paramsResolver(ctx)
+	tomlParams := ta.APIContext.Config.Params
 	return Settings{
 		MinClaimLength:    params.ClaimParams.MinClaimLength,
 		MaxClaimLength:    params.ClaimParams.MaxClaimLength,
@@ -854,10 +855,10 @@ func (ta *TruAPI) settingsResolver(ctx context.Context) Settings {
 		MaxArgumentLength: params.StakingParams.ArgumentBodyMaxLength,
 		MinSummaryLength:  params.StakingParams.ArgumentSummaryMinLength,
 		MaxSummaryLength:  params.StakingParams.ArgumentSummaryMaxLength,
-		MinCommentLength:  5,
-		MaxCommentLength:  1000,
-		BlockIntervalTime: 5000,
-		DefaultStake:      sdk.NewCoin(app.StakeDenom, sdk.NewInt(30*app.Shanev)),
+		MinCommentLength:  tomlParams.CommentMinLength,
+		MaxCommentLength:  tomlParams.CommentMaxLength,
+		BlockIntervalTime: tomlParams.BlockInterval,
+		DefaultStake:      sdk.NewCoin(app.StakeDenom, sdk.NewInt(tomlParams.DefaultStake*app.Shanev)),
 	}
 }
 

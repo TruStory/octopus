@@ -110,9 +110,9 @@ type Settings struct {
 	MaxArgumentLength int      `json:"maxArgumentLength"`
 	MinSummaryLength  int      `json:"minSummaryLength"`
 	MaxSummaryLength  int      `json:"maxSummaryLength"`
-	MinCommentLength  int64    `json:"minCommentLength"`
-	MaxCommentLength  int64    `json:"maxCommentLength"`
-	BlockIntervalTime int64    `json:"blockIntervalTime"`
+	MinCommentLength  int      `json:"minCommentLength"`
+	MaxCommentLength  int      `json:"maxCommentLength"`
+	BlockIntervalTime int      `json:"blockIntervalTime"`
 	DefaultStake      sdk.Coin `json:"defaultStake"`
 }
 

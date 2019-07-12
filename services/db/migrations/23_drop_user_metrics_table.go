@@ -38,6 +38,11 @@ func init() {
 			deleted_at TIMESTAMP,
 			CONSTRAINT no_duplicate_metric UNIQUE(address, as_on_date, category_id)
 		)`)
+		if err != nil {
+			return err
+		}
+		fmt.Println("indexing address column on user_metrics table...")
+		_, err = db.Exec(`CREATE INDEX idx_address_on_user_metrics ON user_metrics(address)`)
 		return err
 	})
 }

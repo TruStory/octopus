@@ -77,6 +77,13 @@ type CommunityConfig struct {
 	InactiveCommunities []string `mapstructure:"inactive-communities"`
 }
 
+// ParamsConfig is the config for off-chain params
+type ParamsConfig struct {
+	CommentMinLength int `mapstructure:"comment-min-length"`
+	CommentMaxLength int `mapstructure:"comment-max-length"`
+	BlockInterval    int `mapstructure:"block-interval"`
+}
+
 // Config contains all the config variables for the API server
 type Config struct {
 	ChainID   string `mapstructure:"chain-id"`
@@ -90,6 +97,7 @@ type Config struct {
 	Twitter   TwitterConfig
 	Web       WebConfig
 	Community CommunityConfig
+	Params    ParamsConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

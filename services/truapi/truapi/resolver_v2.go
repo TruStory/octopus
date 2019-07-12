@@ -2,6 +2,7 @@ package truapi
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path"
 	"sort"
@@ -14,6 +15,7 @@ import (
 	"github.com/TruStory/truchain/x/bank"
 	"github.com/TruStory/truchain/x/claim"
 	"github.com/TruStory/truchain/x/community"
+	"github.com/TruStory/truchain/x/params"
 	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/julianshen/og"
@@ -280,8 +282,6 @@ func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community
 	sort.Slice(cs, func(i, j int) bool {
 		return (cs)[j].Name > (cs)[i].Name
 	})
-
-	fmt.Println("inactive", ta.APIContext.Config.Community.InactiveCommunities)
 
 	// exclude blacklisted communities
 	filteredCommunities := make([]community.Community, 0)
@@ -844,17 +844,52 @@ func (ta *TruAPI) sourceURLPreviewResolver(ctx context.Context, q claim.Claim) s
 	return sourceURLPreview
 }
 
-func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
+func (ta *TruAPI) settingsResolver(ctx context.Context) Settings {
+	res, err := ta.RunQuery("params", struct{}{})
+	if err != nil {
+		fmt.Println("paramsResolver err: ", err)
+		return Settings{}
+	}
+
+	params := new(params.Params)
+	err = json.Unmarshal(res, params)
+	if err != nil {
+		panic(err)
+	}
+
+	tomlParams := ta.APIContext.Config.Params
+	fmt.Println(params)
+
 	return Settings{
-		MinClaimLength:    25,
-		MaxClaimLength:    140,
-		MinArgumentLength: 25,
-		MaxArgumentLength: 1250,
-		MinSummaryLength:  25,
-		MaxSummaryLength:  140,
-		MinCommentLength:  5,
-		MaxCommentLength:  1000,
-		BlockIntervalTime: 5000,
+		// claim params
+		MinClaimLength: params.ClaimParams.MinClaimLength,
+		MaxClaimLength: params.ClaimParams.MaxClaimLength,
+
+		// staking params
+		Period:                   params.StakingParams.Period,
+		ArgumentCreationStake:    params.StakingParams.ArgumentCreationStake,
+		ArgumentBodyMaxLength:    params.StakingParams.ArgumentBodyMaxLength,
+		ArgumentBodyMinLength:    params.StakingParams.ArgumentBodyMinLength,
+		ArgumentSummaryMaxLength: params.StakingParams.ArgumentSummaryMaxLength,
+		ArgumentSummaryMinLength: params.StakingParams.ArgumentSummaryMinLength,
+		UpvoteStake:              params.StakingParams.UpvoteStake,
+		CreatorShare:             params.StakingParams.CreatorShare,
+		InterestRate:             params.StakingParams.InterestRate,
+		StakeLimitPercent:        params.StakingParams.StakeLimitPercent,
+		StakeLimitDays:           params.StakingParams.StakeLimitDays,
+		UnjailUpvotes:            params.StakingParams.UnjailUpvotes,
+		MaxArgumentsPerClaim:     params.StakingParams.MaxArgumentsPerClaim,
+
+		// off-chain params
+		MinCommentLength:  tomlParams.CommentMinLength,
+		MaxCommentLength:  tomlParams.CommentMaxLength,
+		BlockIntervalTime: tomlParams.BlockInterval,
+
+		// deprecated
+		MinArgumentLength: params.StakingParams.ArgumentBodyMinLength,
+		MaxArgumentLength: params.StakingParams.ArgumentBodyMaxLength,
+		MinSummaryLength:  params.StakingParams.ArgumentSummaryMinLength,
+		MaxSummaryLength:  params.StakingParams.ArgumentSummaryMaxLength,
 		DefaultStake:      sdk.NewCoin(app.StakeDenom, sdk.NewInt(30*app.Shanev)),
 	}
 }

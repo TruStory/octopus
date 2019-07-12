@@ -43,6 +43,8 @@ github.com/TruStory/truchain v0.1.26-0.20190708220024-669c3c4ca6c5 h1:K3z0n5aWS/
 github.com/TruStory/truchain v0.1.26-0.20190708220024-669c3c4ca6c5/go.mod h1:YSTMj9qNagkV2bFfkGLUwpblUF1+A0Hmbh6AqugZ94s=
 github.com/TruStory/truchain v0.1.26-0.20190710180305-c9b0a8c93401 h1:0Rfu5Ownxui6dXk1NnT/hJC69T/XI/FbfgSptyYQr9k=
 github.com/TruStory/truchain v0.1.26-0.20190710180305-c9b0a8c93401/go.mod h1:YSTMj9qNagkV2bFfkGLUwpblUF1+A0Hmbh6AqugZ94s=
+github.com/TruStory/truchain v0.1.26-0.20190712182517-db6bdcec1392 h1:cMdrhLzCZZGf+Q3PAfHtaFSb9Kb0LOqxJrFe79j1amY=
+github.com/TruStory/truchain v0.1.26-0.20190712182517-db6bdcec1392/go.mod h1:uxzW8duchiR3talPdYWpBZ6vnl/JMdP9EdIwceGQYtg=
 github.com/VividCortex/gohistogram v1.0.0 h1:6+hBz+qvs0JOrrNhhmR7lFxo5sINxBCGXrdtl/UvroE=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=

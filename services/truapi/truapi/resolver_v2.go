@@ -136,7 +136,7 @@ func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *App
 		Coins:         aa.GetCoins(),
 		Sequence:      aa.GetSequence(),
 		Pubkey:        tcmn.HexBytes(pubKey),
-		SlashCount:    aa.SlashCount,
+		SlashCount:    uint(aa.SlashCount),
 		IsJailed:      aa.IsJailed,
 		JailEndTime:   aa.JailEndTime,
 		CreatedTime:   aa.CreatedTime,

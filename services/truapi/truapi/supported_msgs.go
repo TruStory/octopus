@@ -20,4 +20,5 @@ var supported = chttp.MsgTypes{
 	"MsgCreateClaim":           claim.MsgCreateClaim{},
 	"MsgSubmitArgument":        staking.MsgSubmitArgument{},
 	"MsgSubmitUpvote":          staking.MsgSubmitUpvote{},
+	"MsgEditArgument":          staking.MsgEditArgument{},
 }

@@ -121,7 +121,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/invite", WithUser(apiCtx, WrapHandler(ta.HandleInvite)))
 	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
-	api.HandleFunc("/metrics", ta.HandleMetrics)
+	api.HandleFunc("/metrics/users", ta.HandleUsersMetrics)
 	api.Handle("/track/", WithUser(apiCtx, http.HandlerFunc(ta.HandleTrackEvent)))
 	api.Handle("/claim_of_the_day", WithUser(apiCtx, WrapHandler(ta.HandleClaimOfTheDayID)))
 	api.HandleFunc("/spotlight", ta.HandleSpotlight)
@@ -465,14 +465,6 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 	})
 
-	ta.GraphQLClient.RegisterQueryResolver("userMetrics", ta.userMetricsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("UserMetrics", db.UserMetric{}, map[string]interface{}{
-		"asOnDate": func(_ context.Context, q db.UserMetric) string { return q.AsOnDate.Format("2006-01-02") },
-		"category": func(ctx context.Context, q db.UserMetric) category.Category {
-			return ta.categoryResolver(ctx, category.QueryCategoryByIDParams{ID: q.CategoryID})
-		},
-	})
-
 	ta.GraphQLClient.RegisterQueryResolver("appAccountCommunityEarnings", ta.appAccountCommunityEarningsResolver)
 	ta.GraphQLClient.RegisterObjectResolver("AppAccountCommunityEarnings", appAccountCommunityEarning{}, map[string]interface{}{
 		"id": func(_ context.Context, q appAccountCommunityEarning) string { return q.CommunityID },
@@ -584,6 +576,8 @@ func (ta *TruAPI) RegisterResolvers() {
 		"claimId":     func(_ context.Context, q staking.Argument) uint64 { return q.ClaimID },
 		"vote":        func(_ context.Context, q staking.Argument) bool { return q.StakeType == staking.StakeBacking },
 		"createdTime": func(_ context.Context, q staking.Argument) string { return q.CreatedTime.String() },
+		"editedTime": func(_ context.Context, q staking.Argument) string { return q.EditedTime.String() },
+		"edited":        func(_ context.Context, q staking.Argument) bool { return q.Edited },
 		"creator": func(ctx context.Context, q staking.Argument) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},

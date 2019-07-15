@@ -103,9 +103,6 @@ type appAccountEarnings struct {
 	DataPoints  []appAccountEarning `json:"data_points"`
 }
 
-// the communities need to be curated better before they are made public
-var communityBlacklist = []string{"cosmos", "sports", "tech", "entertainment"}
-
 func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *AppAccount {
 	address, err := sdk.AccAddressFromBech32(q.ID)
 	if err != nil {
@@ -284,10 +281,12 @@ func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community
 		return (cs)[j].Name > (cs)[i].Name
 	})
 
+	fmt.Println("inactive", ta.APIContext.Config.Community.InactiveCommunities)
+
 	// exclude blacklisted communities
 	filteredCommunities := make([]community.Community, 0)
 	for _, c := range cs {
-		if !contains(communityBlacklist, c.ID) {
+		if !contains(ta.APIContext.Config.Community.InactiveCommunities, c.ID) {
 			filteredCommunities = append(filteredCommunities, c)
 		}
 	}
@@ -339,7 +338,9 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFee
 		panic(err)
 	}
 
-	unflaggedClaims, err := ta.filterFlaggedClaims(claims)
+	claimsWithoutClaimOfTheDay := ta.removeClaimOfTheDay(claims, q.CommunityID)
+
+	unflaggedClaims, err := ta.filterFlaggedClaims(claimsWithoutClaimOfTheDay)
 	if err != nil {
 		fmt.Println("filterFlaggedClaims err: ", err)
 		panic(err)
@@ -375,7 +376,28 @@ func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunityI
 	}
 
 	claim := ta.claimResolver(ctx, queryByClaimID{ID: uint64(claimOfTheDayID)})
+
+	if claim.ID == 0 {
+		return nil
+	}
+
 	return &claim
+}
+
+func (ta *TruAPI) removeClaimOfTheDay(claims []claim.Claim, communityID string) []claim.Claim {
+	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunityID(communityID)
+	if err != nil {
+		return claims
+	}
+
+	claimsWithoutClaimOfTheDay := make([]claim.Claim, 0)
+	for _, claim := range claims {
+		if claim.ID != uint64(claimOfTheDayID) {
+			claimsWithoutClaimOfTheDay = append(claimsWithoutClaimOfTheDay, claim)
+		}
+	}
+
+	return claimsWithoutClaimOfTheDay
 }
 
 func (ta *TruAPI) filterFlaggedClaims(claims []claim.Claim) ([]claim.Claim, error) {
@@ -591,7 +613,13 @@ func (ta *TruAPI) appAccountClaimsCreatedResolver(ctx context.Context, q queryBy
 		return []claim.Claim{}
 	}
 
-	return claimsCreated
+	unflaggedClaims, err := ta.filterFlaggedClaims(claimsCreated)
+	if err != nil {
+		fmt.Println("filterFlaggedClaims err: ", err)
+		panic(err)
+	}
+
+	return unflaggedClaims
 }
 
 func (ta *TruAPI) appAccountArgumentsResolver(ctx context.Context, q queryByAddress) []staking.Argument {
@@ -649,7 +677,13 @@ func (ta *TruAPI) appAccountClaimsWithArgumentsResolver(ctx context.Context, q q
 		return []claim.Claim{}
 	}
 
-	return claimsWithArgument
+	unflaggedClaims, err := ta.filterFlaggedClaims(claimsWithArgument)
+	if err != nil {
+		fmt.Println("filterFlaggedClaims err: ", err)
+		panic(err)
+	}
+
+	return unflaggedClaims
 }
 
 func (ta *TruAPI) appAccountClaimsWithAgreesResolver(ctx context.Context, q queryByAddress) []claim.Claim {
@@ -687,7 +721,13 @@ func (ta *TruAPI) appAccountClaimsWithAgreesResolver(ctx context.Context, q quer
 		return []claim.Claim{}
 	}
 
-	return claimsWithAgrees
+	unflaggedClaims, err := ta.filterFlaggedClaims(claimsWithAgrees)
+	if err != nil {
+		fmt.Println("filterFlaggedClaims err: ", err)
+		panic(err)
+	}
+
+	return unflaggedClaims
 }
 
 func (ta *TruAPI) agreesResolver(ctx context.Context, q queryByAddress) []staking.Stake {

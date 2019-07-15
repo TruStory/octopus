@@ -80,6 +80,11 @@ type ParamsConfig struct {
 	DefaultStake     int64 `mapstructure:"default-stake"`
 }
 
+// CommunityConfig is the config for the community
+type CommunityConfig struct {
+	InactiveCommunities []string `mapstructure:"inactive-communities"`
+}
+
 // Config contains all the config variables for the API server
 type Config struct {
 	ChainID   string `mapstructure:"chain-id"`
@@ -93,6 +98,7 @@ type Config struct {
 	Twitter   TwitterConfig
 	Web       WebConfig
 	Params    ParamsConfig
+	Community CommunityConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

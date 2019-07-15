@@ -289,7 +289,7 @@ func makeClaimArgumentMetaTags(ta *TruAPI, route string, claimID uint64, argumen
 		return nil, err
 	}
 	return &Tags{
-		Title:       fmt.Sprintf("%s made an argument", creatorObj.FullName),
+		Title:       fmt.Sprintf("%s made an argument", "@"+creatorObj.Username),
 		Description: html.EscapeString(stripmd.Strip(argumentObj.Summary)),
 		Image:       fmt.Sprintf("%s/api/v1/spotlight?argument_id=%v", ta.APIContext.Config.App.URL, argumentID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
@@ -336,7 +336,7 @@ func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, argument
 		return nil, err
 	}
 	return &Tags{
-		Title:       fmt.Sprintf("%s posted a comment", creatorObj.FullName),
+		Title:       fmt.Sprintf("%s posted a comment", "@"+creatorObj.Username),
 		Description: html.EscapeString(stripmd.Strip(commentObj.Body)),
 		Image:       fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v&comment_id=%v", ta.APIContext.Config.App.URL, claimID, commentID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),

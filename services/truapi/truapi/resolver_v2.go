@@ -376,6 +376,11 @@ func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunityI
 	}
 
 	claim := ta.claimResolver(ctx, queryByClaimID{ID: uint64(claimOfTheDayID)})
+
+	if claim.ID == 0 {
+		return nil
+	}
+
 	return &claim
 }
 

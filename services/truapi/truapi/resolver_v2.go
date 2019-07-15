@@ -338,7 +338,9 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFee
 		panic(err)
 	}
 
-	unflaggedClaims, err := ta.filterFlaggedClaims(claims)
+	claimsWithoutClaimOfTheDay := ta.removeClaimOfTheDay(claims, q.CommunityID)
+
+	unflaggedClaims, err := ta.filterFlaggedClaims(claimsWithoutClaimOfTheDay)
 	if err != nil {
 		fmt.Println("filterFlaggedClaims err: ", err)
 		panic(err)
@@ -375,6 +377,22 @@ func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunityI
 
 	claim := ta.claimResolver(ctx, queryByClaimID{ID: uint64(claimOfTheDayID)})
 	return &claim
+}
+
+func (ta *TruAPI) removeClaimOfTheDay(claims []claim.Claim, communityID string) []claim.Claim {
+	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunityID(communityID)
+	if err != nil {
+		return claims
+	}
+
+	claimsWithoutClaimOfTheDay := make([]claim.Claim, 0)
+	for _, claim := range claims {
+		if claim.ID != uint64(claimOfTheDayID) {
+			claimsWithoutClaimOfTheDay = append(claimsWithoutClaimOfTheDay, claim)
+		}
+	}
+
+	return claimsWithoutClaimOfTheDay
 }
 
 func (ta *TruAPI) filterFlaggedClaims(claims []claim.Claim) ([]claim.Claim, error) {

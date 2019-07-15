@@ -214,7 +214,7 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 		exported.TransactionInterestUpvoteReceived,
 		exported.TransactionInterestUpvoteGiven,
 	}
-	// w.Header().Add("Content-Type", "text/csv")
+	w.Header().Add("Content-Type", "text/csv")
 	csvw := csv.NewWriter(w)
 	header := []string{"job_date_time", "date", "address", "username", "balance",
 		"community", "community_name", "stake_earned",

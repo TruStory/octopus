@@ -33,7 +33,7 @@ type UserCommunityMetrics struct {
 	ClaimsOpened            int64
 	UniqueClaimsOpened      int64
 	EarnedCoin              sdk.Coin
-	AtStake                 sdk.Coin
+	PendingStake            sdk.Coin
 }
 
 type UserMetrics struct {
@@ -67,7 +67,7 @@ func (m *Metrics) getUserCommunityMetric(address, communityID string) *UserCommu
 			StakeSlashed:            sdk.NewInt64Coin(app.StakeDenom, 0),
 			EarnedCoin:              sdk.NewInt64Coin(app.StakeDenom, 0),
 			Staked:                  sdk.NewInt64Coin(app.StakeDenom, 0),
-			AtStake:                 sdk.NewInt64Coin(app.StakeDenom, 0),
+			PendingStake:            sdk.NewInt64Coin(app.StakeDenom, 0),
 		}
 		userMetrics.CommunityMetrics[communityID] = ucm
 	}
@@ -177,9 +177,12 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 		stakes := ta.claimStakesResolver(r.Context(), claim)
 		for _, stake := range stakes {
+			if !stake.CreatedTime.Before(beforeDate) {
+				continue
+			}
 			scm := chainMetrics.getUserCommunityMetric(stake.Creator.String(), claim.CommunityID)
 			if !stake.Expired {
-				scm.AtStake = scm.AtStake.Add(stake.Amount)
+				scm.PendingStake = scm.PendingStake.Add(stake.Amount)
 			}
 			if stake.Type == staking.StakeUpvote {
 				chainMetrics.getUserCommunityMetric(argumentIDCreator[stake.ArgumentID], stake.CommunityID).AgreesReceived++
@@ -211,14 +214,14 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 		exported.TransactionInterestUpvoteReceived,
 		exported.TransactionInterestUpvoteGiven,
 	}
-	w.Header().Add("Content-Type", "text/csv")
+	// w.Header().Add("Content-Type", "text/csv")
 	csvw := csv.NewWriter(w)
-	header := []string{"job_time", "address", "username", "balance",
+	header := []string{"job_date_time", "date", "address", "username", "balance",
 		"community", "community_name", "stake_earned",
 		"claims_created", "claims_opened", "unique_claims_opened",
 		"arguments_created", "agrees_received", "agrees_given",
-		"interest_argument_creation", "interest_agree_received", "interest_agree_given", "curator_reward",
-		"interest_slashed", "stake_slashed", "at_stake",
+		"interest_argument_creation", "interest_agree_received", "interest_agree_given", "reward_not_helpful",
+		"interest_slashed", "stake_slashed", "pending_stake",
 	}
 	err = csvw.Write(header)
 	if err != nil {
@@ -267,8 +270,8 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 			}
 
 		}
-		// "job_time", "address", "username", "balance"
-		rowStart := []string{jobTime, user.Address, user.Username, balance.Amount.String()}
+		// "job_time", "date", "address", "username", "balance"
+		rowStart := []string{jobTime, beforeDate.Format(time.RFC3339Nano), user.Address, user.Username, balance.Amount.String()}
 		earnedCoins, err := ta.getEarnedCoins(user.Address)
 		if err != nil {
 			render.Error(w, r, err.Error(), http.StatusInternalServerError)
@@ -289,7 +292,7 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 			record = append(record, fmt.Sprintf("%d", m.Arguments))
 			record = append(record, fmt.Sprintf("%d", m.AgreesReceived))
 			record = append(record, fmt.Sprintf("%d", m.AgreesGiven))
-			// "interest_argument_creation", "interest_agree_received", "interest_agree_given", "curator_reward",
+			// "interest_argument_creation", "interest_agree_received", "interest_agree_given", "reward_not_helpful",
 			record = append(record, m.InterestArgumentCreated.Amount.String())
 			record = append(record, m.InterestAgreeReceived.Amount.String())
 			record = append(record, m.InterestAgreeGiven.Amount.String())
@@ -297,7 +300,7 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 			// "interest_slashed", "stake_slashed", "at_stake"
 			record = append(record, fmt.Sprintf("%d", 0))
 			record = append(record, fmt.Sprintf("%d", 0))
-			record = append(record, m.AtStake.Amount.String())
+			record = append(record, m.PendingStake.Amount.String())
 			err = csvw.Write(record)
 			if err != nil {
 				render.Error(w, r, err.Error(), http.StatusInternalServerError)

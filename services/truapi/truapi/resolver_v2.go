@@ -590,7 +590,13 @@ func (ta *TruAPI) appAccountClaimsCreatedResolver(ctx context.Context, q queryBy
 		return []claim.Claim{}
 	}
 
-	return claimsCreated
+	unflaggedClaims, err := ta.filterFlaggedClaims(claimsCreated)
+	if err != nil {
+		fmt.Println("filterFlaggedClaims err: ", err)
+		panic(err)
+	}
+
+	return unflaggedClaims
 }
 
 func (ta *TruAPI) appAccountArgumentsResolver(ctx context.Context, q queryByAddress) []staking.Argument {
@@ -648,7 +654,13 @@ func (ta *TruAPI) appAccountClaimsWithArgumentsResolver(ctx context.Context, q q
 		return []claim.Claim{}
 	}
 
-	return claimsWithArgument
+	unflaggedClaims, err := ta.filterFlaggedClaims(claimsWithArgument)
+	if err != nil {
+		fmt.Println("filterFlaggedClaims err: ", err)
+		panic(err)
+	}
+
+	return unflaggedClaims
 }
 
 func (ta *TruAPI) appAccountClaimsWithAgreesResolver(ctx context.Context, q queryByAddress) []claim.Claim {
@@ -686,7 +698,13 @@ func (ta *TruAPI) appAccountClaimsWithAgreesResolver(ctx context.Context, q quer
 		return []claim.Claim{}
 	}
 
-	return claimsWithAgrees
+	unflaggedClaims, err := ta.filterFlaggedClaims(claimsWithAgrees)
+	if err != nil {
+		fmt.Println("filterFlaggedClaims err: ", err)
+		panic(err)
+	}
+
+	return unflaggedClaims
 }
 
 func (ta *TruAPI) agreesResolver(ctx context.Context, q queryByAddress) []staking.Stake {

@@ -218,7 +218,7 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 		"claims_created", "claims_opened", "unique_claims_opened",
 		"arguments_created", "agrees_received", "agrees_given",
 		"interest_argument_creation", "interest_agree_received", "interest_agree_given", "curator_reward",
-		"interest_slashed", "stake_slashed",
+		"interest_slashed", "stake_slashed", "at_stake",
 	}
 	err = csvw.Write(header)
 	if err != nil {
@@ -294,9 +294,10 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 			record = append(record, m.InterestAgreeReceived.Amount.String())
 			record = append(record, m.InterestAgreeGiven.Amount.String())
 			record = append(record, fmt.Sprintf("%d", 0))
-			// "interest_slashed", "stake_slashed"
+			// "interest_slashed", "stake_slashed", "at_stake"
 			record = append(record, fmt.Sprintf("%d", 0))
 			record = append(record, fmt.Sprintf("%d", 0))
+			record = append(record, m.AtStake.Amount.String())
 			err = csvw.Write(record)
 			if err != nil {
 				render.Error(w, r, err.Error(), http.StatusInternalServerError)

@@ -54,7 +54,7 @@ func (c *Client) mapAddressesToProfileURLs(body string, profileURLPrefix string)
 
 // extract @mentions from text and return as slice
 func parseMentions(body string) []string {
-	terminators := []rune(" \n\r.,():!?")
+	terminators := []rune(" \n\r.,():!?'\"")
 	return mention.GetTagsAsUniqueStrings('@', body, terminators...)
 }
 

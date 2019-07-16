@@ -243,6 +243,7 @@ func (a *API) Query(path string, params interface{}, cdc *codec.Codec) ([]byte, 
 	}
 	res, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
 	if err != nil {
+		fmt.Println("ERROR ERROR: ", err)
 		return res, err
 	}
 

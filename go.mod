@@ -6,12 +6,11 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
-	github.com/TruStory/truchain v0.1.26-0.20190712182517-db6bdcec1392
+	github.com/TruStory/truchain v0.1.26-0.20190715203947-1a18b28ddf4e
 	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32
-	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
@@ -19,10 +18,9 @@ require (
 	github.com/corpix/uarand v0.1.0 // indirect
 	github.com/cosmos/cosmos-sdk v0.28.2-0.20190601143109-dcdabc7e6e20
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d // indirect
-	github.com/dghubble/go-twitter v0.0.0-20190512073027-53f972dc4b06
+	github.com/dghubble/go-twitter v0.0.0-20190711044719-dc9b50841e5b
 	github.com/dghubble/gologin v2.1.0+incompatible
-	github.com/dghubble/oauth1 v0.5.0
-	github.com/dghubble/sling v1.2.0 // indirect
+	github.com/dghubble/oauth1 v0.6.0
 	github.com/gernest/mention v2.0.0+incompatible
 	github.com/go-kit/kit v0.9.0 // indirect
 	github.com/go-pg/migrations v6.7.3+incompatible
@@ -31,7 +29,6 @@ require (
 	github.com/gobuffalo/packr/v2 v2.5.2
 	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
-	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/securecookie v1.1.1
@@ -92,3 +89,5 @@ require (
 replace golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
 
 replace github.com/appleboy/gorush => github.com/jhernandezb/gorush v1.11.2-0.20190607192845-ca316b6313df
+
+replace github.com/TruStory/truchain => /Users/mohit/Code/TruStory/truchain

@@ -14,6 +14,7 @@ import (
 	"github.com/TruStory/truchain/x/bank"
 	"github.com/TruStory/truchain/x/claim"
 	"github.com/TruStory/truchain/x/community"
+	"github.com/TruStory/truchain/x/params"
 	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/julianshen/og"
@@ -136,7 +137,7 @@ func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *App
 		Coins:         aa.GetCoins(),
 		Sequence:      aa.GetSequence(),
 		Pubkey:        tcmn.HexBytes(pubKey),
-		SlashCount:    aa.SlashCount,
+		SlashCount:    uint(aa.SlashCount),
 		IsJailed:      aa.IsJailed,
 		JailEndTime:   aa.JailEndTime,
 		CreatedTime:   aa.CreatedTime,
@@ -883,6 +884,23 @@ func (ta *TruAPI) sourceURLPreviewResolver(ctx context.Context, q claim.Claim) s
 	})
 
 	return sourceURLPreview
+}
+
+func (ta *TruAPI) paramsV2Resolver(ctx context.Context) *params.Params {
+	queryRoute := path.Join(params.QuerierRoute, params.QueryPath)
+	paramsBytes, err := ta.Query(queryRoute, struct{}{}, params.ModuleCodec)
+	if err != nil {
+		panic(err)
+	}
+
+	paramsObj := new(params.Params)
+	err = params.ModuleCodec.UnmarshalJSON(paramsBytes, paramsObj)
+	if err != nil {
+		fmt.Println("Params UnmarshalJSON err: ", err)
+		return nil
+	}
+
+	return paramsObj
 }
 
 func (ta *TruAPI) settingsResolver(ctx context.Context) Settings {

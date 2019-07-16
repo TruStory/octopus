@@ -368,21 +368,7 @@ func (ta *TruAPI) RegisterResolvers() {
 
 	ta.GraphQLClient.RegisterQueryResolver("params", ta.paramsResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Params", params.Params{}, map[string]interface{}{
-		"interestRate":     func(_ context.Context, p params.Params) string { return p.StakeParams.InterestRate.String() },
-		"maxStakeAmount":   func(_ context.Context, p params.Params) string { return p.StakeParams.MaxAmount.Amount.String() },
-		"stakeToCredRatio": func(_ context.Context, p params.Params) string { return p.StakeParams.StakeToCredRatio.String() },
-
-		"minArgumentLength": func(_ context.Context, p params.Params) int { return p.ArgumentParams.MinArgumentLength },
-		"maxArgumentLength": func(_ context.Context, p params.Params) int { return p.ArgumentParams.MaxArgumentLength },
-
-		"storyExpireDuration": func(_ context.Context, p params.Params) string {
-			return fmt.Sprintf("%d", p.StoryParams.ExpireDuration)
-		},
-		"claimMinLength": func(_ context.Context, p params.Params) int { return p.StoryParams.MinStoryLength },
-		"claimMaxLength": func(_ context.Context, p params.Params) int { return p.StoryParams.MaxStoryLength },
-
-		"challengeMinStake": func(_ context.Context, p params.Params) string { return p.ChallengeParams.MinChallengeStake.String() },
-		"stakeDenom":        func(_ context.Context, _ params.Params) string { return app.StakeDenom },
+		"stakeDenom": func(_ context.Context, _ params.Params) string { return app.StakeDenom },
 
 		// Deprecated
 		"amountWeight":    func(_ context.Context, p params.Params) string { return "0" },
@@ -576,8 +562,8 @@ func (ta *TruAPI) RegisterResolvers() {
 		"claimId":     func(_ context.Context, q staking.Argument) uint64 { return q.ClaimID },
 		"vote":        func(_ context.Context, q staking.Argument) bool { return q.StakeType == staking.StakeBacking },
 		"createdTime": func(_ context.Context, q staking.Argument) string { return q.CreatedTime.String() },
-		"editedTime": func(_ context.Context, q staking.Argument) string { return q.EditedTime.String() },
-		"edited":        func(_ context.Context, q staking.Argument) bool { return q.Edited },
+		"editedTime":  func(_ context.Context, q staking.Argument) string { return q.EditedTime.String() },
+		"edited":      func(_ context.Context, q staking.Argument) bool { return q.Edited },
 		"creator": func(ctx context.Context, q staking.Argument) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},

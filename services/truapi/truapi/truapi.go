@@ -127,6 +127,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/metrics/users", ta.HandleUsersMetrics)
 	api.Handle("/track/", WithUser(apiCtx, http.HandlerFunc(ta.HandleTrackEvent)))
 	api.Handle("/claim_of_the_day", WithUser(apiCtx, WrapHandler(ta.HandleClaimOfTheDayID)))
+	api.Handle("/claim/image", WithUser(apiCtx, WrapHandler(ta.HandleClaimImage)))
 	api.HandleFunc("/spotlight", ta.HandleSpotlight)
 
 	if apiCtx.Config.App.MockRegistration {
@@ -536,8 +537,8 @@ func (ta *TruAPI) RegisterResolvers() {
 		"community": func(ctx context.Context, q claim.Claim) *community.Community {
 			return ta.communityResolver(ctx, queryByCommunityID{CommunityID: q.CommunityID})
 		},
-		"source":           func(ctx context.Context, q claim.Claim) string { return q.Source.String() },
-		"sourceUrlPreview": ta.sourceURLPreviewResolver,
+		"source": func(ctx context.Context, q claim.Claim) string { return q.Source.String() },
+		"image":  ta.claimImageResolver,
 		"argumentCount": func(ctx context.Context, q claim.Claim) int {
 			return len(ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID}))
 		},
@@ -555,7 +556,8 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 
 		// deprecated
-		"sourceImage": ta.sourceURLPreviewResolver,
+		"sourceUrlPreview": ta.claimImageResolver,
+		"sourceImage":      ta.claimImageResolver,
 	})
 	ta.GraphQLClient.RegisterQueryResolver("claim", ta.claimResolver)
 	ta.GraphQLClient.RegisterQueryResolver("claimOfTheDay", ta.claimOfTheDayResolver)

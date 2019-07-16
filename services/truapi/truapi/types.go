@@ -128,11 +128,10 @@ type Settings struct {
 	MaxArgumentsPerClaim     int           `json:"MaxArgumentsPerClaim"`
 
 	// slashing params
-	MinSlashCount  int              `json:"min_slash_count"`
-	SlashMagnitude int              `json:"slash_magnitude"`
-	SlashMinStake  sdk.Coin         `json:"slash_min_stake"`
-	SlashAdmins    []sdk.AccAddress `json:"slash_admins"`
-	CuratorShare   sdk.Dec          `json:"curator_share"`
+	MinSlashCount  int      `json:"min_slash_count"`
+	SlashMagnitude int      `json:"slash_magnitude"`
+	SlashMinStake  sdk.Coin `json:"slash_min_stake"`
+	CuratorShare   sdk.Dec  `json:"curator_share"`
 
 	// off-chain params
 	MinCommentLength  int `json:"minCommentLength"`

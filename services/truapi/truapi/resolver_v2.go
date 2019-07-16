@@ -2,7 +2,6 @@ package truapi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"path"
 	"sort"
@@ -903,17 +902,7 @@ func (ta *TruAPI) paramsV2Resolver(ctx context.Context) *params.Params {
 }
 
 func (ta *TruAPI) settingsResolver(ctx context.Context) Settings {
-	res, err := ta.RunQuery("params", struct{}{})
-	if err != nil {
-		fmt.Println("paramsResolver err: ", err)
-		return Settings{}
-	}
-
-	params := new(params.Params)
-	err = json.Unmarshal(res, params)
-	if err != nil {
-		panic(err)
-	}
+	params := ta.paramsV2Resolver(ctx)
 
 	tomlParams := ta.APIContext.Config.Params
 

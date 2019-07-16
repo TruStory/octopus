@@ -60,6 +60,7 @@ type queryClaimArgumentParams struct {
 type queryByCommunityIDAndFeedFilter struct {
 	CommunityID string     `graphql:"communityId,optional"`
 	FeedFilter  FeedFilter `graphql:"feedFilter,optional"`
+	IsSearch    bool       `graphql:"isSearch,optional"`
 }
 
 // claimMetricsBest represents all-time claim metrics
@@ -336,9 +337,11 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFee
 		panic(err)
 	}
 
-	claimsWithoutClaimOfTheDay := ta.removeClaimOfTheDay(claims, q.CommunityID)
+	if !q.IsSearch {
+		claims = ta.removeClaimOfTheDay(claims, q.CommunityID)
+	}
 
-	unflaggedClaims, err := ta.filterFlaggedClaims(claimsWithoutClaimOfTheDay)
+	unflaggedClaims, err := ta.filterFlaggedClaims(claims)
 	if err != nil {
 		fmt.Println("filterFlaggedClaims err: ", err)
 		panic(err)

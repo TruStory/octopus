@@ -281,8 +281,6 @@ func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community
 		return (cs)[j].Name > (cs)[i].Name
 	})
 
-	fmt.Println("inactive", ta.APIContext.Config.Community.InactiveCommunities)
-
 	// exclude blacklisted communities
 	filteredCommunities := make([]community.Community, 0)
 	for _, c := range cs {

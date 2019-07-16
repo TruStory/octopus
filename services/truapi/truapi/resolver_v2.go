@@ -795,6 +795,13 @@ func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Trans
 			Title:       TransactionTypeTitle[t.Type],
 			Body:        "",
 		}
+	case bank.TransactionGiftPayout:
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceNone,
+			Title:       TransactionTypeTitle[t.Type],
+			Body:        "",
+		}
 	case bank.TransactionRewardPayout:
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,

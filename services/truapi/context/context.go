@@ -72,14 +72,6 @@ type WebConfig struct {
 	AuthNotWhitelistedRedir string `mapstructure:"auth-not-whitelisted-redir"`
 }
 
-// ParamsConfig is the config for the miscellaneous params
-type ParamsConfig struct {
-	CommentMinLength int   `mapstructure:"comment-min-length"`
-	CommentMaxLength int   `mapstructure:"comment-max-length"`
-	BlockInterval    int   `mapstructure:"block-interval"`
-	DefaultStake     int64 `mapstructure:"default-stake"`
-}
-
 // CommunityConfig is the config for the community
 type CommunityConfig struct {
 	InactiveCommunities []string `mapstructure:"inactive-communities"`
@@ -106,7 +98,6 @@ type Config struct {
 	Web       WebConfig
 	Params    ParamsConfig
 	Community CommunityConfig
-	Params    ParamsConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

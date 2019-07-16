@@ -104,15 +104,46 @@ type Slash struct {
 
 // Settings contains application specific settings
 type Settings struct {
-	MinClaimLength    int      `json:"minClaimLength"`
-	MaxClaimLength    int      `json:"maxClaimLength"`
+	// account params
+	JailDuration  time.Duration `json:"jail_duration"`
+	MaxSlashCount int           `json:"max_slash_count"`
+
+	// claim params
+	MinClaimLength int `json:"minClaimLength"`
+	MaxClaimLength int `json:"maxClaimLength"`
+
+	// staking params
+	Period                   time.Duration `json:"period"`
+	ArgumentCreationStake    sdk.Coin      `json:"ArgumentCreationStake"`
+	ArgumentBodyMaxLength    int           `json:"ArgumentBodyMaxLength"`
+	ArgumentBodyMinLength    int           `json:"ArgumentBodyMinLength"`
+	ArgumentSummaryMaxLength int           `json:"ArgumentSummaryMaxLength"`
+	ArgumentSummaryMinLength int           `json:"ArgumentSummaryMinLength"`
+	UpvoteStake              sdk.Coin      `json:"UpvoteStake"`
+	CreatorShare             sdk.Dec       `json:"CreatorShare"`
+	InterestRate             sdk.Dec       `json:"InterestRate"`
+	StakeLimitPercent        sdk.Dec       `json:"StakeLimitPercent"`
+	StakeLimitDays           time.Duration `json:"StakeLimitDays"`
+	UnjailUpvotes            int           `json:"UnjailUpvotes"`
+	MaxArgumentsPerClaim     int           `json:"MaxArgumentsPerClaim"`
+
+	// slashing params
+	MinSlashCount  int              `json:"min_slash_count"`
+	SlashMagnitude int              `json:"slash_magnitude"`
+	SlashMinStake  sdk.Coin         `json:"slash_min_stake"`
+	SlashAdmins    []sdk.AccAddress `json:"slash_admins"`
+	CuratorShare   sdk.Dec          `json:"curator_share"`
+
+	// off-chain params
+	MinCommentLength  int `json:"minCommentLength"`
+	MaxCommentLength  int `json:"maxCommentLength"`
+	BlockIntervalTime int `json:"blockIntervalTime"`
+
+	// deprecated
 	MinArgumentLength int      `json:"minArgumentLength"`
 	MaxArgumentLength int      `json:"maxArgumentLength"`
 	MinSummaryLength  int      `json:"minSummaryLength"`
 	MaxSummaryLength  int      `json:"maxSummaryLength"`
-	MinCommentLength  int      `json:"minCommentLength"`
-	MaxCommentLength  int      `json:"maxCommentLength"`
-	BlockIntervalTime int      `json:"blockIntervalTime"`
 	DefaultStake      sdk.Coin `json:"defaultStake"`
 }
 

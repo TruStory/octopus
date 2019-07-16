@@ -86,6 +86,7 @@ var TransactionTypeTitle = []string{
 	bank.TransactionInterestUpvoteReceived:   "Reward: Agree received from %s",
 	bank.TransactionInterestUpvoteGiven:      "Reward: Agreed with %s",
 	bank.TransactionRewardPayout:             "Reward: Invite a friend",
+	bank.TransactionGiftPayout:               "Gift",
 }
 
 // CommunityIconImage contains regular and active icon images

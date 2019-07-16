@@ -100,6 +100,9 @@ func WithUser(apiCtx truCtx.TruAPIContext, h http.Handler) http.Handler {
 
 // RegisterRoutes applies the TruStory API routes to the `chttp.API` router
 func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
+	sessionHandler := cookies.AnonymousSessionHandler(ta.APIContext)
+	ta.Use(sessionHandler)
+
 	api := ta.Subrouter("/api/v1")
 
 	// Enable gzip compression
@@ -576,8 +579,8 @@ func (ta *TruAPI) RegisterResolvers() {
 		"claimId":     func(_ context.Context, q staking.Argument) uint64 { return q.ClaimID },
 		"vote":        func(_ context.Context, q staking.Argument) bool { return q.StakeType == staking.StakeBacking },
 		"createdTime": func(_ context.Context, q staking.Argument) string { return q.CreatedTime.String() },
-		"editedTime": func(_ context.Context, q staking.Argument) string { return q.EditedTime.String() },
-		"edited":        func(_ context.Context, q staking.Argument) bool { return q.Edited },
+		"editedTime":  func(_ context.Context, q staking.Argument) string { return q.EditedTime.String() },
+		"edited":      func(_ context.Context, q staking.Argument) bool { return q.Edited },
 		"creator": func(ctx context.Context, q staking.Argument) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},

@@ -14,6 +14,8 @@ type TrackEvent struct {
 	TwitterProfileID int64
 	Event            string
 	Meta             TrackEventMeta
+	SessionID        string
+	IsAnonymous      bool
 	Timestamps
 }
 

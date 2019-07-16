@@ -28,10 +28,6 @@ const (
 	AuthenticationExpiry int64 = 72 // in hours
 )
 
-// Create a Version 4 UUID, panicking on error.
-// Use this form to initialize package-level variables.
-var u1 = uuid.Must(uuid.NewV4())
-
 // AuthenticatedUser denotes the data structure of the data inside the encrypted cookie
 type AuthenticatedUser struct {
 	TwitterProfileID int64
@@ -188,6 +184,9 @@ func MakeAnonymousCookieValue(apiCtx truCtx.TruAPIContext, uuid string) (string,
 // GetAnonSessionCookie returns the http cookie that authenticates and identifies the given user
 func GetAnonSessionCookie(apiCtx truCtx.TruAPIContext) (*http.Cookie, error) {
 	u2, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
 	value, err := MakeAnonymousCookieValue(apiCtx, u2.String())
 	if err != nil {
 		return nil, err

@@ -29,7 +29,7 @@ type Mutations interface {
 	UnreactByAddressAndID(addr string, id int64) error
 	AddClaimOfTheDayID(claimOfTheDayID *ClaimOfTheDayID) error
 	DeleteClaimOfTheDayID(communityID string) error
-	AddClaimSourceURLPreview(sourceURLPreview *ClaimSourceURLPreview) error
+	AddClaimImageURL(claimImage *ClaimImageURL) error
 }
 
 // Queries read from the database
@@ -57,7 +57,7 @@ type Queries interface {
 	InitialStakeBalanceByAddress(address string) (*InitialStakeBalance, error)
 	OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error)
 	ClaimOfTheDayIDByCommunityID(communityID string) (int64, error)
-	ClaimSourceURLPreview(claimID uint64) (string, error)
+	ClaimImageURL(claimID uint64) (string, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

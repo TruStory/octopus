@@ -8,6 +8,7 @@ import (
 	"github.com/TruStory/truchain/x/staking"
 	"github.com/TruStory/truchain/x/story"
 	"github.com/TruStory/truchain/x/trubank"
+	"github.com/TruStory/truchain/x/slashing"
 )
 
 var supported = chttp.MsgTypes{
@@ -21,4 +22,5 @@ var supported = chttp.MsgTypes{
 	"MsgSubmitArgument":        staking.MsgSubmitArgument{},
 	"MsgSubmitUpvote":          staking.MsgSubmitUpvote{},
 	"MsgEditArgument":          staking.MsgEditArgument{},
+	"MsgSlashArgument":         slashing.MsgSlashArgument{},
 }

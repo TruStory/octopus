@@ -3,17 +3,25 @@ package cookies
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/gofrs/uuid"
+	"github.com/gorilla/securecookie"
+
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
-	"github.com/gorilla/securecookie"
 )
 
 const (
 	// UserCookieName contains the name of the cookie that stores the user
 	UserCookieName string = "tru-user"
+
+	// AnonSessionCookieName to track anonymous users
+	AnonSessionCookieName string = "tru-session"
+	// SessionDuration defines expiration time so we can track users that come back
+	SessionDuration time.Duration = time.Hour * 24 * 7
 
 	// AuthenticationExpiry is the period for which,
 	// the logged in user must be considered authenticated
@@ -127,4 +135,94 @@ func getSecureCookieInstance(apiCtx truCtx.TruAPIContext) (*securecookie.SecureC
 		return nil, err
 	}
 	return securecookie.New(hashKey, blockKey), nil
+}
+
+type AnonymousSession struct {
+	SessionID    string
+	CreationTime time.Time
+}
+
+// GetAuthenticatedUser gets the user from the request's http cookie
+func GetAnonymousSession(apiCtx truCtx.TruAPIContext, r *http.Request) (*AnonymousSession, error) {
+	cookie, err := r.Cookie(AnonSessionCookieName)
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := getSecureCookieInstance(apiCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	session := &AnonymousSession{}
+	err = s.Decode(AnonSessionCookieName, cookie.Value, &session)
+	if err != nil {
+		return nil, err
+	}
+	if time.Now().After(session.CreationTime.Add(SessionDuration)) {
+		return nil, errors.New("stale cookie found")
+	}
+	return session, nil
+}
+
+func MakeAnonymousCookieValue(apiCtx truCtx.TruAPIContext, uuid string) (string, error) {
+	s, err := getSecureCookieInstance(apiCtx)
+	if err != nil {
+		return "", err
+	}
+	cookieValue := &AnonymousSession{
+		SessionID:    uuid,
+		CreationTime: time.Now(),
+	}
+	encodedValue, err := s.Encode(AnonSessionCookieName, cookieValue)
+	if err != nil {
+		return "", err
+	}
+	return encodedValue, nil
+}
+
+// GetAnonSessionCookie returns the http cookie that authenticates and identifies the given user
+func GetAnonSessionCookie(apiCtx truCtx.TruAPIContext) (*http.Cookie, error) {
+	u2, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+	value, err := MakeAnonymousCookieValue(apiCtx, u2.String())
+	if err != nil {
+		return nil, err
+	}
+
+	cookie := http.Cookie{
+		Name:     AnonSessionCookieName,
+		Path:     "/",
+		HttpOnly: true,
+		Value:    value,
+		Expires:  time.Now().Add(SessionDuration),
+		Domain:   apiCtx.Config.Host.Name,
+	}
+
+	return &cookie, nil
+}
+
+// AnonymousSessionHandler is a middleware to track session ids.
+func AnonymousSessionHandler(apiCtx truCtx.TruAPIContext) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, err := GetAnonymousSession(apiCtx, r)
+			// cookie is present continue to next handler
+			if err == nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+			cookie, err := GetAnonSessionCookie(apiCtx)
+			// can not create cookie but continue serving
+			if err != nil {
+				fmt.Println("error creating anonymous session id")
+				next.ServeHTTP(w, r)
+				return
+			}
+			http.SetCookie(w, cookie)
+			next.ServeHTTP(w, r)
+		})
+	}
 }

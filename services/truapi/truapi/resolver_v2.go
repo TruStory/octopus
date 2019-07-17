@@ -60,6 +60,7 @@ type queryClaimArgumentParams struct {
 type queryByCommunityIDAndFeedFilter struct {
 	CommunityID string     `graphql:"communityId,optional"`
 	FeedFilter  FeedFilter `graphql:"feedFilter,optional"`
+	IsSearch    bool       `graphql:"isSearch,optional"`
 }
 
 // claimMetricsBest represents all-time claim metrics
@@ -136,7 +137,7 @@ func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *App
 		Coins:         aa.GetCoins(),
 		Sequence:      aa.GetSequence(),
 		Pubkey:        tcmn.HexBytes(pubKey),
-		SlashCount:    aa.SlashCount,
+		SlashCount:    uint(aa.SlashCount),
 		IsJailed:      aa.IsJailed,
 		JailEndTime:   aa.JailEndTime,
 		CreatedTime:   aa.CreatedTime,
@@ -281,8 +282,6 @@ func (ta *TruAPI) communitiesResolver(ctx context.Context) []community.Community
 		return (cs)[j].Name > (cs)[i].Name
 	})
 
-	fmt.Println("inactive", ta.APIContext.Config.Community.InactiveCommunities)
-
 	// exclude blacklisted communities
 	filteredCommunities := make([]community.Community, 0)
 	for _, c := range cs {
@@ -338,9 +337,11 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFee
 		panic(err)
 	}
 
-	claimsWithoutClaimOfTheDay := ta.removeClaimOfTheDay(claims, q.CommunityID)
+	if !q.IsSearch {
+		claims = ta.removeClaimOfTheDay(claims, q.CommunityID)
+	}
 
-	unflaggedClaims, err := ta.filterFlaggedClaims(claimsWithoutClaimOfTheDay)
+	unflaggedClaims, err := ta.filterFlaggedClaims(claims)
 	if err != nil {
 		fmt.Println("filterFlaggedClaims err: ", err)
 		panic(err)
@@ -788,7 +789,7 @@ func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByA
 func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Transaction) TransactionReference {
 	var tr TransactionReference
 	switch t.Type {
-	case bank.TransactionRegistration:
+	case bank.TransactionGift:
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,
 			Type:        ReferenceNone,
@@ -852,18 +853,18 @@ func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Trans
 	return tr
 }
 
-func (ta *TruAPI) sourceURLPreviewResolver(ctx context.Context, q claim.Claim) string {
-	sourceURLPreview, err := ta.DBClient.ClaimSourceURLPreview(q.ID)
-	if err == nil && sourceURLPreview != "" {
-		// found sourceURLPreview in the database, exit early
-		return sourceURLPreview
+func (ta *TruAPI) claimImageResolver(ctx context.Context, q claim.Claim) string {
+	claimImageURL, err := ta.DBClient.ClaimImageURL(q.ID)
+	if err == nil && claimImageURL != "" {
+		// found claimImageURL in the database, exit early
+		return claimImageURL
 	}
 
 	n := (q.ID % 5) // random but deterministic placeholder image 0-4
-	defaultPreview := joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("sourceUrlPreview_default_%d.png", n))
+	defaultImageURL := joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("claimImage_default_%d.png", n))
 
 	if q.Source.String() == "" {
-		sourceURLPreview = defaultPreview
+		claimImageURL = defaultImageURL
 	} else {
 		// fetch open graph image from source url website
 		ogImage := og.OgImage{}
@@ -871,18 +872,18 @@ func (ta *TruAPI) sourceURLPreviewResolver(ctx context.Context, q claim.Claim) s
 
 		if err != nil || ogImage.Url == "" {
 			// no open graph image exists
-			sourceURLPreview = defaultPreview
+			claimImageURL = defaultImageURL
 		} else {
-			sourceURLPreview = ogImage.Url
+			claimImageURL = ogImage.Url
 		}
 	}
 
-	_ = ta.DBClient.AddClaimSourceURLPreview(&db.ClaimSourceURLPreview{
-		ClaimID:          q.ID,
-		SourceURLPreview: sourceURLPreview,
+	_ = ta.DBClient.AddClaimImageURL(&db.ClaimImageURL{
+		ClaimID: q.ID,
+		URL:     claimImageURL,
 	})
 
-	return sourceURLPreview
+	return claimImageURL
 }
 
 func (ta *TruAPI) settingsResolver(_ context.Context) Settings {

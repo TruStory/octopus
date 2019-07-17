@@ -29,13 +29,6 @@ const (
 
 // HandleTrackEvent records an event in the database
 func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
-	user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
-	// ignore not logged in users for now
-	if !ok || user == nil {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
 	b, err := base64.StdEncoding.DecodeString(r.FormValue("data"))
 	if err != nil {
 		fmt.Println("error decoding event", err)
@@ -63,13 +56,27 @@ func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
 		}
 		claimID := int64(claim.ID)
 		dbEvent := db.TrackEvent{
-			Address:          user.Address,
-			TwitterProfileID: user.TwitterProfileID,
-			Event:            TrackEventClaimOpened,
+			Event: TrackEventClaimOpened,
 			Meta: db.TrackEventMeta{
 				ClaimID:     &claimID,
 				CommunityID: &claim.CommunityID,
 			},
+		}
+		user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
+		if ok && user != nil {
+			dbEvent.Address = user.Address
+			dbEvent.TwitterProfileID = user.TwitterProfileID
+		}
+
+		if user == nil {
+			sess, err := cookies.GetAnonymousSession(ta.APIContext, r)
+			if err != nil {
+				fmt.Println("unable to get session id cookie")
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			dbEvent.IsAnonymous = true
+			dbEvent.SessionID = sess.SessionID
 		}
 		err := ta.DBClient.Add(&dbEvent)
 		if err != nil {

@@ -18,7 +18,7 @@ type UpdateClaimImage struct {
 // HandleClaimImage handles requests for claim image
 func (ta *TruAPI) HandleClaimImage(r *http.Request) chttp.Response {
 	switch r.Method {
-	case http.MethodPost:
+	case http.MethodPut:
 		return ta.updateClaimImage(r)
 	default:
 		return chttp.SimpleErrorResponse(404, Err404ResourceNotFound)
@@ -43,11 +43,11 @@ func (ta *TruAPI) updateClaimImage(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(403, Err403NotAuthorized)
 	}
 
-	claimImageURL := &db.ClaimImageURL{
-		ClaimID: request.ClaimID,
-		URL:     request.URL,
+	claimImageURL := &db.ClaimImage{
+		ClaimID:       request.ClaimID,
+		ClaimImageURL: request.URL,
 	}
-	err = ta.DBClient.AddClaimImageURL(claimImageURL)
+	err = ta.DBClient.AddClaimImage(claimImageURL)
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
 	}

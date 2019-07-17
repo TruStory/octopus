@@ -29,7 +29,7 @@ var (
 	argumentRegex      = regexp.MustCompile("/story/([0-9]+)/argument/([0-9]+)$")
 	claimArgumentRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)$")
 	commentRegex       = regexp.MustCompile("/story/([0-9]+)/argument/([0-9]+)/comment/([0-9]+)$")
-	claimCommentRegex  = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/comment/([0-9]+)$")
+	claimCommentRegex  = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)$")
 )
 
 // Tags defines the struct containing all the request Meta Tags for a page
@@ -148,27 +148,22 @@ func CompileIndexFile(ta *TruAPI, index []byte, route string) string {
 		return compile(index, *metaTags)
 	}
 
-	// /claim/xxx/argument/xxx/comment/xxx
+	// /claim/xxx/comment/xxx
 	matches = claimCommentRegex.FindStringSubmatch(route)
-	if len(matches) == 4 {
+	if len(matches) == 3 {
 		// replace placeholder with claim details, where claim id is in matches[1]
 		claimID, err := strconv.ParseUint(matches[1], 10, 64)
 		if err != nil {
 			// if error, return the default tags
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
-		argumentID, err := strconv.ParseUint(matches[2], 10, 64)
-		if err != nil {
-			// if error, return the default tags
-			return compile(index, makeDefaultMetaTags(ta, route))
-		}
-		commentID, err := strconv.ParseInt(matches[3], 10, 64)
+		commentID, err := strconv.ParseInt(matches[2], 10, 64)
 		if err != nil {
 			// if error, return the default tags
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
 
-		metaTags, err := makeClaimCommentMetaTags(ta, route, claimID, argumentID, commentID)
+		metaTags, err := makeClaimCommentMetaTags(ta, route, claimID, commentID)
 		if err != nil {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
@@ -321,7 +316,7 @@ func makeCommentMetaTags(ta *TruAPI, route string, storyID int64, argumentID int
 	}, nil
 }
 
-func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, argumentID uint64, commentID int64) (*Tags, error) {
+func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentID int64) (*Tags, error) {
 	ctx := context.Background()
 	comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: claimID})
 	commentObj := db.Comment{}

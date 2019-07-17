@@ -3,8 +3,8 @@
     <!-- Generator: Sketch 47.1 (45422) - http://www.bohemiancoding.com/sketch -->
     <defs>
         <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1238 471.5) rotate(114.554) scale(668.996 1189.33)">
-            <stop stop-color="#C5B7FF"/>
-            <stop offset="1" stop-color="#8C70FF"/>
+            <stop stop-color="#F0ECFF"/>
+            <stop offset="1" stop-color="#B9A8FF"/>
         </radialGradient>
         <style type="text/css">
             @import url('https://fonts.googleapis.com/css?family=Poppins:400,700');

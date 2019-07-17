@@ -29,7 +29,7 @@ type Mutations interface {
 	UnreactByAddressAndID(addr string, id int64) error
 	AddClaimOfTheDayID(claimOfTheDayID *ClaimOfTheDayID) error
 	DeleteClaimOfTheDayID(communityID string) error
-	AddClaimImageURL(claimImage *ClaimImageURL) error
+	AddClaimImage(claimImage *ClaimImage) error
 }
 
 // Queries read from the database

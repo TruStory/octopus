@@ -878,9 +878,9 @@ func (ta *TruAPI) claimImageResolver(ctx context.Context, q claim.Claim) string 
 		}
 	}
 
-	_ = ta.DBClient.AddClaimImageURL(&db.ClaimImageURL{
-		ClaimID: q.ID,
-		URL:     claimImageURL,
+	_ = ta.DBClient.AddClaimImage(&db.ClaimImage{
+		ClaimID:       q.ID,
+		ClaimImageURL: claimImageURL,
 	})
 
 	return claimImageURL

@@ -75,7 +75,6 @@ const (
 
 // TransactionTypeTitle defines user readable text for each transaction type
 var TransactionTypeTitle = []string{
-	bank.TransactionRegistration:             "Account Created",
 	bank.TransactionBacking:                  "Wrote an Argument",
 	bank.TransactionBackingReturned:          "Refund: Wrote an Argument",
 	bank.TransactionChallenge:                "Wrote an Argument",
@@ -86,7 +85,7 @@ var TransactionTypeTitle = []string{
 	bank.TransactionInterestUpvoteReceived:   "Reward: Agree received from %s",
 	bank.TransactionInterestUpvoteGiven:      "Reward: Agreed with %s",
 	bank.TransactionRewardPayout:             "Reward: Invite a friend",
-	bank.TransactionGiftPayout:               "Gift",
+	bank.TransactionGift:                     "Gift",
 }
 
 // CommunityIconImage contains regular and active icon images

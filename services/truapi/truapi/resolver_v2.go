@@ -789,14 +789,7 @@ func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByA
 func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Transaction) TransactionReference {
 	var tr TransactionReference
 	switch t.Type {
-	case bank.TransactionRegistration:
-		tr = TransactionReference{
-			ReferenceID: t.ReferenceID,
-			Type:        ReferenceNone,
-			Title:       TransactionTypeTitle[t.Type],
-			Body:        "",
-		}
-	case bank.TransactionGiftPayout:
+	case bank.TransactionGift:
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,
 			Type:        ReferenceNone,

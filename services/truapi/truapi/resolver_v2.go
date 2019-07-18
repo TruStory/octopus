@@ -14,6 +14,7 @@ import (
 	"github.com/TruStory/truchain/x/bank"
 	"github.com/TruStory/truchain/x/claim"
 	"github.com/TruStory/truchain/x/community"
+	"github.com/TruStory/truchain/x/slashing"
 	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/julianshen/og"
@@ -562,6 +563,24 @@ func (ta *TruAPI) claimArgumentStakesResolver(ctx context.Context, q staking.Arg
 	return stakes
 }
 
+func (ta *TruAPI) claimArgumentSlashesResolver(ctx context.Context, q staking.Argument) []slashing.Slash {
+	queryRoute := path.Join(slashing.ModuleName, slashing.QueryArgumentSlashes)
+	res, err := ta.Query(queryRoute, slashing.QueryArgumentSlashesParams{ArgumentID: q.ID}, slashing.ModuleCodec)
+	if err != nil {
+		fmt.Println("claimArgumentSlashesResolver err: ", err)
+		return []slashing.Slash{}
+	}
+
+	slashes := make([]slashing.Slash, 0)
+	err = slashing.ModuleCodec.UnmarshalJSON(res, &slashes)
+	if err != nil {
+		fmt.Println("[]slashing.Slash UnmarshalJSON err: ", err)
+		return []slashing.Slash{}
+	}
+
+	return slashes
+}
+
 func (ta *TruAPI) claimArgumentUpvoteStakersResolver(ctx context.Context, q staking.Argument) []AppAccount {
 	stakes := ta.claimArgumentStakesResolver(ctx, q)
 	appAccounts := make([]AppAccount, 0)
@@ -580,6 +599,19 @@ func (ta *TruAPI) appAccountStakeResolver(ctx context.Context, q staking.Argumen
 		for _, stake := range stakes {
 			if user.Address == stake.Creator.String() {
 				return &stake
+			}
+		}
+	}
+	return nil
+}
+
+func (ta *TruAPI) appAccountSlashResolver(ctx context.Context, q staking.Argument) *slashing.Slash {
+	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
+	if ok {
+		slashes := ta.claimArgumentSlashesResolver(ctx, q)
+		for _, slash := range slashes {
+			if user.Address == slash.Creator.String() {
+				return &slash
 			}
 		}
 	}

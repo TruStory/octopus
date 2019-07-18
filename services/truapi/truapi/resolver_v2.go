@@ -919,16 +919,45 @@ func (ta *TruAPI) claimImageResolver(ctx context.Context, q claim.Claim) string 
 }
 
 func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
+	queryRoute := path.Join(claim.QuerierRoute, claim.QueryParams)
+	res, err := ta.Query(queryRoute, struct{}{}, claim.ModuleCodec)
+	if err != nil {
+		fmt.Println("settingsResolver err: ", err)
+		return Settings{}
+	}
+
+	claimParams := new(claim.Params)
+	err = claim.ModuleCodec.UnmarshalJSON(res, &claimParams)
+	if err != nil {
+		fmt.Println("claimParams UnmarshalJSON err: ", err)
+		return Settings{}
+	}
+
+	queryRoute = path.Join(staking.QuerierRoute, staking.QueryParams)
+	res, err = ta.Query(queryRoute, struct{}{}, staking.ModuleCodec)
+	if err != nil {
+		fmt.Println("settingsResolver err: ", err)
+		return Settings{}
+	}
+
+	stakingParams := new(staking.Params)
+	err = staking.ModuleCodec.UnmarshalJSON(res, &stakingParams)
+	if err != nil {
+		fmt.Println("stakingParams UnmarshalJSON err: ", err)
+		return Settings{}
+	}
+
+	tomlParams := ta.APIContext.Config.Params
 	return Settings{
-		MinClaimLength:    25,
-		MaxClaimLength:    140,
-		MinArgumentLength: 25,
-		MaxArgumentLength: 1250,
-		MinSummaryLength:  25,
-		MaxSummaryLength:  140,
-		MinCommentLength:  5,
-		MaxCommentLength:  1000,
-		BlockIntervalTime: 5000,
+		MinClaimLength:    int64(claimParams.MinClaimLength),
+		MaxClaimLength:    int64(claimParams.MaxClaimLength),
+		MinArgumentLength: int64(stakingParams.ArgumentBodyMinLength),
+		MaxArgumentLength: int64(stakingParams.ArgumentBodyMaxLength),
+		MinSummaryLength:  int64(stakingParams.ArgumentSummaryMinLength),
+		MaxSummaryLength:  int64(stakingParams.ArgumentSummaryMaxLength),
+		MinCommentLength:  int64(tomlParams.CommentMinLength),
+		MaxCommentLength:  int64(tomlParams.CommentMaxLength),
+		BlockIntervalTime: int64(tomlParams.BlockInterval),
 		DefaultStake:      sdk.NewCoin(app.StakeDenom, sdk.NewInt(30*app.Shanev)),
 	}
 }

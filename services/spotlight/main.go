@@ -272,7 +272,7 @@ func wordWrap(body string) []string {
 		words = words[wordsPerLine:]
 
 		// for the last few words
-		if len(words) < wordsPerLine {
+		if len(words) < defaultWordsPerLine {
 			wordsPerLine = len(words)
 		} else {
 			wordsPerLine = defaultWordsPerLine

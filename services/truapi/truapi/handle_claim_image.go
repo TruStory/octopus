@@ -39,7 +39,8 @@ func (ta *TruAPI) updateClaimImage(r *http.Request) chttp.Response {
 
 	claim := ta.claimResolver(r.Context(), queryByClaimID{ID: request.ClaimID})
 
-	if claim.Creator.String() != user.Address {
+	// preethis cosmos address for admin privilieges
+	if claim.Creator.String() != user.Address && user.Address != "cosmos1xqc5gwzpg3fyv5en2fzyx36z2se5ks33tt57e7" {
 		return chttp.SimpleErrorResponse(403, Err403NotAuthorized)
 	}
 

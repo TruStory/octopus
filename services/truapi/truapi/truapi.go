@@ -26,6 +26,7 @@ import (
 	"github.com/TruStory/truchain/x/claim"
 	"github.com/TruStory/truchain/x/community"
 	"github.com/TruStory/truchain/x/params"
+	"github.com/TruStory/truchain/x/slashing"
 	"github.com/TruStory/truchain/x/staking"
 	"github.com/TruStory/truchain/x/story"
 	trubank "github.com/TruStory/truchain/x/trubank"
@@ -586,14 +587,16 @@ func (ta *TruAPI) RegisterResolvers() {
 		"creator": func(ctx context.Context, q staking.Argument) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
-		"hasSlashed":      func(_ context.Context, q staking.Argument) bool { return false },
 		"appAccountStake": ta.appAccountStakeResolver,
-		"appAccountSlash": func(_ context.Context, q staking.Argument) *Slash { return nil },
+		"appAccountSlash": ta.appAccountSlashResolver,
 		"stakers":         ta.claimArgumentUpvoteStakersResolver,
 		"claim": func(ctx context.Context, q staking.Argument) *claim.Claim {
 			claim := ta.claimResolver(ctx, queryByClaimID{ID: q.ClaimID})
 			return &claim
 		},
+
+		// deprecated
+		"hasSlashed": func(_ context.Context, q staking.Argument) bool { return false },
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
@@ -606,10 +609,10 @@ func (ta *TruAPI) RegisterResolvers() {
 		"stake": func(ctx context.Context, q staking.Stake) sdk.Coin { return q.Amount },
 	})
 
-	ta.GraphQLClient.RegisterObjectResolver("Slash", Slash{}, map[string]interface{}{
-		"id":      func(_ context.Context, q Slash) uint64 { return q.ID },
-		"stakeId": func(_ context.Context, q Slash) uint64 { return q.StakeID },
-		"creator": func(ctx context.Context, q Slash) *AppAccount {
+	ta.GraphQLClient.RegisterObjectResolver("Slash", slashing.Slash{}, map[string]interface{}{
+		"id":         func(_ context.Context, q slashing.Slash) uint64 { return q.ID },
+		"argumentId": func(_ context.Context, q slashing.Slash) uint64 { return q.ArgumentID },
+		"creator": func(ctx context.Context, q slashing.Slash) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
 	})

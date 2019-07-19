@@ -125,6 +125,7 @@ type Settings struct {
 	CreatorShare             float64
 	InterestRate             float64
 	StakingAdmins            []string
+	MaxArgumentsPerClaim     int32
 
 	// slashing params
 	MinSlashCount           int32

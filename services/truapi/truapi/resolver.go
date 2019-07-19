@@ -1017,6 +1017,7 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 		CreatorShare:             creatorShare,
 		InterestRate:             interestRate,
 		StakingAdmins:            mapAccounts(stakingParams.StakingAdmins),
+		MaxArgumentsPerClaim:     int32(stakingParams.MaxArgumentsPerClaim),
 
 		// slashing params
 		MinSlashCount:           int32(slashingParams.MinSlashCount),

@@ -3,7 +3,6 @@ package truapi
 import (
 	"time"
 
-	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/bank"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	tcmn "github.com/tendermint/tendermint/libs/common"
@@ -11,16 +10,27 @@ import (
 	"github.com/TruStory/octopus/services/truapi/db"
 )
 
-// CredArgument represents an argument that earned cred based on likes.
-type CredArgument struct {
-	ID        int64          `json:"id" graphql:"id" `
-	StoryID   int64          `json:"storyId" graphql:"storyId"`
-	Body      string         `json:"body"`
-	Creator   sdk.AccAddress `json:"creator" `
-	Timestamp app.Timestamp  `json:"timestamp"`
-	Vote      bool           `json:"vote"`
-	Amount    sdk.Coin       `json:"coin"`
-}
+// FeedFilter is parameter for filtering the story feed
+type FeedFilter int64
+
+// List of filter types
+const (
+	None FeedFilter = iota
+	Trending
+	Latest
+	Completed
+	Best
+)
+
+// ArgumentFilter defines filters for claimArguments
+type ArgumentFilter int64
+
+// List of ArgumentFilter types
+const (
+	ArgumentAll ArgumentFilter = iota
+	ArgumentCreated
+	ArgumentAgreed
+)
 
 // CommentNotificationRequest is the payload sent to pushd for sending notifications.
 type CommentNotificationRequest struct {
@@ -32,8 +42,6 @@ type CommentNotificationRequest struct {
 	Creator      string    `json:"creator"`
 	Timestamp    time.Time `json:"timestamp"`
 }
-
-// V2 Truchain structs
 
 // AppAccount represents graphql serializable representation of a cosmos account
 type AppAccount struct {
@@ -92,14 +100,6 @@ var TransactionTypeTitle = []string{
 type CommunityIconImage struct {
 	Regular string
 	Active  string
-}
-
-// Slash will be imported from truchain in the future
-type Slash struct {
-	ID          uint64
-	StakeID     uint64
-	Creator     sdk.AccAddress
-	CreatedTime time.Time
 }
 
 // Settings contains application specific settings

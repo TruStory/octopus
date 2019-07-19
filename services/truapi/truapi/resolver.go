@@ -24,28 +24,6 @@ import (
 	stripmd "github.com/writeas/go-strip-markdown"
 )
 
-// FeedFilter is parameter for filtering the story feed
-type FeedFilter int64
-
-// List of filter types
-const (
-	None FeedFilter = iota
-	Trending
-	Latest
-	Completed
-	Best
-)
-
-// ArgumentFilter defines filters for claimArguments
-type ArgumentFilter int64
-
-// List of ArgumentFilter types
-const (
-	ArgumentAll ArgumentFilter = iota
-	ArgumentCreated
-	ArgumentAgreed
-)
-
 type queryByCommunityID struct {
 	CommunityID string `graphql:"communityId"`
 }

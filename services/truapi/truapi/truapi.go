@@ -380,6 +380,17 @@ func (ta *TruAPI) RegisterResolvers() {
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
+	ta.GraphQLClient.RegisterObjectResolver("Comment", db.Comment{}, map[string]interface{}{
+		"id":         func(_ context.Context, q db.Comment) int64 { return q.ID },
+		"parentId":   func(_ context.Context, q db.Comment) int64 { return q.ParentID },
+		"claimId":    func(_ context.Context, q db.Comment) int64 { return q.ClaimID },
+		"argumentId": func(_ context.Context, q db.Comment) int64 { return q.ArgumentID },
+		"body":       func(_ context.Context, q db.Comment) string { return q.Body },
+		"creator": func(ctx context.Context, q db.Comment) *AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
+		},
+		"createdAt": func(_ context.Context, q db.Comment) time.Time { return q.CreatedAt },
+	})
 
 	ta.GraphQLClient.RegisterObjectResolver("Stake", staking.Stake{}, map[string]interface{}{
 		"id": func(_ context.Context, q staking.Stake) uint64 { return q.ID },

@@ -231,10 +231,10 @@ workflows:
   metrics:
     triggers:
       - schedule:
-          cron: "10 0 * * *"
+          cron: "30 0 * * *"
           filters:
             branches:
               only:
-                - develop
+                - fix/metrics-staked-amounts
     jobs:
       - bigquery_metrics

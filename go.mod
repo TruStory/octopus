@@ -1,11 +1,12 @@
 module github.com/TruStory/octopus
 
 require (
+	bou.ke/monkey v1.0.1 // indirect
 	cloud.google.com/go v0.41.0
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
-	github.com/TruStory/truchain v0.1.26-0.20190717015021-622858a0acd2
+	github.com/TruStory/truchain v0.1.26-0.20190718221832-beca4e85005e
 	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
@@ -38,6 +39,9 @@ require (
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/matryer/is v1.2.0 // indirect
 	github.com/oklog/ulid v1.3.1
+	github.com/otiai10/copy v0.0.0-20180813032824-7e9a647135a1 // indirect
+	github.com/otiai10/curr v0.0.0-20150429015615-9b4961190c95 // indirect
+	github.com/otiai10/mint v1.2.3 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/prometheus/procfs v0.0.3 // indirect

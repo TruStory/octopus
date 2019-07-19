@@ -1,3 +1,4 @@
+bou.ke/monkey v1.0.1/go.mod h1:FgHuK96Rv2Nlf+0u1OOVDpCMdsWyOFmeeketDHE7LIg=
 cloud.google.com/go v0.26.0 h1:e0WKqKTd5BnrG8aKH3J3h+QvEIQtSUcf2n5UZ5ZgLtQ=
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0 h1:eOI3/cP2VTU6uZLDYAoic+eyzzB9YyGmJ7eIjl8rOPg=
@@ -25,10 +26,9 @@ github.com/Sereal/Sereal v0.0.0-20190203221631-e99c7e10fca4/go.mod h1:D0JMgToj/W
 github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 h1:3trCIB5GsAOIY8NxlfMztCYIhVsW9V5sZ+brsecjaiI=
 github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56/go.mod h1:D0JMgToj/WdxCgd30Kc1UcA9E+WdZoJqeVOuYW7iTBM=
 github.com/TruStory/truchain v0.1.25 h1:TdTeds4ELVnHUQnZ6i//q2VwLUkwv2NMc6BiNOrnZow=
-github.com/TruStory/truchain v0.1.26-0.20190717013756-db532afa628f h1:gITkQdfD5oUzFz8zGADrf19MBvWWtOdvfhmY+j0T5p4=
-github.com/TruStory/truchain v0.1.26-0.20190717013756-db532afa628f/go.mod h1:30nuS0Ubf4O4Wktoz4zKUlM0BZy+xmhZRWGd5Oe9ws4=
-github.com/TruStory/truchain v0.1.26-0.20190717015021-622858a0acd2 h1:h0x+9uZAsmHz1VFRT5jJELpo0CBnt4jERVlu1ptP39c=
-github.com/TruStory/truchain v0.1.26-0.20190717015021-622858a0acd2/go.mod h1:30nuS0Ubf4O4Wktoz4zKUlM0BZy+xmhZRWGd5Oe9ws4=
+github.com/TruStory/truchain v0.1.25/go.mod h1:aFzc0lw3t7IuVeIYk2ixd+aNwxS9thzzLKV2Ykzk9GM=
+github.com/TruStory/truchain v0.1.26-0.20190718221832-beca4e85005e h1:biNlhEDIF3n8FU55a9bbsNbdE39N3HKzggjnrXx0/g4=
+github.com/TruStory/truchain v0.1.26-0.20190718221832-beca4e85005e/go.mod h1:30nuS0Ubf4O4Wktoz4zKUlM0BZy+xmhZRWGd5Oe9ws4=
 github.com/VividCortex/gohistogram v1.0.0 h1:6+hBz+qvs0JOrrNhhmR7lFxo5sINxBCGXrdtl/UvroE=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
@@ -97,6 +97,7 @@ github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e/go.mod h1:F5haX7
 github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
 github.com/corpix/uarand v0.1.0 h1:HgE/0ismPNM4n3z2VeZxzwpMJiN4uSZ+SMpxxvoyffY=
 github.com/corpix/uarand v0.1.0/go.mod h1:SFKZvkcRoLqVRFZ4u25xPmp6m9ktANfbpXZ7SJ0/FNU=
+github.com/cosmos/cosmos-sdk v0.28.2-0.20190529145828-5cae008fbe8b/go.mod h1:No7UW0JgQnogs4W0jPetEH8s0gZHvqAr3sRmzyuf0i0=
 github.com/cosmos/cosmos-sdk v0.28.2-0.20190601143109-dcdabc7e6e20 h1:N8vZFZp9TXj9w8rXs11lOk9EU/Nmud4h1X+xbCyaF1s=
 github.com/cosmos/cosmos-sdk v0.28.2-0.20190601143109-dcdabc7e6e20/go.mod h1:BvyNPEYewihHQa092/+OEX5dgLZsV7H2boKkkj1H2wI=
 github.com/cosmos/go-bip39 v0.0.0-20180618194314-52158e4697b8/go.mod h1:tSxLoYXyBmiFeKpvmq4dzayMdCjCnu8uqmCysIGBT2Y=
@@ -333,6 +334,9 @@ github.com/onsi/gomega v1.4.3 h1:RE1xgDvH7imwFD45h+u2SgIfERHlS2yNG4DObb5BSKU=
 github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/onsi/gomega v1.5.0 h1:izbySO9zDPmjJ8rDjLvkA2zJHIo+HkYXHnf7eN7SSyo=
 github.com/onsi/gomega v1.5.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
+github.com/otiai10/copy v0.0.0-20180813032824-7e9a647135a1/go.mod h1:pXzZSDlN+HPzSdyIBnKNN9ptD9Hx7iZMWIJPTwo4FPE=
+github.com/otiai10/curr v0.0.0-20150429015615-9b4961190c95/go.mod h1:9qAhocn7zKJG+0mI8eUu6xqkFDYS2kb2saOteoSB3cE=
+github.com/otiai10/mint v1.2.3/go.mod h1:YnfyPNhBvnY8bW4SGQHCs/aAFhkgySlMZbrF5U0bOVw=
 github.com/pelletier/go-toml v1.2.0 h1:T5zMGML61Wp+FlcbWjRDT7yAxhJNAiPPLOFECq181zc=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pelletier/go-toml v1.4.0 h1:u3Z1r+oOXJIkxqw34zVhyPgjBsm6X2wn21NWs/HfSeg=
@@ -554,7 +558,6 @@ golang.org/x/sys v0.0.0-20190502145724-3ef323f4f1fd/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20190507160741-ecd444e8653b h1:ag/x1USPSsqHud38I9BAC88qdNLDHHtQ4mlgQIZPPNA=
 golang.org/x/sys v0.0.0-20190507160741-ecd444e8653b/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190515120540-06a5c4944438/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
-golang.org/x/sys v0.0.0-20190530182044-ad28b68e88f1 h1:R4dVlxdmKenVdMRS/tTspEpSTRWINYrHD8ySIU9yCIU=
 golang.org/x/sys v0.0.0-20190530182044-ad28b68e88f1/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190606165138-5da285871e9c/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

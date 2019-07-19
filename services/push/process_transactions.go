@@ -1,11 +1,16 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+
+	"github.com/TruStory/truchain/x/slashing"
+	slashingtags "github.com/TruStory/truchain/x/slashing/tags"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 
 	"github.com/TruStory/truchain/x/staking"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/types"
 )
 
@@ -110,6 +115,90 @@ func (s *service) processUpvote(data []byte, notifications chan<- *Notification)
 	}
 }
 
+func getTagValue(key string, tags sdk.Tags) ([]byte, bool) {
+	for _, tag := range tags.ToKVPairs() {
+		if string(tag.Key) == key {
+			return tag.Value, true
+		}
+	}
+	return nil, false
+}
+
+func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
+	notifications chan<- *Notification, meta db.NotificationMeta, argumentID int64) {
+	slashed := make(map[string]bool)
+	for _, p := range punishResults {
+		slashed[p.AppAccAddress.String()] = true
+	}
+
+	for k := range slashed {
+		notifications <- &Notification{
+			To:     k,
+			Msg:    "You've been slashed! You've either wrote an argument that has been marked Not Helpful 3 times or Agreed with an argument marked as Not Helpful 3 times.",
+			TypeID: argumentID,
+			Type:   db.NotificationJailed,
+			Meta:   meta,
+			Action: "Jailed",
+		}
+	}
+
+}
+func (s *service) processSlash(data []byte, tags sdk.Tags, notifications chan<- *Notification) {
+	slash := slashing.Slash{}
+	err := slashing.ModuleCodec.UnmarshalJSON(data, &slash)
+	if err != nil {
+		s.log.WithError(err).Error("error decoding argument created event")
+		return
+	}
+	argument, err := s.getArgumentSummary(int64(slash.ArgumentID))
+	if err != nil {
+		s.log.WithError(err).Error("error getting participants ")
+		return
+	}
+	meta := db.NotificationMeta{
+		ClaimID:    &argument.ClaimArgument.ClaimID,
+		ArgumentID: uint64Ptr(slash.ArgumentID),
+	}
+
+	reason := slash.Reason.String()
+	if slash.Reason == slashing.SlashReasonOther {
+		reason = slash.DetailedReason
+	}
+	notifications <- &Notification{
+		To:     argument.ClaimArgument.Creator.Address,
+		Msg:    fmt.Sprintf("Someone marked your argument as **Not Helfupl** because: **%s** ", reason),
+		TypeID: int64(slash.ArgumentID),
+		Type:   db.NotificationNotHelpful,
+		Meta:   meta,
+		Action: "Not Helpful received on an Argument",
+	}
+
+	b, ok := getTagValue(slashingtags.SlashResults, tags)
+	if ok {
+		punishResults := make([]slashing.PunishmentResult, 0)
+		err := json.Unmarshal(b, &punishResults)
+		if err != nil {
+			s.log.Warn("error decoding punish results")
+		}
+
+		if err == nil {
+			s.notifySlashes(punishResults, notifications, meta, int64(slash.ArgumentID))
+		}
+	}
+
+	b, ok = getTagValue(slashingtags.ArgumentCreatorJailed, tags)
+	if ok && string(b) == "jailed" {
+		notifications <- &Notification{
+			To:     argument.ClaimArgument.Creator.Address,
+			Msg:    "You've been slashed too many times and sent to jail. Basic privileges will be stripped.",
+			TypeID: int64(slash.ArgumentID),
+			Type:   db.NotificationJailed,
+			Meta:   meta,
+			Action: "Jailed",
+		}
+	}
+
+}
 func (s *service) processTxEvent(evt types.EventDataTx, notifications chan<- *Notification) {
 	for _, tag := range evt.Result.Tags {
 		action := string(tag.Value)
@@ -118,6 +207,8 @@ func (s *service) processTxEvent(evt types.EventDataTx, notifications chan<- *No
 			s.processArgumentCreated(evt.Result.Data, notifications)
 		case "create-upvote":
 			s.processUpvote(evt.Result.Data, notifications)
+		case "create-slash":
+			s.processSlash(evt.Result.Data, evt.Result.Tags, notifications)
 		}
 	}
 }

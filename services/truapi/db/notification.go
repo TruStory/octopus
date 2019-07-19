@@ -38,7 +38,7 @@ var NotificationTypeName = []string{
 	NotificationMentionAction:  "Mentioned",
 	NotificationNewArgument:    "New Argument",
 	NotificationAgreeReceived:  "Agree received on Argument",
-	NotificationNotHelpful:     "Not Helpful",
+	NotificationNotHelpful:     "Not Helpful received on Argument",
 	NotificationEarnedStake:    fmt.Sprintf("Earned %s", CoinDisplayName),
 	NotificationSlashed:        "Slashed",
 	NotificationJailed:         "Jailed",

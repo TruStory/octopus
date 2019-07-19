@@ -11,13 +11,15 @@ import (
 	"syscall"
 	"time"
 
-	truCtx "github.com/TruStory/octopus/services/truapi/context"
-	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/appleboy/gorush/gorush"
 	"github.com/machinebox/graphql"
 	"github.com/sirupsen/logrus"
 	"github.com/tendermint/tendermint/rpc/client"
 	"github.com/tendermint/tendermint/types"
+	stripmd "github.com/writeas/go-strip-markdown"
+
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
+	"github.com/TruStory/octopus/services/truapi/db"
 )
 
 const (
@@ -146,9 +148,10 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 				currentTokens := tokens[deviceToken.Platform]
 				tokens[deviceToken.Platform] = append(currentTokens, deviceToken.Token)
 			}
+
 			pushNotification := PushNotification{
 				Title: title,
-				Body:  msg,
+				Body:  stripmd.Strip(msg),
 				NotificationData: NotificationData{
 					ID:        notificationEvent.ID,
 					TypeID:    notification.TypeID,

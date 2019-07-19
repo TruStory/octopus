@@ -841,6 +841,22 @@ func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Trans
 			Title:       TransactionTypeTitle[t.Type],
 			Body:        "",
 		}
+
+	case bank.TransactionStakeCuratorSlashed:
+		fallthrough
+	case bank.TransactionStakeCreatorSlashed:
+		fallthrough
+	case bank.TransactionInterestUpvoteGivenSlashed:
+		fallthrough
+	case bank.TransactionInterestArgumentCreationSlashed:
+		fallthrough
+	case bank.TransactionInterestUpvoteReceivedSlashed:
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceNone,
+			Title:       TransactionTypeTitle[t.Type],
+			Body:        "",
+		}
 	case bank.TransactionUpvote:
 		fallthrough
 	case bank.TransactionUpvoteReturned:

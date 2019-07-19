@@ -104,16 +104,16 @@ func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *App
 		return nil
 	}
 
-	queryRoute := path.Join(account.QuerierRoute, account.QueryAppAccount)
-	res, err := ta.Query(queryRoute, account.QueryAppAccountParams{Address: address}, account.ModuleCodec)
+	queryRoute := path.Join(account.QuerierRoute, account.QueryPrimaryAccount)
+	res, err := ta.Query(queryRoute, account.QueryPrimaryAccountParams{Address: address}, account.ModuleCodec)
 	if err != nil {
 		return nil
 	}
 
-	var aa = new(account.AppAccount)
+	var aa = new(account.PrimaryAccount)
 	err = account.ModuleCodec.UnmarshalJSON(res, aa)
 	if err != nil {
-		fmt.Println("AppAccount UnmarshalJSON err: ", err)
+		fmt.Println("PrimaryAccount UnmarshalJSON err: ", err)
 		return nil
 	}
 

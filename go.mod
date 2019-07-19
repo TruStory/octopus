@@ -1,12 +1,11 @@
 module github.com/TruStory/octopus
 
 require (
-	bou.ke/monkey v1.0.1 // indirect
-	cloud.google.com/go v0.41.0
+	cloud.google.com/go v0.43.0
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
-	github.com/TruStory/truchain v0.1.26-0.20190719202505-b875ec9f4782
+	github.com/TruStory/truchain v0.1.26-0.20190719231752-a2d6a568e0f3
 	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
@@ -39,9 +38,6 @@ require (
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/matryer/is v1.2.0 // indirect
 	github.com/oklog/ulid v1.3.1
-	github.com/otiai10/copy v0.0.0-20180813032824-7e9a647135a1 // indirect
-	github.com/otiai10/curr v0.0.0-20150429015615-9b4961190c95 // indirect
-	github.com/otiai10/mint v1.2.3 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/prometheus/procfs v0.0.3 // indirect
@@ -55,7 +51,6 @@ require (
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.0 // indirect
-	github.com/tendermint/go-amino v0.15.0
 	github.com/tendermint/tendermint v0.31.5
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/ugorji/go v1.1.7 // indirect
@@ -64,7 +59,6 @@ require (
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
-	google.golang.org/genproto v0.0.0-20190716160619-c506a9f90610 // indirect
 	google.golang.org/grpc v1.22.0 // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )

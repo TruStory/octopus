@@ -78,25 +78,6 @@ func (m *Metrics) getUserCommunityMetric(address, communityID string) *UserCommu
 	return ucm
 }
 
-func (ta *TruAPI) getEarnedCoins(address string) (sdk.Coins, error) {
-	a, err := sdk.AccAddressFromBech32(address)
-	if err != nil {
-		return nil, err
-	}
-
-	queryRoute := path.Join(staking.QuerierRoute, staking.QueryEarnedCoins)
-	res, err := ta.Query(queryRoute, staking.QueryEarnedCoinsParams{Address: a}, staking.ModuleCodec)
-	if err != nil {
-		return nil, err
-	}
-	coins := make([]sdk.Coin, 0)
-	err = staking.ModuleCodec.UnmarshalJSON(res, &coins)
-	if err != nil {
-		return nil, err
-	}
-	return coins, nil
-}
-
 func (ta *TruAPI) getClaimArguments(claimID uint64) ([]staking.Argument, error) {
 	queryRoute := path.Join(staking.ModuleName, staking.QueryClaimArguments)
 	res, err := ta.Query(queryRoute, staking.QueryClaimArgumentsParams{ClaimID: claimID}, staking.ModuleCodec)

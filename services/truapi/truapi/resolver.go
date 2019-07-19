@@ -1023,7 +1023,7 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 		MinSlashCount:           int32(slashingParams.MinSlashCount),
 		SlashMagnitude:          int32(slashingParams.SlashMagnitude),
 		SlashMinStake:           slashingParams.SlashMinStake,
-		SlashAdmins:             mapAccounts(stakingParams.StakingAdmins),
+		SlashAdmins:             mapAccounts(slashingParams.SlashAdmins),
 		CuratorShare:            curatorShare,
 		MaxDetailedReasonLength: int32(slashingParams.MaxDetailedReasonLength),
 

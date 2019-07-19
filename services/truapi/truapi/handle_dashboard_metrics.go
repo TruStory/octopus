@@ -24,6 +24,8 @@ type UserCommunityMetrics struct {
 	AgreesGiven             int
 	AgreesReceived          int
 	Staked                  sdk.Coin
+	StakedArgument          sdk.Coin
+	StakedAgree             sdk.Coin
 	InterestArgumentCreated sdk.Coin
 	InterestAgreeReceived   sdk.Coin
 	InterestAgreeGiven      sdk.Coin
@@ -67,30 +69,13 @@ func (m *Metrics) getUserCommunityMetric(address, communityID string) *UserCommu
 			StakeSlashed:            sdk.NewInt64Coin(app.StakeDenom, 0),
 			EarnedCoin:              sdk.NewInt64Coin(app.StakeDenom, 0),
 			Staked:                  sdk.NewInt64Coin(app.StakeDenom, 0),
+			StakedArgument:          sdk.NewInt64Coin(app.StakeDenom, 0),
+			StakedAgree:             sdk.NewInt64Coin(app.StakeDenom, 0),
 			PendingStake:            sdk.NewInt64Coin(app.StakeDenom, 0),
 		}
 		userMetrics.CommunityMetrics[communityID] = ucm
 	}
 	return ucm
-}
-
-func (ta *TruAPI) getEarnedCoins(address string) (sdk.Coins, error) {
-	a, err := sdk.AccAddressFromBech32(address)
-	if err != nil {
-		return nil, err
-	}
-
-	queryRoute := path.Join(staking.QuerierRoute, staking.QueryEarnedCoins)
-	res, err := ta.Query(queryRoute, staking.QueryEarnedCoinsParams{Address: a}, staking.ModuleCodec)
-	if err != nil {
-		return nil, err
-	}
-	coins := make([]sdk.Coin, 0)
-	err = staking.ModuleCodec.UnmarshalJSON(res, &coins)
-	if err != nil {
-		return nil, err
-	}
-	return coins, nil
 }
 
 func (ta *TruAPI) getClaimArguments(claimID uint64) ([]staking.Argument, error) {
@@ -106,6 +91,29 @@ func (ta *TruAPI) getClaimArguments(claimID uint64) ([]staking.Argument, error) 
 		return nil, err
 	}
 	return arguments, nil
+}
+
+func notExpiredAt(date, created, end time.Time) bool {
+	betaReleaseDate, err := time.Parse("2006-01-02", "2019-07-11")
+	if err != nil {
+		return false
+	}
+	betaReleaseDate = betaReleaseDate.UTC()
+
+	// return always as expired any stake created before beta.
+	if created.Before(betaReleaseDate) {
+		return false
+	}
+	if date.Before(created) {
+		return false
+	}
+	if date.After(end) {
+		return false
+	}
+	if !created.Before(end) {
+		return false
+	}
+	return true
 }
 
 func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
@@ -181,14 +189,20 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			scm := chainMetrics.getUserCommunityMetric(stake.Creator.String(), claim.CommunityID)
-			if !stake.Expired {
+			if !stake.Expired || notExpiredAt(beforeDate, stake.CreatedTime, stake.EndTime) {
 				scm.PendingStake = scm.PendingStake.Add(stake.Amount)
 			}
 			if stake.Type == staking.StakeUpvote {
+				scm.StakedAgree = scm.StakedAgree.Add(stake.Amount)
 				chainMetrics.getUserCommunityMetric(argumentIDCreator[stake.ArgumentID], stake.CommunityID).AgreesReceived++
 				scm.AgreesGiven++
 			}
+
+			if stake.Type != staking.StakeUpvote {
+				scm.StakedArgument = scm.StakedArgument.Add(stake.Amount)
+			}
 			scm.Staked = scm.Staked.Add(stake.Amount)
+
 		}
 	}
 	// Get all communities
@@ -220,6 +234,7 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 		"community", "community_name", "stake_earned",
 		"claims_created", "claims_opened", "unique_claims_opened",
 		"arguments_created", "agrees_received", "agrees_given",
+		"staked", "staked_arguments", "staked_agrees",
 		"interest_argument_creation", "interest_agree_received", "interest_agree_given", "reward_not_helpful",
 		"interest_slashed", "stake_slashed", "pending_stake",
 	}
@@ -237,6 +252,9 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 		userMetrics.UniqueClaimsOpened = userOpenedClaims.UniqueOpenedClaims
 	}
 	for _, user := range users {
+		if !user.CreatedAt.Before(beforeDate) {
+			continue
+		}
 		transactions := ta.appAccountTransactionsResolver(r.Context(), queryByAddress{ID: user.Address})
 		balance := sdk.NewInt64Coin(app.StakeDenom, 0)
 		for _, transaction := range transactions {
@@ -263,27 +281,29 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 			switch transaction.Type {
 			case exported.TransactionInterestArgumentCreation:
 				ucm.InterestArgumentCreated = ucm.InterestArgumentCreated.Add(transaction.Amount)
+				ucm.EarnedCoin = sdk.NewCoin(transaction.CommunityID, ucm.EarnedCoin.Amount.Add(transaction.Amount.Amount))
 			case exported.TransactionInterestUpvoteReceived:
 				ucm.InterestAgreeReceived = ucm.InterestAgreeReceived.Add(transaction.Amount)
+				ucm.EarnedCoin = sdk.NewCoin(transaction.CommunityID, ucm.EarnedCoin.Amount.Add(transaction.Amount.Amount))
 			case exported.TransactionInterestUpvoteGiven:
 				ucm.InterestAgreeGiven = ucm.InterestAgreeGiven.Add(transaction.Amount)
+				ucm.EarnedCoin = sdk.NewCoin(transaction.CommunityID, ucm.EarnedCoin.Amount.Add(transaction.Amount.Amount))
+			case exported.TransactionCuratorReward:
+				ucm.CuratorReward = ucm.CuratorReward.Add(transaction.Amount)
+				ucm.EarnedCoin = sdk.NewCoin(transaction.CommunityID, ucm.EarnedCoin.Amount.Add(transaction.Amount.Amount))
 			}
 
 		}
 		// "job_time", "date", "address", "username", "balance"
 		rowStart := []string{jobTime, beforeDate.Format(time.RFC3339Nano), user.Address, user.Username, balance.Amount.String()}
-		earnedCoins, err := ta.getEarnedCoins(user.Address)
-		if err != nil {
-			render.Error(w, r, err.Error(), http.StatusInternalServerError)
-			return
-		}
 
 		for _, community := range communities {
-			// 	"community", "community_name", "stake_earned"
+			// 	"community", "community_name"
 			record := append(rowStart, community.ID)
 			record = append(record, community.Name)
-			record = append(record, earnedCoins.AmountOf(community.ID).String())
 			m := chainMetrics.getUserCommunityMetric(user.Address, community.ID)
+			// "stake_earned"
+			record = append(record, m.EarnedCoin.Amount.String())
 			// "claims_created", "claims_opened", "unique_claims_opened",
 			record = append(record, fmt.Sprintf("%d", m.Claims))
 			record = append(record, fmt.Sprintf("%d", m.ClaimsOpened))
@@ -292,6 +312,10 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 			record = append(record, fmt.Sprintf("%d", m.Arguments))
 			record = append(record, fmt.Sprintf("%d", m.AgreesReceived))
 			record = append(record, fmt.Sprintf("%d", m.AgreesGiven))
+			// "staked", "staked_argument", "staked_agree"
+			record = append(record, m.Staked.Amount.String())
+			record = append(record, m.StakedArgument.Amount.String())
+			record = append(record, m.StakedAgree.Amount.String())
 			// "interest_argument_creation", "interest_agree_received", "interest_agree_given", "reward_not_helpful",
 			record = append(record, m.InterestArgumentCreated.Amount.String())
 			record = append(record, m.InterestAgreeReceived.Amount.String())

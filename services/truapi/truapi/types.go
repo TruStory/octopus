@@ -104,16 +104,47 @@ type Slash struct {
 
 // Settings contains application specific settings
 type Settings struct {
-	MinClaimLength    int64    `json:"minClaimLength"`
-	MaxClaimLength    int64    `json:"maxClaimLength"`
-	MinArgumentLength int64    `json:"minArgumentLength"`
-	MaxArgumentLength int64    `json:"maxArgumentLength"`
-	MinSummaryLength  int64    `json:"minSummaryLength"`
-	MaxSummaryLength  int64    `json:"maxSummaryLength"`
-	MinCommentLength  int64    `json:"minCommentLength"`
-	MaxCommentLength  int64    `json:"maxCommentLength"`
-	BlockIntervalTime int64    `json:"blockIntervalTime"`
-	DefaultStake      sdk.Coin `json:"defaultStake"`
+	// account params
+	Registrar     string
+	MaxSlashCount int32
+	JailDuration  string
+
+	// claim params
+	MinClaimLength int32
+	MaxClaimLength int32
+	ClaimAdmins    []string
+
+	// staking params
+	Period                   string
+	ArgumentCreationStake    sdk.Coin
+	ArgumentBodyMinLength    int32
+	ArgumentBodyMaxLength    int32
+	ArgumentSummaryMinLength int32
+	ArgumentSummaryMaxLength int32
+	UpvoteStake              sdk.Coin
+	CreatorShare             float64
+	InterestRate             float64
+	StakingAdmins            []string
+
+	// slashing params
+	MinSlashCount           int32
+	SlashMinStake           sdk.Coin
+	SlashMagnitude          int32
+	SlashAdmins             []string
+	CuratorShare            float64
+	MaxDetailedReasonLength int32
+
+	// off-chain params
+	MinCommentLength  int32
+	MaxCommentLength  int32
+	BlockIntervalTime int32
+
+	// deprecated
+	MinArgumentLength int32
+	MaxArgumentLength int32
+	MinSummaryLength  int32
+	MaxSummaryLength  int32
+	DefaultStake      sdk.Coin
 }
 
 var NotificationIcons = map[db.NotificationType]string{

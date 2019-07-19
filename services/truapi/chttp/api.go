@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"time"
 	"path"
+	"time"
 
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/account"
@@ -33,7 +33,7 @@ type MsgTypes map[string]interface{}
 
 // App is implemented by a Cosmos app client to provide chain functionality to the API
 type App interface {
-	RegisterKey(tcmn.HexBytes, string) (sdk.AccAddress, uint64, sdk.Coins, error)
+	RegisterKey(tcmn.HexBytes, string) (sdk.AccAddress, error)
 	RunQuery(string, interface{}) abci.ResponseQuery
 	DeliverPresigned(auth.StdTx) (*trpctypes.ResultBroadcastTxCommit, error)
 }
@@ -126,8 +126,7 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // RegisterKey generates a new address/account for a public key
-func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (
-	accAddr sdk.AccAddress, accNum uint64, coins sdk.Coins, err error) {
+func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (accAddr sdk.AccAddress, err error) {
 
 	var addr []byte
 	if string(algo[0]) == "*" {
@@ -154,7 +153,7 @@ func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (
 		panic(err)
 	}
 
-	return sdk.AccAddress(addr), stored.AccountNumber, stored.Coins, nil
+	return stored.PrimaryAddress(), nil
 }
 
 // GenerateAddress returns the first 20 characters of a ULID (https://github.com/oklog/ulid)

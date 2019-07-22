@@ -168,7 +168,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			newAddr, _, _, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
+			newAddr, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
 			if err != nil {
 				return "", err
 			}

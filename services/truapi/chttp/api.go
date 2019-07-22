@@ -3,15 +3,14 @@ package chttp
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
+	"path"
 	"time"
 
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/account"
-	"github.com/TruStory/truchain/x/users"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -20,7 +19,6 @@ import (
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/gorilla/mux"
 	"github.com/oklog/ulid"
-	amino "github.com/tendermint/go-amino"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -35,7 +33,7 @@ type MsgTypes map[string]interface{}
 
 // App is implemented by a Cosmos app client to provide chain functionality to the API
 type App interface {
-	RegisterKey(tcmn.HexBytes, string) (sdk.AccAddress, uint64, sdk.Coins, error)
+	RegisterKey(tcmn.HexBytes, string) (sdk.AccAddress, error)
 	RunQuery(string, interface{}) abci.ResponseQuery
 	DeliverPresigned(auth.StdTx) (*trpctypes.ResultBroadcastTxCommit, error)
 }
@@ -128,8 +126,7 @@ func redirectHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // RegisterKey generates a new address/account for a public key
-func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (
-	accAddr sdk.AccAddress, accNum uint64, coins sdk.Coins, err error) {
+func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (accAddr sdk.AccAddress, err error) {
 
 	var addr []byte
 	if string(algo[0]) == "*" {
@@ -144,26 +141,19 @@ func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (
 		return
 	}
 
-	addresses := users.QueryUsersByAddressesParams{
-		Addresses: []string{sdk.AccAddress(addr).String()},
-	}
-	result, err := a.RunQuery(users.QueryPath, addresses)
+	queryRoute := path.Join(account.QuerierRoute, account.QueryAppAccount)
+	res, err := a.Query(queryRoute, account.QueryAppAccountParams{Address: sdk.AccAddress(addr)}, account.ModuleCodec)
 	if err != nil {
 		return
 	}
 
-	var u []users.User
-	err = amino.UnmarshalJSON(result, &u)
+	var stored = new(account.AppAccount)
+	err = account.ModuleCodec.UnmarshalJSON(res, stored)
 	if err != nil {
 		panic(err)
 	}
-	if len(u) == 0 {
-		err = errors.New("Unable to locate account " + string(addr))
-		return
-	}
-	stored := u[0]
 
-	return sdk.AccAddress(addr), stored.AccountNumber, stored.Coins, nil
+	return stored.PrimaryAddress(), nil
 }
 
 // GenerateAddress returns the first 20 characters of a ULID (https://github.com/oklog/ulid)

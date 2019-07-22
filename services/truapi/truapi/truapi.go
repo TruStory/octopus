@@ -18,18 +18,11 @@ import (
 	"github.com/TruStory/octopus/services/truapi/graphql"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	app "github.com/TruStory/truchain/types"
-	"github.com/TruStory/truchain/x/argument"
-	"github.com/TruStory/truchain/x/backing"
 	"github.com/TruStory/truchain/x/bank"
-	"github.com/TruStory/truchain/x/category"
-	"github.com/TruStory/truchain/x/challenge"
 	"github.com/TruStory/truchain/x/claim"
 	"github.com/TruStory/truchain/x/community"
-	"github.com/TruStory/truchain/x/params"
+	"github.com/TruStory/truchain/x/slashing"
 	"github.com/TruStory/truchain/x/staking"
-	"github.com/TruStory/truchain/x/story"
-	trubank "github.com/TruStory/truchain/x/trubank"
-	"github.com/TruStory/truchain/x/users"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/dghubble/gologin/twitter"
 	"github.com/dghubble/oauth1"
@@ -213,131 +206,12 @@ func (ta *TruAPI) RegisterResolvers() {
 		return t.UTC().Format(time.UnixDate)
 	}
 
-	getUser := func(ctx context.Context, addr sdk.AccAddress) users.User {
-		res := ta.usersResolver(ctx, users.QueryUsersByAddressesParams{Addresses: []string{addr.String()}})
-		if len(res) > 0 {
-			return res[0]
-		}
-		return users.User{}
-	}
-
-	getBackings := func(ctx context.Context, storyID int64) []backing.Backing {
-		return ta.backingsResolver(ctx, app.QueryByIDParams{ID: storyID})
-	}
-
-	getChallenges := func(ctx context.Context, storyID int64) []challenge.Challenge {
-		return ta.challengesResolver(ctx, app.QueryByIDParams{ID: storyID})
-	}
-
-	getTransactions := func(ctx context.Context, creator string) []trubank.Transaction {
-		return ta.transactionsResolver(ctx, app.QueryByCreatorParams{Creator: creator})
-	}
-
-	getStory := func(ctx context.Context, storyID int64) story.Story {
-		return ta.storyResolver(ctx, story.QueryStoryByIDParams{ID: storyID})
-	}
-
-	getArgument := func(ctx context.Context, argumentID int64, raw bool) argument.Argument {
-		return ta.argumentResolver(ctx, app.QueryArgumentByID{ID: argumentID, Raw: raw})
-	}
-
-	ta.GraphQLClient.RegisterQueryResolver("comments", ta.commentsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("Comment", db.Comment{}, map[string]interface{}{
-		"id":         func(_ context.Context, q db.Comment) int64 { return q.ID },
-		"parentId":   func(_ context.Context, q db.Comment) int64 { return q.ParentID },
-		"claimId":    func(_ context.Context, q db.Comment) int64 { return q.ClaimID },
-		"argumentId": func(_ context.Context, q db.Comment) int64 { return q.ArgumentID },
-		"body":       func(_ context.Context, q db.Comment) string { return q.Body },
-		"creator": func(ctx context.Context, q db.Comment) users.User {
-			creator, err := sdk.AccAddressFromBech32(q.Creator)
-			if err != nil {
-				// [shanev] TODO: handle error better, see https://github.com/TruStory/truchain/issues/199
-				panic(err)
-			}
-			return getUser(ctx, creator)
-		},
-		"createdAt": func(_ context.Context, q db.Comment) time.Time { return q.CreatedAt },
-	})
-
-	ta.GraphQLClient.RegisterQueryResolver("argument", ta.argumentResolver)
-	ta.GraphQLClient.RegisterObjectResolver("Argument", argument.Argument{}, map[string]interface{}{
-		"id":      func(_ context.Context, q argument.Argument) int64 { return q.ID },
-		"creator": func(ctx context.Context, q argument.Argument) users.User { return getUser(ctx, q.Creator) },
-		"body":    func(_ context.Context, q argument.Argument) string { return q.Body },
-		"storyId": func(_ context.Context, q argument.Argument) int64 { return q.StoryID },
-		"likes": func(ctx context.Context, q argument.Argument) []argument.Like {
-			return ta.likesObjectResolver(ctx, app.QueryByIDParams{ID: q.ID})
-		},
-		"reactionsCount": func(ctx context.Context, q argument.Argument) []db.ReactionsCount {
-			rxnable := db.Reactionable{
-				Type: "arguments",
-				ID:   q.ID,
-			}
-			return ta.reactionsCountResolver(ctx, rxnable)
-		},
-		"reactions": func(ctx context.Context, q argument.Argument) []db.Reaction {
-			rxnable := db.Reactionable{
-				Type: "arguments",
-				ID:   q.ID,
-			}
-			return ta.reactionsResolver(ctx, rxnable)
-		},
-		"timestamp": func(_ context.Context, q argument.Argument) app.Timestamp { return q.Timestamp },
-		"comments":  ta.commentsResolver,
-	})
-
 	ta.GraphQLClient.RegisterObjectResolver("Reaction", db.Reaction{}, map[string]interface{}{
 		"id":   func(_ context.Context, q db.Reaction) int64 { return q.ID },
 		"type": func(_ context.Context, q db.Reaction) db.ReactionType { return q.ReactionType },
-		"creator": func(ctx context.Context, q db.Reaction) users.User {
-			creator, err := sdk.AccAddressFromBech32(q.Creator)
-			if err != nil {
-				// [shanev] TODO: handle error better, see https://github.com/TruStory/truchain/issues/199
-				panic(err)
-			}
-			return getUser(ctx, creator)
+		"creator": func(ctx context.Context, q db.Reaction) *AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
 		},
-	})
-
-	ta.GraphQLClient.RegisterObjectResolver("Like", argument.Like{}, map[string]interface{}{
-		"argumentId": func(_ context.Context, q argument.Like) int64 { return q.ArgumentID },
-		"creator":    func(ctx context.Context, q argument.Like) users.User { return getUser(ctx, q.Creator) },
-		"timestamp":  func(_ context.Context, q argument.Like) app.Timestamp { return q.Timestamp },
-	})
-
-	ta.GraphQLClient.RegisterQueryResolver("backing", ta.backingResolver)
-	ta.GraphQLClient.RegisterObjectResolver("Backing", backing.Backing{}, map[string]interface{}{
-		"amount": func(ctx context.Context, q backing.Backing) sdk.Coin { return q.Amount() },
-		"argument": func(ctx context.Context, q backing.Backing, args struct {
-			Raw bool `graphql:",optional"`
-		}) argument.Argument {
-			return getArgument(ctx, q.ArgumentID, args.Raw)
-		},
-		"vote":      func(ctx context.Context, q backing.Backing) bool { return q.VoteChoice() },
-		"creator":   func(ctx context.Context, q backing.Backing) users.User { return getUser(ctx, q.Creator()) },
-		"timestamp": func(ctx context.Context, q backing.Backing) app.Timestamp { return q.Timestamp() },
-
-		// Deprecated: interest is no longer saved in backing
-		"interest": func(ctx context.Context, q backing.Backing) sdk.Coin { return sdk.Coin{} },
-	})
-
-	ta.GraphQLClient.RegisterQueryResolver("categories", ta.allCategoriesResolver)
-	ta.GraphQLClient.RegisterQueryResolver("category", ta.categoryResolver)
-	ta.GraphQLClient.RegisterObjectResolver("Category", category.Category{}, map[string]interface{}{
-		"id": func(_ context.Context, q category.Category) int64 { return q.ID },
-	})
-
-	ta.GraphQLClient.RegisterQueryResolver("challenge", ta.challengeResolver)
-	ta.GraphQLClient.RegisterObjectResolver("Challenge", challenge.Challenge{}, map[string]interface{}{
-		"amount": func(ctx context.Context, q challenge.Challenge) sdk.Coin { return q.Amount() },
-		"argument": func(ctx context.Context, q challenge.Challenge, args struct {
-			Raw bool `graphql:",optional"`
-		}) argument.Argument {
-			return getArgument(ctx, q.ArgumentID, args.Raw)
-		},
-		"vote":      func(ctx context.Context, q challenge.Challenge) bool { return q.VoteChoice() },
-		"creator":   func(ctx context.Context, q challenge.Challenge) users.User { return getUser(ctx, q.Creator()) },
-		"timestamp": func(ctx context.Context, q challenge.Challenge) app.Timestamp { return q.Timestamp() },
 	})
 
 	ta.GraphQLClient.RegisterObjectResolver("Coin", sdk.Coin{}, map[string]interface{}{
@@ -349,71 +223,17 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterQueryResolver("invites", ta.invitesResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Invite", db.Invite{}, map[string]interface{}{
 		"id": func(_ context.Context, i db.Invite) int64 { return i.ID },
-		"creator": func(ctx context.Context, i db.Invite) users.User {
-			creator, err := sdk.AccAddressFromBech32(i.Creator)
-			if err != nil {
-				return users.User{}
-			}
-			return getUser(ctx, creator)
+		"creator": func(ctx context.Context, q db.Invite) *AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
 		},
-		"friend": func(ctx context.Context, i db.Invite) users.User {
+		"friend": func(ctx context.Context, i db.Invite) *AppAccount {
 			twitterProfile, err := ta.DBClient.TwitterProfileByUsername(i.FriendTwitterUsername)
 			if err != nil || twitterProfile == nil {
-				return users.User{}
+				return nil
 			}
-			friend, err := sdk.AccAddressFromBech32(twitterProfile.Address)
-			if err != nil {
-				return users.User{}
-			}
-			return getUser(ctx, friend)
+			return ta.appAccountResolver(ctx, queryByAddress{ID: twitterProfile.Address})
 		},
 		"createdAt": func(_ context.Context, q db.Invite) time.Time { return q.CreatedAt },
-	})
-
-	ta.GraphQLClient.RegisterQueryResolver("params", ta.paramsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("Params", params.Params{}, map[string]interface{}{
-		"interestRate":     func(_ context.Context, p params.Params) string { return p.StakeParams.InterestRate.String() },
-		"maxStakeAmount":   func(_ context.Context, p params.Params) string { return p.StakeParams.MaxAmount.Amount.String() },
-		"stakeToCredRatio": func(_ context.Context, p params.Params) string { return p.StakeParams.StakeToCredRatio.String() },
-
-		"minArgumentLength": func(_ context.Context, p params.Params) int { return p.ArgumentParams.MinArgumentLength },
-		"maxArgumentLength": func(_ context.Context, p params.Params) int { return p.ArgumentParams.MaxArgumentLength },
-
-		"storyExpireDuration": func(_ context.Context, p params.Params) string {
-			return fmt.Sprintf("%d", p.StoryParams.ExpireDuration)
-		},
-		"claimMinLength": func(_ context.Context, p params.Params) int { return p.StoryParams.MinStoryLength },
-		"claimMaxLength": func(_ context.Context, p params.Params) int { return p.StoryParams.MaxStoryLength },
-
-		"challengeMinStake": func(_ context.Context, p params.Params) string { return p.ChallengeParams.MinChallengeStake.String() },
-		"stakeDenom":        func(_ context.Context, _ params.Params) string { return app.StakeDenom },
-
-		// Deprecated
-		"amountWeight":    func(_ context.Context, p params.Params) string { return "0" },
-		"periodWeight":    func(_ context.Context, p params.Params) string { return "0" },
-		"minInterestRate": func(_ context.Context, p params.Params) string { return "0" },
-		"maxInterestRate": func(_ context.Context, p params.Params) string { return "0" },
-	})
-
-	ta.GraphQLClient.RegisterPaginatedQueryResolverWithFilter("paginated_stories", ta.storiesResolver, map[string]interface{}{
-		"body": func(_ context.Context, q story.Story) string { return q.Body },
-	})
-
-	ta.GraphQLClient.RegisterQueryResolver("story", ta.storyResolver)
-	ta.GraphQLClient.RegisterPaginatedObjectResolver("Story", "iD", story.Story{}, map[string]interface{}{
-		"id":                  func(_ context.Context, q story.Story) int64 { return q.ID },
-		"backings":            func(ctx context.Context, q story.Story) []backing.Backing { return getBackings(ctx, q.ID) },
-		"challenges":          func(ctx context.Context, q story.Story) []challenge.Challenge { return getChallenges(ctx, q.ID) },
-		"backingPool":         ta.backingPoolResolver,
-		"challengePool":       ta.challengePoolResolver,
-		"category":            ta.storyCategoryResolver,
-		"creator":             func(ctx context.Context, q story.Story) users.User { return getUser(ctx, q.Creator) },
-		"source":              func(ctx context.Context, q story.Story) string { return q.Source.String() },
-		"state":               func(ctx context.Context, q story.Story) story.Status { return q.Status },
-		"expireTime":          func(_ context.Context, q story.Story) string { return formatTime(q.ExpireTime) },
-		"votingStartTime":     func(_ context.Context, q story.Story) string { return formatTime(q.VotingStartTime) },
-		"votingEndTime":       func(_ context.Context, q story.Story) string { return formatTime(q.VotingEndTime) },
-		"addressesWhoFlagged": ta.addressesWhoFlaggedResolver,
 	})
 
 	ta.GraphQLClient.RegisterObjectResolver("Timestamp", app.Timestamp{}, map[string]interface{}{
@@ -421,65 +241,9 @@ func (ta *TruAPI) RegisterResolvers() {
 		"updatedTime": func(_ context.Context, t app.Timestamp) string { return formatTime(t.UpdatedTime) },
 	})
 
-	ta.GraphQLClient.RegisterObjectResolver("TwitterProfile", db.TwitterProfile{}, map[string]interface{}{
-		"id": func(_ context.Context, q db.TwitterProfile) string { return string(q.ID) },
-		"avatarURI": func(_ context.Context, q db.TwitterProfile) string {
-			return strings.Replace(q.AvatarURI, "_bigger", "_200x200", 1)
-		},
-	})
-
-	ta.GraphQLClient.RegisterQueryResolver("users", ta.usersResolver)
-	ta.GraphQLClient.RegisterObjectResolver("User", users.User{}, map[string]interface{}{
-		"id":     func(_ context.Context, q users.User) string { return q.Address },
-		"coins":  func(_ context.Context, q users.User) sdk.Coins { return q.Coins },
-		"pubkey": func(_ context.Context, q users.User) string { return q.Pubkey.String() },
-		"twitterProfile": func(ctx context.Context, q users.User) db.TwitterProfile {
-			return ta.twitterProfileResolver(ctx, q.Address)
-		},
-		"transactions": func(ctx context.Context, q users.User) []trubank.Transaction {
-			return getTransactions(ctx, q.Address)
-		},
-	})
-
-	ta.GraphQLClient.RegisterObjectResolver("Transactions", trubank.Transaction{}, map[string]interface{}{
-		"id":              func(_ context.Context, q trubank.Transaction) int64 { return q.ID },
-		"transactionType": func(_ context.Context, q trubank.Transaction) trubank.TransactionType { return q.TransactionType },
-		"amount":          func(_ context.Context, q trubank.Transaction) sdk.Coin { return q.Amount },
-		"createdTime":     func(_ context.Context, q trubank.Transaction) time.Time { return q.Timestamp.CreatedTime },
-		"story": func(ctx context.Context, q trubank.Transaction) story.Story {
-			return getStory(ctx, q.GroupID)
-		},
-	})
-
 	ta.GraphQLClient.RegisterObjectResolver("URL", url.URL{}, map[string]interface{}{
 		"url": func(_ context.Context, q url.URL) string { return q.String() },
 	})
-
-	ta.GraphQLClient.RegisterQueryResolver("credArguments", ta.credArguments)
-	ta.GraphQLClient.RegisterObjectResolver("CredArgument", CredArgument{}, map[string]interface{}{
-		"creator": func(ctx context.Context, q CredArgument) users.User {
-			return getUser(ctx, q.Creator)
-		},
-		"likes": func(ctx context.Context, q CredArgument) []argument.Like {
-			return ta.likesObjectResolver(ctx, app.QueryByIDParams{ID: q.ID})
-		},
-		// required to retrieve story state, because we only show endorse count once the story is expired
-		"story": func(ctx context.Context, q CredArgument) story.Story {
-			return ta.storyResolver(ctx, story.QueryStoryByIDParams{ID: q.StoryID})
-		},
-	})
-
-	ta.GraphQLClient.RegisterQueryResolver("appAccountCommunityEarnings", ta.appAccountCommunityEarningsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("AppAccountCommunityEarnings", appAccountCommunityEarning{}, map[string]interface{}{
-		"id": func(_ context.Context, q appAccountCommunityEarning) string { return q.CommunityID },
-		"community": func(ctx context.Context, q appAccountCommunityEarning) *community.Community {
-			return ta.communityResolver(ctx, queryByCommunityID{CommunityID: q.CommunityID})
-		},
-	})
-
-	ta.GraphQLClient.RegisterQueryResolver("appAccountEarnings", ta.appAccountEarningsResolver)
-
-	// ########## V2 resolvers ################
 
 	ta.GraphQLClient.RegisterQueryResolver("appAccount", ta.appAccountResolver)
 	ta.GraphQLClient.RegisterObjectResolver("AppAccount", AppAccount{}, map[string]interface{}{
@@ -513,11 +277,28 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 	})
 
+	ta.GraphQLClient.RegisterObjectResolver("TwitterProfile", db.TwitterProfile{}, map[string]interface{}{
+		"id": func(_ context.Context, q db.TwitterProfile) string { return string(q.ID) },
+		"avatarURI": func(_ context.Context, q db.TwitterProfile) string {
+			return strings.Replace(q.AvatarURI, "_bigger", "_200x200", 1)
+		},
+	})
+
 	ta.GraphQLClient.RegisterObjectResolver("EarnedCoin", EarnedCoin{}, map[string]interface{}{
 		"community": func(ctx context.Context, q EarnedCoin) *community.Community {
 			return ta.communityResolver(ctx, queryByCommunityID{CommunityID: q.CommunityID})
 		},
 	})
+
+	ta.GraphQLClient.RegisterQueryResolver("appAccountCommunityEarnings", ta.appAccountCommunityEarningsResolver)
+	ta.GraphQLClient.RegisterObjectResolver("AppAccountCommunityEarnings", appAccountCommunityEarning{}, map[string]interface{}{
+		"id": func(_ context.Context, q appAccountCommunityEarning) string { return q.CommunityID },
+		"community": func(ctx context.Context, q appAccountCommunityEarning) *community.Community {
+			return ta.communityResolver(ctx, queryByCommunityID{CommunityID: q.CommunityID})
+		},
+	})
+
+	ta.GraphQLClient.RegisterQueryResolver("appAccountEarnings", ta.appAccountEarningsResolver)
 
 	ta.GraphQLClient.RegisterQueryResolver("communities", ta.communitiesResolver)
 	ta.GraphQLClient.RegisterQueryResolver("community", ta.communityResolver)
@@ -586,17 +367,30 @@ func (ta *TruAPI) RegisterResolvers() {
 		"creator": func(ctx context.Context, q staking.Argument) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
-		"hasSlashed":      func(_ context.Context, q staking.Argument) bool { return false },
 		"appAccountStake": ta.appAccountStakeResolver,
-		"appAccountSlash": func(_ context.Context, q staking.Argument) *Slash { return nil },
+		"appAccountSlash": ta.appAccountSlashResolver,
 		"stakers":         ta.claimArgumentUpvoteStakersResolver,
 		"claim": func(ctx context.Context, q staking.Argument) *claim.Claim {
 			claim := ta.claimResolver(ctx, queryByClaimID{ID: q.ClaimID})
 			return &claim
 		},
+
+		// deprecated
+		"hasSlashed": func(_ context.Context, q staking.Argument) bool { return false },
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
+	ta.GraphQLClient.RegisterObjectResolver("Comment", db.Comment{}, map[string]interface{}{
+		"id":         func(_ context.Context, q db.Comment) int64 { return q.ID },
+		"parentId":   func(_ context.Context, q db.Comment) int64 { return q.ParentID },
+		"claimId":    func(_ context.Context, q db.Comment) int64 { return q.ClaimID },
+		"argumentId": func(_ context.Context, q db.Comment) int64 { return q.ArgumentID },
+		"body":       func(_ context.Context, q db.Comment) string { return q.Body },
+		"creator": func(ctx context.Context, q db.Comment) *AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
+		},
+		"createdAt": func(_ context.Context, q db.Comment) time.Time { return q.CreatedAt },
+	})
 
 	ta.GraphQLClient.RegisterObjectResolver("Stake", staking.Stake{}, map[string]interface{}{
 		"id": func(_ context.Context, q staking.Stake) uint64 { return q.ID },
@@ -606,10 +400,10 @@ func (ta *TruAPI) RegisterResolvers() {
 		"stake": func(ctx context.Context, q staking.Stake) sdk.Coin { return q.Amount },
 	})
 
-	ta.GraphQLClient.RegisterObjectResolver("Slash", Slash{}, map[string]interface{}{
-		"id":      func(_ context.Context, q Slash) uint64 { return q.ID },
-		"stakeId": func(_ context.Context, q Slash) uint64 { return q.StakeID },
-		"creator": func(ctx context.Context, q Slash) *AppAccount {
+	ta.GraphQLClient.RegisterObjectResolver("Slash", slashing.Slash{}, map[string]interface{}{
+		"id":         func(_ context.Context, q slashing.Slash) uint64 { return q.ID },
+		"argumentId": func(_ context.Context, q slashing.Slash) uint64 { return q.ArgumentID },
+		"creator": func(ctx context.Context, q slashing.Slash) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
 	})

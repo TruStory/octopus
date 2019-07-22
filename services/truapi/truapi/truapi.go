@@ -312,7 +312,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"iconImage": ta.communityIconImageResolver,
 		"heroImage": func(_ context.Context, q community.Community) string {
-			return joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_hero.png", q.ID))
+			return joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_hero.jpg", q.ID))
 		},
 	})
 

@@ -75,6 +75,7 @@ type WebConfig struct {
 // CommunityConfig is the config for the community
 type CommunityConfig struct {
 	InactiveCommunities []string `mapstructure:"inactive-communities"`
+	BetaCommunities     []string `mapstructure:"beta-communities"`
 }
 
 // ParamsConfig is the config for off-chain params

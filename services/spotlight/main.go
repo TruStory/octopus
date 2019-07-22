@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	stripmd "github.com/writeas/go-strip-markdown"
+
 	"github.com/gobuffalo/packr/v2"
 
 	"github.com/gorilla/mux"
@@ -242,6 +244,7 @@ func compileCommentPreview(raw []byte, comment CommentObject) string {
 }
 
 func wordWrap(body string) []string {
+	body = stripmd.Strip(body)
 	defaultWordsPerLine := 7
 	lines := make([]string, 0)
 

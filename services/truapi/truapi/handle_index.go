@@ -18,13 +18,14 @@ import (
 
 const (
 	defaultDescription = "TruStory is a social network to debate claims with skin in the game"
-	defaultImage       = "Image+from+iOS.jpg"
+	previewDirectory   = "communities/previews" // full url format: S3_URL/communities/previews/PREVIEW.jpeg
 )
 
 var (
 	claimRegex         = regexp.MustCompile("/claim/([0-9]+)$")
 	claimArgumentRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)$")
 	claimCommentRegex  = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)$")
+	communityRegex     = regexp.MustCompile("/communities/([a-zA-Z0-9-]+)$")
 )
 
 // Tags defines the struct containing all the request Meta Tags for a page
@@ -99,6 +100,16 @@ func CompileIndexFile(ta *TruAPI, index []byte, route string) string {
 		return compile(index, *metaTags)
 	}
 
+	matches = communityRegex.FindStringSubmatch(route)
+	if len(matches) == 2 {
+		// replace placeholder with community details
+		communityID := matches[1]
+
+		metaTags := makeCommunityMetaTags(ta, route, communityID)
+
+		return compile(index, metaTags)
+	}
+
 	return compile(index, makeDefaultMetaTags(ta, route))
 }
 
@@ -117,7 +128,7 @@ func makeDefaultMetaTags(ta *TruAPI, route string) Tags {
 	return Tags{
 		Title:       ta.APIContext.Config.App.Name,
 		Description: defaultDescription,
-		Image:       joinPath(ta.APIContext.Config.App.S3AssetsURL, defaultImage),
+		Image:       fmt.Sprintf("%s/%s/%s.jpeg", ta.APIContext.Config.App.S3AssetsURL, previewDirectory, "feed"),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}
 }
@@ -197,4 +208,14 @@ func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentI
 		Image:       fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v&comment_id=%v", ta.APIContext.Config.App.URL, claimID, commentID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
+}
+
+// makes the community meta tags
+func makeCommunityMetaTags(ta *TruAPI, route string, communityID string) Tags {
+	return Tags{
+		Title:       ta.APIContext.Config.App.Name,
+		Description: defaultDescription,
+		Image:       fmt.Sprintf("%s/%s/%s.jpeg", ta.APIContext.Config.App.S3AssetsURL, previewDirectory, communityID),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
+	}
 }

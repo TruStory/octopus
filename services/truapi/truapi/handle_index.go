@@ -110,7 +110,7 @@ func CompileIndexFile(ta *TruAPI, index []byte, route string) string {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
 
-		return compile(index, metaTags)
+		return compile(index, *metaTags)
 	}
 
 	return compile(index, makeDefaultMetaTags(ta, route))

@@ -128,17 +128,45 @@ func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
 	notifications chan<- *Notification, meta db.NotificationMeta, argumentID int64) {
 	slashed := make(map[string]bool)
 	for _, p := range punishResults {
+		if p.Type == slashing.PunishmentCuratorRewarded {
+			continue
+		}
 		slashed[p.AppAccAddress.String()] = true
 	}
 
 	for k := range slashed {
 		notifications <- &Notification{
 			To:     k,
-			Msg:    "You've been slashed! You've either wrote an argument that has been marked Not Helpful 3 times or Agreed with an argument marked as Not Helpful 3 times.",
+			Msg:    "You've been penalized! You've either wrote an argument that has been marked Not Helpful 3 times or Agreed with an argument marked as Not Helpful 3 times.",
 			TypeID: argumentID,
-			Type:   db.NotificationJailed,
+			Type:   db.NotificationSlashed,
 			Meta:   meta,
-			Action: "Jailed",
+			Action: "Slashed",
+		}
+	}
+
+	for _, p := range punishResults {
+
+		if p.Type == slashing.PunishmentCuratorRewarded {
+			notifications <- &Notification{
+				To: p.AppAccAddress.String(),
+				Msg: fmt.Sprintf("You just earned %s %s from an argument you marked as Not Helpful",
+					humanReadable(p.Coin), db.CoinDisplayName),
+				TypeID: argumentID,
+				Type:   db.NotificationEarnedStake,
+				Meta:   meta,
+				Action: "Earned TruStake",
+			}
+		}
+		if p.Type == slashing.PunishmentJailed {
+			notifications <- &Notification{
+				To:     p.AppAccAddress.String(),
+				Msg:    "You've been slashed too many times and sent to jail. Basic privileges will be stripped.",
+				TypeID: argumentID,
+				Type:   db.NotificationJailed,
+				Meta:   meta,
+				Action: "Jailed",
+			}
 		}
 	}
 
@@ -178,23 +206,11 @@ func (s *service) processSlash(data []byte, tags sdk.Tags, notifications chan<- 
 		punishResults := make([]slashing.PunishmentResult, 0)
 		err := json.Unmarshal(b, &punishResults)
 		if err != nil {
-			s.log.Warn("error decoding punish results")
+			s.log.WithError(err).Warn("error decoding punish results")
 		}
 
 		if err == nil {
 			s.notifySlashes(punishResults, notifications, meta, int64(slash.ArgumentID))
-		}
-	}
-
-	b, ok = getTagValue(slashingtags.ArgumentCreatorJailed, tags)
-	if ok && string(b) == "jailed" {
-		notifications <- &Notification{
-			To:     argument.ClaimArgument.Creator.Address,
-			Msg:    "You've been slashed too many times and sent to jail. Basic privileges will be stripped.",
-			TypeID: int64(slash.ArgumentID),
-			Type:   db.NotificationJailed,
-			Meta:   meta,
-			Action: "Jailed",
 		}
 	}
 

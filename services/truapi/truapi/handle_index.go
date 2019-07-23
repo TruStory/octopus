@@ -132,7 +132,7 @@ func makeDefaultMetaTags(ta *TruAPI, route string) Tags {
 	return Tags{
 		Title:       ta.APIContext.Config.App.Name,
 		Description: defaultDescription,
-		Image:       joinPath(previewsDirectory, "feed.jpeg"),
+		Image:       joinPath(previewsDirectory, "feed.jpg"),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}
 }
@@ -223,7 +223,7 @@ func makeCommunityMetaTags(ta *TruAPI, route string, communityID string) (*Tags,
 	return &Tags{
 		Title:       fmt.Sprintf("%s Community on %s", community.Name, ta.APIContext.Config.App.Name),
 		Description: community.Description,
-		Image:       joinPath(previewsDirectory, fmt.Sprintf("%s.jpeg", communityID)),
+		Image:       joinPath(previewsDirectory, fmt.Sprintf("%s.jpg", communityID)),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

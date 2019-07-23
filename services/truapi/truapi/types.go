@@ -90,6 +90,7 @@ var TransactionTypeTitle = []string{
 	bank.TransactionUpvote:                          "Agreed with %s",
 	bank.TransactionUpvoteReturned:                  "Refund: Agreed with %s",
 	bank.TransactionInterestArgumentCreation:        "Reward: Wrote an Argument",
+	bank.TransactionCuratorReward:                   "Reward: Marked an Argument as not Helpful",
 	bank.TransactionInterestUpvoteReceived:          "Reward: Agree received from %s",
 	bank.TransactionInterestUpvoteGiven:             "Reward: Agreed with %s",
 	bank.TransactionRewardPayout:                    "Reward: Invite a friend",

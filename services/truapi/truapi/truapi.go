@@ -202,9 +202,6 @@ func (ta *TruAPI) RegisterMutations() {
 
 // RegisterResolvers builds the app's GraphQL schema from resolvers (declared in `resolver.go`)
 func (ta *TruAPI) RegisterResolvers() {
-	formatTime := func(t time.Time) string {
-		return t.UTC().Format(time.UnixDate)
-	}
 
 	ta.GraphQLClient.RegisterObjectResolver("Reaction", db.Reaction{}, map[string]interface{}{
 		"id":   func(_ context.Context, q db.Reaction) int64 { return q.ID },
@@ -234,11 +231,6 @@ func (ta *TruAPI) RegisterResolvers() {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: twitterProfile.Address})
 		},
 		"createdAt": func(_ context.Context, q db.Invite) time.Time { return q.CreatedAt },
-	})
-
-	ta.GraphQLClient.RegisterObjectResolver("Timestamp", app.Timestamp{}, map[string]interface{}{
-		"createdTime": func(_ context.Context, t app.Timestamp) string { return formatTime(t.CreatedTime) },
-		"updatedTime": func(_ context.Context, t app.Timestamp) string { return formatTime(t.UpdatedTime) },
 	})
 
 	ta.GraphQLClient.RegisterObjectResolver("URL", url.URL{}, map[string]interface{}{

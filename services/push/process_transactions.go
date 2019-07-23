@@ -125,7 +125,7 @@ func getTagValue(key string, tags sdk.Tags) ([]byte, bool) {
 }
 
 func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
-	notifications chan<- *Notification, meta db.NotificationMeta, argumentID int64) {
+	notifications chan<- *Notification, meta db.NotificationMeta, argumentID int64, minCount string) {
 	slashed := make(map[string]bool)
 	for _, p := range punishResults {
 		if p.Type == slashing.PunishmentCuratorRewarded {
@@ -136,8 +136,9 @@ func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
 
 	for k := range slashed {
 		notifications <- &Notification{
-			To:     k,
-			Msg:    "You've been penalized! You've either wrote an argument that has been marked Not Helpful 3 times or Agreed with an argument marked as Not Helpful 3 times.",
+			To: k,
+			Msg: fmt.Sprintf("You've been penalized! You've either wrote an argument that has been marked Not Helpful %s times or Agreed with an argument marked as Not Helpful %s times.",
+				minCount, minCount),
 			TypeID: argumentID,
 			Type:   db.NotificationSlashed,
 			Meta:   meta,
@@ -194,7 +195,7 @@ func (s *service) processSlash(data []byte, tags sdk.Tags, notifications chan<- 
 	}
 	notifications <- &Notification{
 		To:     argument.ClaimArgument.Creator.Address,
-		Msg:    fmt.Sprintf("Someone marked your argument as **Not Helfupl** because: **%s** ", reason),
+		Msg:    fmt.Sprintf("Someone marked your argument as **Not Helpful** because: **%s** ", reason),
 		TypeID: int64(slash.ArgumentID),
 		Type:   db.NotificationNotHelpful,
 		Meta:   meta,
@@ -202,6 +203,8 @@ func (s *service) processSlash(data []byte, tags sdk.Tags, notifications chan<- 
 	}
 
 	b, ok := getTagValue(slashingtags.SlashResults, tags)
+	minSlashCount, _ := getTagValue("min-slash-count", tags)
+	count := string(minSlashCount)
 	if ok {
 		punishResults := make([]slashing.PunishmentResult, 0)
 		err := json.Unmarshal(b, &punishResults)
@@ -210,7 +213,7 @@ func (s *service) processSlash(data []byte, tags sdk.Tags, notifications chan<- 
 		}
 
 		if err == nil {
-			s.notifySlashes(punishResults, notifications, meta, int64(slash.ArgumentID))
+			s.notifySlashes(punishResults, notifications, meta, int64(slash.ArgumentID), count)
 		}
 	}
 

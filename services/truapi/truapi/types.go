@@ -95,10 +95,10 @@ var TransactionTypeTitle = []string{
 	bank.TransactionInterestUpvoteGiven:             "Reward: Agreed with %s",
 	bank.TransactionRewardPayout:                    "Reward: Invite a friend",
 	bank.TransactionGift:                            "Gift",
-	bank.TransactionStakeCuratorSlashed:             "Slash: Stake Agree  slashed",
+	bank.TransactionStakeCuratorSlashed:             "Slash: Stake Agree slashed",
 	bank.TransactionStakeCreatorSlashed:             "Slash: Stake Argument slashed",
-	bank.TransactionInterestUpvoteGivenSlashed:      "Slash: Interest Agree Given  slashed",
-	bank.TransactionInterestArgumentCreationSlashed: "Slash: Interest Argument Created   slashed",
+	bank.TransactionInterestUpvoteGivenSlashed:      "Slash: Interest Agree Given slashed",
+	bank.TransactionInterestArgumentCreationSlashed: "Slash: Interest Argument Created slashed",
 	bank.TransactionInterestUpvoteReceivedSlashed:   "Slash: Interest Agree Received slashed",
 }
 

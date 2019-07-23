@@ -25,7 +25,7 @@ var (
 	claimRegex         = regexp.MustCompile("/claim/([0-9]+)$")
 	claimArgumentRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)$")
 	claimCommentRegex  = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)$")
-	communityRegex     = regexp.MustCompile("/community/([a-zA-Z0-9-]+)$")
+	communityRegex     = regexp.MustCompile("/community/([^/]+)")
 )
 
 // Tags defines the struct containing all the request Meta Tags for a page

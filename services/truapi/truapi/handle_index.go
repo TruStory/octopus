@@ -25,7 +25,7 @@ var (
 	claimRegex         = regexp.MustCompile("/claim/([0-9]+)$")
 	claimArgumentRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)$")
 	claimCommentRegex  = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)$")
-	communityRegex     = regexp.MustCompile("/communities/([a-zA-Z0-9-]+)$")
+	communityRegex     = regexp.MustCompile("/community/([^/]+)")
 )
 
 // Tags defines the struct containing all the request Meta Tags for a page
@@ -105,9 +105,12 @@ func CompileIndexFile(ta *TruAPI, index []byte, route string) string {
 		// replace placeholder with community details
 		communityID := matches[1]
 
-		metaTags := makeCommunityMetaTags(ta, route, communityID)
+		metaTags, err := makeCommunityMetaTags(ta, route, communityID)
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
 
-		return compile(index, metaTags)
+		return compile(index, *metaTags)
 	}
 
 	return compile(index, makeDefaultMetaTags(ta, route))
@@ -125,10 +128,11 @@ func compile(index []byte, tags Tags) string {
 
 // makes the default meta tags
 func makeDefaultMetaTags(ta *TruAPI, route string) Tags {
+	previewsDirectory := joinPath(ta.APIContext.Config.App.S3AssetsURL, previewDirectory)
 	return Tags{
 		Title:       ta.APIContext.Config.App.Name,
 		Description: defaultDescription,
-		Image:       fmt.Sprintf("%s/%s/%s.jpeg", ta.APIContext.Config.App.S3AssetsURL, previewDirectory, "feed"),
+		Image:       joinPath(previewsDirectory, "feed.jpg"),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}
 }
@@ -211,11 +215,15 @@ func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentI
 }
 
 // makes the community meta tags
-func makeCommunityMetaTags(ta *TruAPI, route string, communityID string) Tags {
-	return Tags{
-		Title:       ta.APIContext.Config.App.Name,
-		Description: defaultDescription,
-		Image:       fmt.Sprintf("%s/%s/%s.jpeg", ta.APIContext.Config.App.S3AssetsURL, previewDirectory, communityID),
+func makeCommunityMetaTags(ta *TruAPI, route string, communityID string) (*Tags, error) {
+	ctx := context.Background()
+	community := ta.communityResolver(ctx, queryByCommunityID{CommunityID: communityID})
+	previewsDirectory := joinPath(ta.APIContext.Config.App.S3AssetsURL, previewDirectory)
+
+	return &Tags{
+		Title:       fmt.Sprintf("%s Community on %s", community.Name, ta.APIContext.Config.App.Name),
+		Description: community.Description,
+		Image:       joinPath(previewsDirectory, fmt.Sprintf("%s.jpg", communityID)),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
-	}
+	}, nil
 }

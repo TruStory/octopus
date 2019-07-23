@@ -1232,6 +1232,24 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 				}
 			}
 		}
+
+		// Stake  Lost
+		if transaction.Type.OneOf([]bank.TransactionType{
+			bank.TransactionInterestArgumentCreationSlashed,
+			bank.TransactionInterestUpvoteGivenSlashed,
+			bank.TransactionInterestUpvoteReceivedSlashed,
+		}) {
+			// some transactions are in blacklisted communities so make sure to check the community exists in the map
+			if _, ok := communityAllTimeEarnings[transaction.CommunityID]; ok {
+				communityAllTimeEarnings[transaction.CommunityID] = communityAllTimeEarnings[transaction.CommunityID].Sub(transaction.Amount)
+			}
+			if transaction.CreatedTime.After(from) {
+				// some transactions are in blacklisted communities so make sure to check the community exists in the map
+				if _, ok := communityWeeklyEarnings[transaction.CommunityID]; ok {
+					communityWeeklyEarnings[transaction.CommunityID] = communityWeeklyEarnings[transaction.CommunityID].Sub(transaction.Amount)
+				}
+			}
+		}
 	}
 
 	for communityID := range communityAllTimeEarnings {

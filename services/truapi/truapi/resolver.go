@@ -818,7 +818,7 @@ func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByA
 	}
 
 	sort.Slice(transactions, func(i, j int) bool {
-		return transactions[j].CreatedTime.Before(transactions[i].CreatedTime)
+		return transactions[j].CreatedTime.Before(transactions[i].CreatedTime) && transactions[j].ID < transactions[i].ID
 	})
 
 	return transactions
@@ -827,6 +827,13 @@ func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByA
 func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Transaction) TransactionReference {
 	var tr TransactionReference
 	switch t.Type {
+	case bank.TransactionCuratorReward:
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceNone,
+			Title:       TransactionTypeTitle[t.Type],
+			Body:        "",
+		}
 	case bank.TransactionGift:
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,
@@ -835,6 +842,22 @@ func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Trans
 			Body:        "",
 		}
 	case bank.TransactionRewardPayout:
+		tr = TransactionReference{
+			ReferenceID: t.ReferenceID,
+			Type:        ReferenceNone,
+			Title:       TransactionTypeTitle[t.Type],
+			Body:        "",
+		}
+
+	case bank.TransactionStakeCuratorSlashed:
+		fallthrough
+	case bank.TransactionStakeCreatorSlashed:
+		fallthrough
+	case bank.TransactionInterestUpvoteGivenSlashed:
+		fallthrough
+	case bank.TransactionInterestArgumentCreationSlashed:
+		fallthrough
+	case bank.TransactionInterestUpvoteReceivedSlashed:
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,
 			Type:        ReferenceNone,
@@ -1209,6 +1232,24 @@ func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q que
 				}
 			}
 		}
+
+		// Stake  Lost
+		if transaction.Type.OneOf([]bank.TransactionType{
+			bank.TransactionInterestArgumentCreationSlashed,
+			bank.TransactionInterestUpvoteGivenSlashed,
+			bank.TransactionInterestUpvoteReceivedSlashed,
+		}) {
+			// some transactions are in blacklisted communities so make sure to check the community exists in the map
+			if _, ok := communityAllTimeEarnings[transaction.CommunityID]; ok {
+				communityAllTimeEarnings[transaction.CommunityID] = communityAllTimeEarnings[transaction.CommunityID].Sub(transaction.Amount)
+			}
+			if transaction.CreatedTime.After(from) {
+				// some transactions are in blacklisted communities so make sure to check the community exists in the map
+				if _, ok := communityWeeklyEarnings[transaction.CommunityID]; ok {
+					communityWeeklyEarnings[transaction.CommunityID] = communityWeeklyEarnings[transaction.CommunityID].Sub(transaction.Amount)
+				}
+			}
+		}
 	}
 
 	for communityID := range communityAllTimeEarnings {
@@ -1284,6 +1325,17 @@ func (ta *TruAPI) appAccountEarningsResolver(ctx context.Context, q appAccountEa
 		}) {
 			if transaction.CreatedTime.After(from) {
 				netEarnings = netEarnings.Add(transaction.Amount)
+			}
+		}
+
+		// Stake  Lost
+		if transaction.Type.OneOf([]bank.TransactionType{
+			bank.TransactionInterestArgumentCreationSlashed,
+			bank.TransactionInterestUpvoteGivenSlashed,
+			bank.TransactionInterestUpvoteReceivedSlashed,
+		}) {
+			if transaction.CreatedTime.After(from) {
+				netEarnings = netEarnings.Sub(transaction.Amount)
 			}
 		}
 	}

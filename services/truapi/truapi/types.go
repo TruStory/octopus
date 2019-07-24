@@ -83,17 +83,23 @@ const (
 
 // TransactionTypeTitle defines user readable text for each transaction type
 var TransactionTypeTitle = []string{
-	bank.TransactionBacking:                  "Wrote an Argument",
-	bank.TransactionBackingReturned:          "Refund: Wrote an Argument",
-	bank.TransactionChallenge:                "Wrote an Argument",
-	bank.TransactionChallengeReturned:        "Refund: Wrote an Argument",
-	bank.TransactionUpvote:                   "Agreed with %s",
-	bank.TransactionUpvoteReturned:           "Refund: Agreed with %s",
-	bank.TransactionInterestArgumentCreation: "Reward: Wrote an Argument",
-	bank.TransactionInterestUpvoteReceived:   "Reward: Agree received from %s",
-	bank.TransactionInterestUpvoteGiven:      "Reward: Agreed with %s",
-	bank.TransactionRewardPayout:             "Reward: Invite a friend",
-	bank.TransactionGift:                     "Gift",
+	bank.TransactionBacking:                         "Wrote an Argument",
+	bank.TransactionBackingReturned:                 "Refund: Wrote an Argument",
+	bank.TransactionChallenge:                       "Wrote an Argument",
+	bank.TransactionChallengeReturned:               "Refund: Wrote an Argument",
+	bank.TransactionUpvote:                          "Agreed with %s",
+	bank.TransactionUpvoteReturned:                  "Refund: Agreed with %s",
+	bank.TransactionInterestArgumentCreation:        "Reward: Wrote an Argument",
+	bank.TransactionCuratorReward:                   "Reward: Marked an Argument as not Helpful",
+	bank.TransactionInterestUpvoteReceived:          "Reward: Agree received from %s",
+	bank.TransactionInterestUpvoteGiven:             "Reward: Agreed with %s",
+	bank.TransactionRewardPayout:                    "Reward: Invite a friend",
+	bank.TransactionGift:                            "Gift",
+	bank.TransactionStakeCuratorSlashed:             "Slash: Stake Agree slashed",
+	bank.TransactionStakeCreatorSlashed:             "Slash: Stake Argument slashed",
+	bank.TransactionInterestUpvoteGivenSlashed:      "Slash: Interest Agree Given slashed",
+	bank.TransactionInterestArgumentCreationSlashed: "Slash: Interest Argument Created slashed",
+	bank.TransactionInterestUpvoteReceivedSlashed:   "Slash: Interest Agree Received slashed",
 }
 
 // CommunityIconImage contains regular and active icon images

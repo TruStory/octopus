@@ -590,6 +590,34 @@ func (ta *TruAPI) slashResolver(ctx context.Context, q queryBySlashID) *slashing
 	return slash
 }
 
+func (ta *TruAPI) slashesResolver(ctx context.Context) []slashing.Slash {
+	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
+	if !ok {
+		return make([]slashing.Slash, 0)
+	}
+
+	settings := ta.settingsResolver(ctx)
+	if !contains(settings.ClaimAdmins, user.Address) {
+		return make([]slashing.Slash, 0)
+	}
+
+	queryRoute := path.Join(slashing.ModuleName, slashing.QuerySlashes)
+	res, err := ta.Query(queryRoute, struct{}{}, slashing.ModuleCodec)
+	if err != nil {
+		fmt.Println("slashesResolver err: ", err)
+		return nil
+	}
+
+	slashes := make([]slashing.Slash, 0)
+	err = slashing.ModuleCodec.UnmarshalJSON(res, &slashes)
+	if err != nil {
+		fmt.Println("[]slashing.Slash UnmarshalJSON err: ", err)
+		return nil
+	}
+
+	return slashes
+}
+
 func (ta *TruAPI) claimArgumentSlashesResolver(ctx context.Context, q staking.Argument) []slashing.Slash {
 	queryRoute := path.Join(slashing.ModuleName, slashing.QueryArgumentSlashes)
 	res, err := ta.Query(queryRoute, slashing.QueryArgumentSlashesParams{ArgumentID: q.ID}, slashing.ModuleCodec)

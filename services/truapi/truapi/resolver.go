@@ -40,6 +40,10 @@ type queryByStakeID struct {
 	ID uint64 `graphql:"id"`
 }
 
+type queryBySlashID struct {
+	ID uint64 `graphql:"id"`
+}
+
 type queryByAddress struct {
 	ID string `graphql:"id"`
 }
@@ -569,6 +573,23 @@ func (ta *TruAPI) claimArgumentStakesResolver(ctx context.Context, q staking.Arg
 	return stakes
 }
 
+func (ta *TruAPI) slashResolver(ctx context.Context, q queryBySlashID) *slashing.Slash {
+	queryRoute := path.Join(slashing.ModuleName, slashing.QuerySlash)
+	res, err := ta.Query(queryRoute, slashing.QuerySlashParams{ID: q.ID}, slashing.ModuleCodec)
+	if err != nil {
+		fmt.Println("slashResolver err: ", err)
+		return nil
+	}
+
+	slash := new(slashing.Slash)
+	err = slashing.ModuleCodec.UnmarshalJSON(res, slash)
+	if err != nil {
+		return nil
+	}
+
+	return slash
+}
+
 func (ta *TruAPI) claimArgumentSlashesResolver(ctx context.Context, q staking.Argument) []slashing.Slash {
 	queryRoute := path.Join(slashing.ModuleName, slashing.QueryArgumentSlashes)
 	res, err := ta.Query(queryRoute, slashing.QueryArgumentSlashesParams{ArgumentID: q.ID}, slashing.ModuleCodec)
@@ -828,11 +849,13 @@ func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Trans
 	var tr TransactionReference
 	switch t.Type {
 	case bank.TransactionCuratorReward:
+		slash := ta.slashResolver(ctx, queryBySlashID{t.ReferenceID})
+		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{slash.ArgumentID})
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,
-			Type:        ReferenceNone,
+			Type:        ReferenceArgument,
 			Title:       TransactionTypeTitle[t.Type],
-			Body:        "",
+			Body:        stripmd.Strip(argument.Summary),
 		}
 	case bank.TransactionGift:
 		tr = TransactionReference{
@@ -862,7 +885,7 @@ func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Trans
 		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{stake.ArgumentID})
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,
-			Type:        ReferenceNone,
+			Type:        ReferenceArgument,
 			Title:       TransactionTypeTitle[t.Type],
 			Body:        stripmd.Strip(argument.Summary),
 		}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/TruStory/truchain/x/account"
 	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/types"
@@ -40,64 +41,89 @@ func humanReadable(coin sdk.Coin) string {
 	return fmt.Sprintf("%s%s%s", number, ".", decimal)
 }
 
-func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notifications chan<- *Notification) {
-	for _, tag := range blockEvt.ResultEndBlock.Tags {
-
-		if string(tag.Key) == "expired-stakes" {
-			expiredStakes := make([]staking.Stake, 0)
-			err := staking.ModuleCodec.UnmarshalJSON(tag.Value, &expiredStakes)
-			if err != nil {
-				s.log.WithError(err).Error("error decoding expired stakes")
-				continue
-			}
-			for _, expiredStake := range expiredStakes {
-				if expiredStake.Result == nil {
-					s.log.Errorf("stake result is nil for stake id %d", expiredStake.ID)
-					continue
-				}
-				argument, err := s.getClaimArgument(int64(expiredStake.ArgumentID))
-				if err != nil {
-					s.log.WithError(err).Error("error getting argument ")
-					continue
-				}
-				meta := db.NotificationMeta{
-					ClaimID:    &argument.ClaimArgument.ClaimID,
-					ArgumentID: uint64Ptr(expiredStake.ArgumentID),
-				}
-				if expiredStake.Result.Type == staking.RewardResultArgumentCreation {
-					notifications <- &Notification{
-						To: expiredStake.Creator.String(),
-						Msg: fmt.Sprintf("You just earned %s %s from your Argument on Claim: %s",
-							humanReadable(expiredStake.Result.ArgumentCreatorReward), db.CoinDisplayName,
-							argument.ClaimArgument.Claim.Body),
-						TypeID: int64(expiredStake.ArgumentID),
-						Type:   db.NotificationEarnedStake,
-						Meta:   meta,
-						Action: "Earned TruStake",
-					}
-					continue
-				}
-				notifications <- &Notification{
-					To: expiredStake.Result.ArgumentCreator.String(),
-					Msg: fmt.Sprintf("You just earned %s %s because someone Agreed with you",
-						humanReadable(expiredStake.Result.ArgumentCreatorReward), db.CoinDisplayName,
-					),
-					TypeID: int64(expiredStake.ArgumentID),
-					Type:   db.NotificationEarnedStake,
-					Meta:   meta,
-					Action: "Earned TruStake",
-				}
-				notifications <- &Notification{
-					To: expiredStake.Result.StakeCreator.String(),
-					Msg: fmt.Sprintf("You just earned %s %s on an argument you agreed on",
-						humanReadable(expiredStake.Result.StakeCreatorReward), db.CoinDisplayName,
-					),
-					TypeID: int64(expiredStake.ArgumentID),
-					Type:   db.NotificationEarnedStake,
-					Meta:   meta,
-					Action: "Earned TruStake",
-				}
-			}
+func (s *service) processExpiredStakes(data []byte, notifications chan<- *Notification) {
+	expiredStakes := make([]staking.Stake, 0)
+	err := staking.ModuleCodec.UnmarshalJSON(data, &expiredStakes)
+	if err != nil {
+		s.log.WithError(err).Error("error decoding expired stakes")
+		return
+	}
+	for _, expiredStake := range expiredStakes {
+		if expiredStake.Result == nil {
+			s.log.Errorf("stake result is nil for stake id %d", expiredStake.ID)
+			return
 		}
+		argument, err := s.getClaimArgument(int64(expiredStake.ArgumentID))
+		if err != nil {
+			s.log.WithError(err).Error("error getting argument ")
+			return
+		}
+		meta := db.NotificationMeta{
+			ClaimID:    &argument.ClaimArgument.ClaimID,
+			ArgumentID: uint64Ptr(expiredStake.ArgumentID),
+		}
+		if expiredStake.Result.Type == staking.RewardResultArgumentCreation {
+			notifications <- &Notification{
+				To: expiredStake.Creator.String(),
+				Msg: fmt.Sprintf("You just earned %s %s from your Argument on Claim: %s",
+					humanReadable(expiredStake.Result.ArgumentCreatorReward), db.CoinDisplayName,
+					argument.ClaimArgument.Claim.Body),
+				TypeID: int64(expiredStake.ArgumentID),
+				Type:   db.NotificationEarnedStake,
+				Meta:   meta,
+				Action: "Earned TruStake",
+			}
+			return
+		}
+		notifications <- &Notification{
+			To: expiredStake.Result.ArgumentCreator.String(),
+			Msg: fmt.Sprintf("You just earned %s %s because someone Agreed with you",
+				humanReadable(expiredStake.Result.ArgumentCreatorReward), db.CoinDisplayName,
+			),
+			TypeID: int64(expiredStake.ArgumentID),
+			Type:   db.NotificationEarnedStake,
+			Meta:   meta,
+			Action: "Earned TruStake",
+		}
+		notifications <- &Notification{
+			To: expiredStake.Result.StakeCreator.String(),
+			Msg: fmt.Sprintf("You just earned %s %s on an argument you agreed on",
+				humanReadable(expiredStake.Result.StakeCreatorReward), db.CoinDisplayName,
+			),
+			TypeID: int64(expiredStake.ArgumentID),
+			Type:   db.NotificationEarnedStake,
+			Meta:   meta,
+			Action: "Earned TruStake",
+		}
+	}
+}
+
+func (s *service) processUnjailedAccounts(data []byte, notifications chan<- *Notification) {
+	unjailed := make([]string, 0)
+	err := account.ModuleCodec.UnmarshalJSON(data, &unjailed)
+	if err != nil {
+		s.log.WithError(err).Error("error decoding unjailed accounts")
+		return
+	}
+
+	for _, acc := range unjailed {
+		notifications <- &Notification{
+			To:     acc,
+			Msg:    "Hooray you got out of jail!",
+			Type:   db.NotificationUnjailed,
+			Action: "Unjailed",
+		}
+	}
+}
+func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notifications chan<- *Notification) {
+
+	for _, tag := range blockEvt.ResultEndBlock.Tags {
+		switch k := string(tag.Key); k {
+		case "expired-stakes":
+			s.processExpiredStakes(tag.Value, notifications)
+		case "unjailed-accounts":
+			s.processUnjailedAccounts(tag.Value, notifications)
+		}
+
 	}
 }

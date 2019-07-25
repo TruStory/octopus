@@ -11,13 +11,15 @@ import (
 	"syscall"
 	"time"
 
-	truCtx "github.com/TruStory/octopus/services/truapi/context"
-	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/appleboy/gorush/gorush"
 	"github.com/machinebox/graphql"
 	"github.com/sirupsen/logrus"
 	"github.com/tendermint/tendermint/rpc/client"
 	"github.com/tendermint/tendermint/types"
+	stripmd "github.com/writeas/go-strip-markdown"
+
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
+	"github.com/TruStory/octopus/services/truapi/db"
 )
 
 const (
@@ -146,9 +148,10 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 				currentTokens := tokens[deviceToken.Platform]
 				tokens[deviceToken.Platform] = append(currentTokens, deviceToken.Token)
 			}
+
 			pushNotification := PushNotification{
 				Title: title,
-				Body:  msg,
+				Body:  stripmd.Strip(msg),
 				NotificationData: NotificationData{
 					ID:        notificationEvent.ID,
 					TypeID:    notification.TypeID,
@@ -233,7 +236,8 @@ func (s *service) run(stop <-chan struct{}) {
 
 	remote := getEnv("REMOTE_ENDPOINT", "tcp://0.0.0.0:26657")
 	client := client.NewHTTP(remote, "/websocket")
-	tmQuery := "tru.event = 'Push'"
+	tmTxQuery := "tru.event.tx = 'Push'"
+	tmBlockQuery := "tru.event.block = 'Push'"
 	err := client.Start()
 	if err != nil {
 		s.log.WithError(err).Fatal("error starting client")
@@ -248,12 +252,17 @@ func (s *service) run(stop <-chan struct{}) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	txsCh, err := client.Subscribe(ctx, "trustory-push-client", tmQuery)
+	txsCh, err := client.Subscribe(ctx, "trustory-push-tx-client", tmTxQuery)
+	if err != nil {
+		s.log.WithError(err).Fatal("could not connect to remote endpoint")
+	}
+	blocksCh, err := client.Subscribe(ctx, "trustory-push-block-client", tmBlockQuery)
 	if err != nil {
 		s.log.WithError(err).Fatal("could not connect to remote endpoint")
 	}
 	s.logChainStatus(client)
-	s.log.Infof("subscribing to query event %s", tmQuery)
+	s.log.Infof("subscribing to query event %s", tmTxQuery)
+	s.log.Infof("subscribing to query event %s", tmBlockQuery)
 	notificationsCh := make(chan *Notification)
 	cNotificationsCh := make(chan *CommentNotificationRequest)
 	go s.startHTTP(stop, cNotificationsCh)
@@ -262,6 +271,13 @@ func (s *service) run(stop <-chan struct{}) {
 	for {
 		select {
 		case event := <-txsCh:
+			switch v := event.Data.(type) {
+			case types.EventDataTx:
+				s.processTxEvent(v, notificationsCh)
+			case types.EventDataNewBlock:
+				s.processBlockEvent(v, notificationsCh)
+			}
+		case event := <-blocksCh:
 			switch v := event.Data.(type) {
 			case types.EventDataTx:
 				s.processTxEvent(v, notificationsCh)

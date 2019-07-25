@@ -858,11 +858,13 @@ func (ta *TruAPI) transactionReferenceResolver(ctx context.Context, t bank.Trans
 	case bank.TransactionInterestArgumentCreationSlashed:
 		fallthrough
 	case bank.TransactionInterestUpvoteReceivedSlashed:
+		stake := ta.stakeResolver(ctx, queryByStakeID{t.ReferenceID})
+		argument := ta.claimArgumentResolver(ctx, queryByArgumentID{stake.ArgumentID})
 		tr = TransactionReference{
 			ReferenceID: t.ReferenceID,
 			Type:        ReferenceNone,
 			Title:       TransactionTypeTitle[t.Type],
-			Body:        "",
+			Body:        stripmd.Strip(argument.Summary),
 		}
 	case bank.TransactionUpvote:
 		fallthrough

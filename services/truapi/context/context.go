@@ -85,6 +85,11 @@ type ParamsConfig struct {
 	BlockInterval    int `mapstructure:"block-interval"`
 }
 
+// TypeformConfig is the config for the typeform API
+type TypeformConfig struct {
+	AccessToken string `mapstructure:"typeform-access-token"`
+}
+
 // Config contains all the config variables for the API server
 type Config struct {
 	ChainID   string `mapstructure:"chain-id"`
@@ -99,6 +104,7 @@ type Config struct {
 	Web       WebConfig
 	Community CommunityConfig
 	Params    ParamsConfig
+	Typeform  TypeformConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

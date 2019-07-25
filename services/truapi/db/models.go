@@ -30,6 +30,7 @@ type Mutations interface {
 	AddClaimOfTheDayID(claimOfTheDayID *ClaimOfTheDayID) error
 	DeleteClaimOfTheDayID(communityID string) error
 	AddClaimImage(claimImage *ClaimImage) error
+	AddUser(user *User) error
 }
 
 // Queries read from the database

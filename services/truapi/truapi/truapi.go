@@ -106,6 +106,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/presigned", WrapHandler(ta.HandlePresigned))
 	api.Handle("/unsigned", WrapHandler(ta.HandleUnsigned))
 	api.Handle("/register", WrapHandler(ta.HandleRegistration))
+	api.Handle("/register-email", WrapHandler(ta.HandleRegistrationViaEmail))
 	api.Handle("/user", WrapHandler(ta.HandleUserDetails))
 	api.Handle("/user/search", WrapHandler(ta.HandleUsernameSearch))
 	api.Handle("/notification", WithUser(apiCtx, WrapHandler(ta.HandleNotificationEvent)))
@@ -122,6 +123,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/claim_of_the_day", WithUser(apiCtx, WrapHandler(ta.HandleClaimOfTheDayID)))
 	api.Handle("/claim/image", WithUser(apiCtx, WrapHandler(ta.HandleClaimImage)))
 	api.HandleFunc("/spotlight", ta.HandleSpotlight)
+	api.Handle("/webhooks/typeform", WrapHandler(ta.HandleTypeformWebhook))
 
 	if apiCtx.Config.App.MockRegistration {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))

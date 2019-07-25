@@ -87,11 +87,11 @@ func (ta *TruAPI) HandleTypeformWebhook(r *http.Request) chttp.Response {
 	var payload TypeformPayload
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}
 	err = json.Unmarshal(reqBody, &payload)
 	if err != nil {
-		chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}
 
 	firstName, lastName, username, email := getSignupRequestDetailsFromPayload(payload)
@@ -105,12 +105,12 @@ func (ta *TruAPI) HandleTypeformWebhook(r *http.Request) chttp.Response {
 
 	err = ta.DBClient.AddUser(user)
 	if err != nil {
-		chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}
 
 	response, err := json.Marshal(user)
 	if err != nil {
-		chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}
 
 	return chttp.SimpleResponse(200, response)

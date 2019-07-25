@@ -31,6 +31,8 @@ type Mutations interface {
 	DeleteClaimOfTheDayID(communityID string) error
 	AddClaimImage(claimImage *ClaimImage) error
 	AddUser(user *User) error
+	ApproveUserByID(id uint64) error
+	RejectUserByID(id uint64) error
 }
 
 // Queries read from the database

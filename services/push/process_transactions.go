@@ -1,11 +1,16 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+
+	"github.com/TruStory/truchain/x/slashing"
+	slashingtags "github.com/TruStory/truchain/x/slashing/tags"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 
 	"github.com/TruStory/truchain/x/staking"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/types"
 )
 
@@ -110,6 +115,109 @@ func (s *service) processUpvote(data []byte, notifications chan<- *Notification)
 	}
 }
 
+func getTagValue(key string, tags sdk.Tags) ([]byte, bool) {
+	for _, tag := range tags.ToKVPairs() {
+		if string(tag.Key) == key {
+			return tag.Value, true
+		}
+	}
+	return nil, false
+}
+
+func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
+	notifications chan<- *Notification, meta db.NotificationMeta, argumentID int64, minCount string) {
+	slashed := make(map[string]bool)
+	for _, p := range punishResults {
+		if p.Type == slashing.PunishmentCuratorRewarded {
+			continue
+		}
+		slashed[p.AppAccAddress.String()] = true
+	}
+
+	for k := range slashed {
+		notifications <- &Notification{
+			To: k,
+			Msg: fmt.Sprintf("You've been penalized! You've either wrote an argument that has been marked Not Helpful %s times or Agreed with an argument marked as Not Helpful %s times.",
+				minCount, minCount),
+			TypeID: argumentID,
+			Type:   db.NotificationSlashed,
+			Meta:   meta,
+			Action: "Slashed",
+		}
+	}
+
+	for _, p := range punishResults {
+
+		if p.Type == slashing.PunishmentCuratorRewarded {
+			notifications <- &Notification{
+				To: p.AppAccAddress.String(),
+				Msg: fmt.Sprintf("You just earned %s %s from an argument you marked as Not Helpful",
+					humanReadable(p.Coin), db.CoinDisplayName),
+				TypeID: argumentID,
+				Type:   db.NotificationEarnedStake,
+				Meta:   meta,
+				Action: "Earned TruStake",
+			}
+		}
+		if p.Type == slashing.PunishmentJailed {
+			notifications <- &Notification{
+				To:     p.AppAccAddress.String(),
+				Msg:    "You've been slashed too many times and sent to jail. Basic privileges will be stripped.",
+				TypeID: argumentID,
+				Type:   db.NotificationJailed,
+				Meta:   meta,
+				Action: "Jailed",
+			}
+		}
+	}
+
+}
+func (s *service) processSlash(data []byte, tags sdk.Tags, notifications chan<- *Notification) {
+	slash := slashing.Slash{}
+	err := slashing.ModuleCodec.UnmarshalJSON(data, &slash)
+	if err != nil {
+		s.log.WithError(err).Error("error decoding argument created event")
+		return
+	}
+	argument, err := s.getArgumentSummary(int64(slash.ArgumentID))
+	if err != nil {
+		s.log.WithError(err).Error("error getting participants ")
+		return
+	}
+	meta := db.NotificationMeta{
+		ClaimID:    &argument.ClaimArgument.ClaimID,
+		ArgumentID: uint64Ptr(slash.ArgumentID),
+	}
+
+	reason := slash.Reason.String()
+	if slash.Reason == slashing.SlashReasonOther {
+		reason = slash.DetailedReason
+	}
+	notifications <- &Notification{
+		To:     argument.ClaimArgument.Creator.Address,
+		Msg:    fmt.Sprintf("Someone marked your argument as **Not Helpful** because: **%s** ", reason),
+		TypeID: int64(slash.ArgumentID),
+		Type:   db.NotificationNotHelpful,
+		Meta:   meta,
+		Action: "Not Helpful received on an Argument",
+	}
+
+	b, ok := getTagValue(slashingtags.SlashResults, tags)
+	minSlashCount, _ := getTagValue("min-slash-count", tags)
+	count := string(minSlashCount)
+	if ok {
+		punishResults := make([]slashing.PunishmentResult, 0)
+		err := json.Unmarshal(b, &punishResults)
+		if err != nil {
+			s.log.WithError(err).Warn("error decoding punish results")
+		}
+
+		if err == nil {
+			s.notifySlashes(punishResults, notifications, meta, int64(slash.ArgumentID), count)
+		}
+	}
+
+}
 func (s *service) processTxEvent(evt types.EventDataTx, notifications chan<- *Notification) {
 	for _, tag := range evt.Result.Tags {
 		action := string(tag.Value)
@@ -118,6 +226,8 @@ func (s *service) processTxEvent(evt types.EventDataTx, notifications chan<- *No
 			s.processArgumentCreated(evt.Result.Data, notifications)
 		case "create-upvote":
 			s.processUpvote(evt.Result.Data, notifications)
+		case "create-slash":
+			s.processSlash(evt.Result.Data, evt.Result.Tags, notifications)
 		}
 	}
 }

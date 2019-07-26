@@ -126,7 +126,10 @@ func (ta *TruAPI) HandleTypeformWebhook(r *http.Request) chttp.Response {
 
 func validateTypeformPayload(ta *TruAPI, request *http.Request, payload []byte) error {
 	mac := hmac.New(sha256.New, []byte(ta.APIContext.Config.Typeform.PayloadSecret))
-	mac.Write(payload)
+	_, err := mac.Write(payload)
+	if err != nil {
+		return errors.New("payload could not be authorised")
+	}
 	hash := mac.Sum(nil)
 	hash64 := base64.StdEncoding.EncodeToString(hash)
 

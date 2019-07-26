@@ -2,6 +2,7 @@ package truapi
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -25,8 +26,82 @@ type UserTwitterProfileResponse struct {
 	AvatarURI string `json:"avatarURI"`
 }
 
+// UpdateUserViaTokenRequest updates a user via one-time use token
+type UpdateUserViaTokenRequest struct {
+	ID       uint64 `json:"id"`
+	Token    string `json:"token"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 // HandleUserDetails takes a `UserRequest` and returns a `UserResponse`
 func (ta *TruAPI) HandleUserDetails(r *http.Request) chttp.Response {
+	switch r.Method {
+	case http.MethodPut:
+		return ta.updateUserDetails(r)
+	default:
+		return ta.getUserDetails(r)
+	}
+}
+
+func (ta *TruAPI) updateUserDetails(r *http.Request) chttp.Response {
+	// There are two scenarios when a user can be updated:
+	// a.) When users are setting their username + password (signing up) after admin approval (one-time process)
+	// b.) When users are updating their profile (bio, photo, etc) from their account settings
+	// To update a user, either the user cookie has to be present (for [scenario b]),
+	// or a token has to be present (for [scenario a]).
+
+	// attempt to get the cookie
+	_, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
+	if err == http.ErrNoCookie {
+		// no cookie present; proceed via token
+		return ta.updateUserDetailsViaRequestToken(r)
+	}
+	if err != nil {
+		return chttp.SimpleErrorResponse(401, err)
+	}
+
+	// cookie found, proceed via cookie
+	return ta.updateUserDetailsViaCookie(r)
+}
+
+func (ta *TruAPI) updateUserDetailsViaRequestToken(r *http.Request) chttp.Response {
+	var request UpdateUserViaTokenRequest
+	reqBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+	}
+	err = json.Unmarshal(reqBody, &request)
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+	}
+
+	err = ta.DBClient.SignupUser(request.ID, request.Token, request.Username, request.Password)
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+	}
+
+	return chttp.SimpleResponse(http.StatusOK, nil)
+
+}
+
+func (ta *TruAPI) updateUserDetailsViaCookie(r *http.Request) chttp.Response {
+	user, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
+	if err != nil {
+		return chttp.SimpleErrorResponse(401, err)
+	}
+
+	// TODO: implement the code to edit profile
+
+	response, err := json.Marshal(user)
+	if err != nil {
+		return chttp.SimpleErrorResponse(401, err)
+	}
+
+	return chttp.SimpleResponse(http.StatusOK, response)
+}
+
+func (ta *TruAPI) getUserDetails(r *http.Request) chttp.Response {
 	user, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
 	if err == http.ErrNoCookie {
 		return chttp.SimpleErrorResponse(401, err)

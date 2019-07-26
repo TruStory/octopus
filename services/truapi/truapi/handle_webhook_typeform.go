@@ -96,11 +96,11 @@ func (ta *TruAPI) HandleTypeformWebhook(r *http.Request) chttp.Response {
 
 	firstName, lastName, username, email := getSignupRequestDetailsFromPayload(payload)
 	user := &db.User{
-		FirstName:    firstName,
-		LastName:     lastName,
-		Username:     username,
-		Email:        email,
-		RequestToken: payload.FormResponse.Token,
+		FirstName: firstName,
+		LastName:  lastName,
+		Username:  username,
+		Email:     email,
+		Token:     payload.FormResponse.Token,
 	}
 
 	err = ta.DBClient.AddUser(user)

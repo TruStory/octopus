@@ -414,17 +414,14 @@ func (ta *TruAPI) removeClaimOfTheDay(claims []claim.Claim, communityID string) 
 
 func (ta *TruAPI) filterFlaggedClaims(claims []claim.Claim) ([]claim.Claim, error) {
 	unflaggedClaims := make([]claim.Claim, 0)
+
+	flaggedClaimsIDs, err := ta.DBClient.FlaggedStoriesIDs(ta.APIContext.Config.Flag.Admin, ta.APIContext.Config.Flag.Limit)
+	if err != nil {
+		return claims, err
+	}
+
 	for _, claim := range claims {
-		claimFlags, err := ta.DBClient.FlaggedStoriesByStoryID(int64(claim.ID))
-		if err != nil {
-			return nil, err
-		}
-		if len(claimFlags) > 0 {
-			if claimFlags[0].Creator == ta.APIContext.Config.Flag.Admin {
-				continue
-			}
-		}
-		if len(claimFlags) < ta.APIContext.Config.Flag.Limit {
+		if !containsInt64(flaggedClaimsIDs, int64(claim.ID)) {
 			unflaggedClaims = append(unflaggedClaims, claim)
 		}
 	}
@@ -1501,6 +1498,15 @@ func (ta *TruAPI) invitesResolver(ctx context.Context) []db.Invite {
 }
 
 func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+func containsInt64(s []int64, e int64) bool {
 	for _, a := range s {
 		if a == e {
 			return true

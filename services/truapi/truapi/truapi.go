@@ -404,9 +404,14 @@ func (ta *TruAPI) RegisterResolvers() {
 		"stake": func(ctx context.Context, q staking.Stake) sdk.Coin { return q.Amount },
 	})
 
+	ta.GraphQLClient.RegisterQueryResolver("slashes", ta.slashesResolver)
+
 	ta.GraphQLClient.RegisterObjectResolver("Slash", slashing.Slash{}, map[string]interface{}{
 		"id":         func(_ context.Context, q slashing.Slash) uint64 { return q.ID },
 		"argumentId": func(_ context.Context, q slashing.Slash) uint64 { return q.ArgumentID },
+		"argument": func(ctx context.Context, q slashing.Slash) *staking.Argument {
+			return ta.claimArgumentResolver(ctx, queryByArgumentID{ID: q.ArgumentID})
+		},
 		"creator": func(ctx context.Context, q slashing.Slash) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},

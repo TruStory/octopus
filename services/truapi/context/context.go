@@ -87,7 +87,7 @@ type ParamsConfig struct {
 
 // TypeformConfig is the config for the typeform API
 type TypeformConfig struct {
-	AccessToken string `mapstructure:"typeform-access-token"`
+	PayloadSecret string `mapstructure:"typeform-payload-secret"`
 }
 
 // AWSConfig is the config for the AWS SDK

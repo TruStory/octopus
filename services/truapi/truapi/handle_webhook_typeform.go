@@ -1,7 +1,11 @@
 package truapi
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -83,11 +87,15 @@ func (d *Date) UnmarshalJSON(buf []byte) error {
 
 // HandleTypeformWebhook handles the webhook payloads from the typeform service
 func (ta *TruAPI) HandleTypeformWebhook(r *http.Request) chttp.Response {
-
 	var payload TypeformPayload
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+	}
+
+	err = validateTypeformPayload(ta, r, reqBody)
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusUnauthorized, err)
 	}
 	err = json.Unmarshal(reqBody, &payload)
 	if err != nil {
@@ -114,6 +122,20 @@ func (ta *TruAPI) HandleTypeformWebhook(r *http.Request) chttp.Response {
 	}
 
 	return chttp.SimpleResponse(200, response)
+}
+
+func validateTypeformPayload(ta *TruAPI, request *http.Request, payload []byte) error {
+	mac := hmac.New(sha256.New, []byte(ta.APIContext.Config.Typeform.PayloadSecret))
+	mac.Write(payload)
+	hash := mac.Sum(nil)
+	hash64 := base64.StdEncoding.EncodeToString(hash)
+
+	// Typeform-Signature: sha256=the-hmac-sha256-hash-of-the-request-here
+	if request.Header.Get("Typeform-Signature") != "sha256="+hash64 {
+		return errors.New("payload could not be authorised")
+	}
+
+	return nil
 }
 
 func getSignupRequestDetailsFromPayload(payload TypeformPayload) (string, string, string, string) {

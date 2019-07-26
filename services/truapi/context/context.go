@@ -90,6 +90,12 @@ type TypeformConfig struct {
 	AccessToken string `mapstructure:"typeform-access-token"`
 }
 
+// AWSConfig is the config for the AWS SDK
+type AWSConfig struct {
+	Region string `mapstructure:"aws-region"`
+	Sender string `mapstructure:"aws-ses-sender"`
+}
+
 // Config contains all the config variables for the API server
 type Config struct {
 	ChainID   string `mapstructure:"chain-id"`
@@ -105,6 +111,7 @@ type Config struct {
 	Community CommunityConfig
 	Params    ParamsConfig
 	Typeform  TypeformConfig
+	AWS       AWSConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

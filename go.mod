@@ -8,7 +8,7 @@ require (
 	github.com/TruStory/truchain v0.1.26-0.20190723222107-23ca5c3c919c
 	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
-	github.com/aws/aws-sdk-go v1.18.1
+	github.com/aws/aws-sdk-go v1.21.5
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32
 	github.com/corpix/uarand v0.1.0 // indirect
 	github.com/cosmos/cosmos-sdk v0.28.2-0.20190601143109-dcdabc7e6e20

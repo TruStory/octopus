@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TruStory/octopus/services/truapi/postman"
+
 	"github.com/TruStory/octopus/services/truapi/chttp"
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
@@ -43,6 +45,7 @@ type TruAPI struct {
 	APIContext    truCtx.TruAPIContext
 	GraphQLClient *graphql.Client
 	DBClient      db.Datastore
+	Postman       *postman.Postman
 
 	// notifications
 	notificationsInitialized bool
@@ -57,6 +60,7 @@ func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 		APIContext:              apiCtx,
 		GraphQLClient:           graphql.NewGraphQLClient(),
 		DBClient:                db.NewDBClient(apiCtx.Config),
+		Postman:                 postman.NewPostman(apiCtx.Config),
 		commentsNotificationsCh: make(chan CommentNotificationRequest),
 		httpClient: &http.Client{
 			Timeout: time.Second * 5,

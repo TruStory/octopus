@@ -1,6 +1,7 @@
 package truapi
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -42,12 +43,14 @@ func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
 	}
 	request, err := http.NewRequest("GET", spotlightURL, req.Body)
 	if err != nil {
+		fmt.Println("error creating request ", err.Error())
 		render.Error(res, req, err.Error(), http.StatusBadRequest)
 		return
 	}
 	// processing the request
 	response, err := client.Do(request)
 	if err != nil {
+		fmt.Println("error requesting spotlight: ", err.Error())
 		render.Error(res, req, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -55,6 +58,7 @@ func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
 	// reading the response
 	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
+		fmt.Println("error processing spotlight response ", err.Error())
 		render.Error(res, req, err.Error(), http.StatusBadRequest)
 		return
 	}

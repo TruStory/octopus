@@ -43,17 +43,20 @@ func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
 	request, err := http.NewRequest("GET", spotlightURL, req.Body)
 	if err != nil {
 		render.Error(res, req, err.Error(), http.StatusBadRequest)
+		return
 	}
 	// processing the request
 	response, err := client.Do(request)
 	if err != nil {
 		render.Error(res, req, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// reading the response
 	responseBody, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		render.Error(res, req, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// if all went well, sending back the response

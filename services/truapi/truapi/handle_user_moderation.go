@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
+	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/postman/messages"
 )
 
 // Moderation represents the moderation done for a user
@@ -40,6 +42,10 @@ func (ta *TruAPI) HandleUserModeration(r *http.Request) chttp.Response {
 	// TODO: make sure only admins can take this action
 	if request.Moderation == ModerationApproved {
 		err = ta.DBClient.ApproveUserByID(request.UserID)
+		// if approved, send them a signup email
+		if err == nil {
+			err = sendSignupEmail(ta, request.UserID)
+		}
 	} else if request.Moderation == ModerationRejected {
 		err = ta.DBClient.RejectUserByID(request.UserID)
 	} else {
@@ -50,4 +56,24 @@ func (ta *TruAPI) HandleUserModeration(r *http.Request) chttp.Response {
 	}
 
 	return chttp.SimpleResponse(http.StatusOK, nil)
+}
+
+func sendSignupEmail(ta *TruAPI, userID uint64) error {
+	user := db.User{ID: userID}
+	err := ta.DBClient.Find(&user)
+	if err != nil {
+		return err
+	}
+
+	message, err := messages.MakeSignupMessage(ta.Postman, ta.APIContext.Config, user)
+	if err != nil {
+		return err
+	}
+
+	err = ta.Postman.Deliver(*message)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -1,19 +1,24 @@
 package postman
 
 import (
+	"html/template"
+	"log"
+
 	"github.com/TruStory/octopus/services/truapi/context"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
+	packr "github.com/gobuffalo/packr/v2"
 )
 
 // Postman is the client
 type Postman struct {
-	Region  string
-	Sender  string
-	CharSet string
-	SES     *ses.SES
+	Region   string
+	Sender   string
+	CharSet  string
+	SES      *ses.SES
+	Messages map[string]*template.Template
 }
 
 // Message represents an email that can be sent
@@ -26,17 +31,42 @@ type Message struct {
 
 // NewPostman creates the client to deliver SES emails
 func NewPostman(config context.Config) *Postman {
+	// setting up all message templates
+	box := packr.New("Email Templates", "./templates")
+	templates := []string{
+		"signup",
+	}
+	messages := make(map[string]*template.Template)
+	for _, templateName := range templates {
+		templateFilename := templateName + ".html.tmpl"
+		filename, err := box.FindString(templateFilename)
+		if err != nil {
+			log.Fatal(err)
+			panic(err)
+		}
+		parsedTemplate, err := template.New(templateFilename).Parse(filename)
+		if err != nil {
+			log.Fatal(err)
+			panic(err)
+		}
+
+		messages[templateName] = parsedTemplate
+	}
 	session, err := session.NewSession(&aws.Config{
 		Region: aws.String(config.AWS.Region)},
 	)
 	if err != nil {
+		log.Fatal(err)
 		panic(err)
 	}
+
+	// returning the client
 	return &Postman{
-		Region:  config.AWS.Region,
-		Sender:  config.AWS.Sender,
-		CharSet: "UTF-8",
-		SES:     ses.New(session),
+		Region:   config.AWS.Region,
+		Sender:   config.AWS.Sender,
+		CharSet:  "UTF-8",
+		SES:      ses.New(session),
+		Messages: messages,
 	}
 }
 

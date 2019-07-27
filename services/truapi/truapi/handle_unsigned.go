@@ -54,6 +54,8 @@ func (ta *TruAPI) HandleUnsigned(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(400, err)
 	}
 
+	_ = ta.DBClient.DeleteCachedFeeds()
+
 	resBytes, _ := json.Marshal(res)
 
 	return chttp.SimpleResponse(200, resBytes)

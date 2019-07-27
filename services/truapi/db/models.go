@@ -30,6 +30,8 @@ type Mutations interface {
 	AddClaimOfTheDayID(claimOfTheDayID *ClaimOfTheDayID) error
 	DeleteClaimOfTheDayID(communityID string) error
 	AddClaimImage(claimImage *ClaimImage) error
+	AddCachedFeed(cachedFeed *CachedFeed) error
+	DeleteCachedFeeds() error
 }
 
 // Queries read from the database
@@ -58,6 +60,7 @@ type Queries interface {
 	OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error)
 	ClaimOfTheDayIDByCommunityID(communityID string) (int64, error)
 	ClaimImageURL(claimID uint64) (string, error)
+	CachedFeedByID(id string) (string, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

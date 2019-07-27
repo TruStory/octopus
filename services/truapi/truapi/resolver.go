@@ -330,6 +330,12 @@ func (ta *TruAPI) communityIconImageResolver(ctx context.Context, q community.Co
 func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFeedFilter) []claim.Claim {
 	var res []byte
 	var err error
+
+	feed, _ := ta.getCachedFeed(ctx, q)
+	if feed != nil {
+		return *feed
+	}
+
 	if q.CommunityID == "all" {
 		queryRoute := path.Join(claim.QuerierRoute, claim.QueryClaims)
 		res, err = ta.Query(queryRoute, struct{}{}, claim.ModuleCodec)
@@ -359,6 +365,8 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFee
 	}
 
 	filteredClaims := ta.filterFeedClaims(ctx, unflaggedClaims, q.FeedFilter)
+
+	ta.cacheFeed(ctx, q, claims)
 
 	return filteredClaims
 }

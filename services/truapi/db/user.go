@@ -399,18 +399,10 @@ func (c *Client) InvitedUsersByAddress(address string) ([]User, error) {
 
 func isValidEmail(email string) bool {
 	re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-	if !re.MatchString(email) {
-		return false
-	}
-
-	return true
+	return re.MatchString(email)
 }
 
 func isValidUsername(username string) bool {
 	re := regexp.MustCompile("[a-zA-Z0-9_]{1,28}$")
-	if !re.MatchString(username) {
-		return false
-	}
-
-	return true
+	return re.MatchString(username)
 }

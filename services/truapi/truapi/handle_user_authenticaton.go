@@ -50,7 +50,6 @@ func HandleUserAuthentication(ta *TruAPI) http.Handler {
 
 		http.SetCookie(w, cookie)
 		w.WriteHeader(http.StatusNoContent)
-		return
 	}
 
 	return http.HandlerFunc(fn)

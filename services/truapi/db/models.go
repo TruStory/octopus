@@ -35,9 +35,10 @@ type Mutations interface {
 	RejectUserByID(id uint64) error
 	SignupUser(id uint64, token string, username string, password string) error
 	UpdatePassword(id uint64, password *UserPassword) error
+	ResetPassword(id uint64, password string) error
 	UpdateProfile(id uint64, profile *UserProfile) error
 	IssueResetToken(userID uint64) (*PasswordResetToken, error)
-	UseResetToken(userID uint64, token string) error
+	UseResetToken(prt *PasswordResetToken) error
 }
 
 // Queries read from the database
@@ -75,6 +76,7 @@ type Queries interface {
 	InvitedUsers() ([]User, error)
 	InvitedUsersByAddress(address string) ([]User, error)
 	UnusedResetTokensByUser(userID uint64) ([]PasswordResetToken, error)
+	UnusedResetTokenByUserAndToken(userID uint64, token string) (*PasswordResetToken, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

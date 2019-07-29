@@ -3,6 +3,8 @@ package db
 import (
 	"errors"
 	"time"
+
+	"github.com/go-pg/pg"
 )
 
 const (
@@ -18,6 +20,27 @@ type PasswordResetToken struct {
 	UserID uint64    `json:"user_id"`
 	Token  string    `json:"token"`
 	UsedAt time.Time `json:"used_at"`
+}
+
+// UnusedResetTokenByUserAndToken returns the unused reset token by the user id and the token
+func (c *Client) UnusedResetTokenByUserAndToken(userID uint64, token string) (*PasswordResetToken, error) {
+	var prt = new(PasswordResetToken)
+	err := c.Model(prt).
+		Where("used_at IS NULL").
+		Where("deleted_at IS NULL").
+		Where("user_id = ?", userID).
+		Where("token = ?", token).
+		First()
+
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return prt, nil
 }
 
 // UnusedResetTokensByUser returns all the unused reset tokens by the user id, latest first
@@ -68,11 +91,10 @@ func (c *Client) IssueResetToken(userID uint64) (*PasswordResetToken, error) {
 }
 
 // UseResetToken uses a token
-func (c *Client) UseResetToken(userID uint64, token string) error {
-	prt := new(PasswordResetToken)
+func (c *Client) UseResetToken(prt *PasswordResetToken) error {
 	result, err := c.Model(prt).
-		Where("user_id = ?", userID).
-		Where("token = ?", token).
+		Where("user_id = ?", prt.UserID).
+		Where("token = ?", prt.Token).
 		Where("used_at IS NULL").
 		Where("deleted_at IS NULL").
 		Set("used_at = ?", time.Now()).

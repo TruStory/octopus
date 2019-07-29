@@ -202,6 +202,39 @@ func (c *Client) SignupUser(id uint64, token string, username string, password s
 	return nil
 }
 
+// ResetPassword resets the user's password to a new one
+func (c *Client) ResetPassword(id uint64, password string) error {
+	user, err := c.SignedupUserByID(id)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("no such user found")
+	}
+
+	salt := make([]byte, 16)
+	_, err = io.ReadFull(rand.Reader, salt)
+	if err != nil {
+		return err
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword(salt, []byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.Model(user).
+		Where("id = ?", id).
+		Where("deleted_at IS NULL").
+		Set("password = ?", string(hashedPassword)).
+		Update()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // UpdatePassword changes a password for a user
 func (c *Client) UpdatePassword(id uint64, password *UserPassword) error {
 	user, err := c.SignedupUserByID(id)

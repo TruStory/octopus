@@ -123,6 +123,8 @@ func (ta *TruAPI) trendingScore(ctx context.Context, claim claim.Claim) float64 
 	// first 1000 tru staked gives ~9.9 score points
 
 	// increasing time decay causes claims with more stakes to be preferred over newly created claims
+	// default timeDecay is 45000 seconds which means that a claim created right now will have 1 score point
+	// more than a claim created 12.5 hours ago, 2 more score points than a claim created 25 hours ago etc
 	timeDecay := ta.APIContext.Config.Params.TrendingFeedTimeDecay
 
 	score := order + seconds/float64(timeDecay)

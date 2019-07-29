@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/TruStory/octopus/services/truapi/db"
+
 	"github.com/TruStory/octopus/services/truapi/chttp"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 )
@@ -32,6 +34,15 @@ type UpdateUserViaTokenRequest struct {
 	Token    string `json:"token"`
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+// UpdateUserViaCookieRequest updates a user's profile fields
+type UpdateUserViaCookieRequest struct {
+	// Profile fields
+	Profile *db.UserProfile `json:"profile,omitempty"`
+
+	// Password fields
+	Password *db.UserPassword `json:"password,omitempty"`
 }
 
 // HandleUserDetails takes a `UserRequest` and returns a `UserResponse`
@@ -91,14 +102,37 @@ func (ta *TruAPI) updateUserDetailsViaCookie(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(401, err)
 	}
 
-	// TODO: implement the code to edit profile
-
-	response, err := json.Marshal(user)
+	var request UpdateUserViaCookieRequest
+	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return chttp.SimpleErrorResponse(401, err)
+		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+	}
+	err = json.Unmarshal(reqBody, &request)
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}
 
-	return chttp.SimpleResponse(http.StatusOK, response)
+	// if user wants to change their password
+	if request.Password != nil {
+		err = ta.DBClient.UpdatePassword(user.ID, request.Password)
+		if err != nil {
+			return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		}
+
+		return chttp.SimpleResponse(http.StatusOK, nil)
+	}
+
+	// if user wants to change their profile
+	if request.Profile != nil {
+		err = ta.DBClient.UpdateProfile(user.ID, request.Profile)
+		if err != nil {
+			return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		}
+
+		return chttp.SimpleResponse(http.StatusOK, nil)
+	}
+
+	return chttp.SimpleResponse(http.StatusOK, nil)
 }
 
 func (ta *TruAPI) getUserDetails(r *http.Request) chttp.Response {

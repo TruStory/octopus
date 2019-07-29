@@ -52,22 +52,24 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(422, errors.New("This user has already registered"))
 	}
 
-	invite := &db.Invite{
-		Creator:               user.Address,
-		FriendTwitterUsername: request.TwitterUsername,
-		FriendEmail:           request.Email,
+	token, err := generateRandomString(32)
+	if err != nil {
+		return chttp.SimpleErrorResponse(500, err)
 	}
-	err = ta.DBClient.AddInvite(invite)
+	friend := &db.User{
+		FirstName: "friend",
+		LastName:  "friend",
+		Email:     request.Email,
+		InvitedBy: user.Address,
+		Token:     token,
+	}
+	err = ta.DBClient.AddUser(friend)
 	// TODO: error on duplicate entry should return unique error code
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
 	}
-	if invite.ID == 0 {
+	if friend.ID == 0 {
 		return chttp.SimpleErrorResponse(422, errors.New("This user has already been invited"))
 	}
-	respBytes, err := json.Marshal(invite)
-	if err != nil {
-		return chttp.SimpleErrorResponse(500, err)
-	}
-	return chttp.SimpleResponse(200, respBytes)
+	return chttp.SimpleResponse(200, nil)
 }

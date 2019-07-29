@@ -69,6 +69,8 @@ type Queries interface {
 	GetAuthenticatedUser(email, username, password string) (*User, error)
 	UserByEmail(email string) (*User, error)
 	UserByUsername(username string) (*User, error)
+	InvitedUsers() ([]User, error)
+	InvitedUsersByAddress(address string) ([]User, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

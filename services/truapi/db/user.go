@@ -306,9 +306,38 @@ func (c *Client) RejectUserByID(id uint64) error {
 func (c *Client) AddUser(user *User) error {
 	_, err := c.Model(user).
 		Where("email = ?", user.Email).
-		Where("username = ?", user.Username).
+		WhereOr("username = ?", user.Username).
 		OnConflict("DO NOTHING").
 		SelectOrInsert()
 
 	return err
+}
+
+// InvitedUsers returns all the users who are invited
+func (c *Client) InvitedUsers() ([]User, error) {
+	var invitedUsers = make([]User, 0)
+	err := c.Model(&invitedUsers).
+		Where("invited_by IS NOT NULL").
+		Where("deleted_at IS NULL").
+		Select()
+	if err != nil {
+		return invitedUsers, err
+	}
+
+	return invitedUsers, nil
+}
+
+// InvitedUsersByAddress returns all the users who are invited by a particular address
+func (c *Client) InvitedUsersByAddress(address string) ([]User, error) {
+	var invitedUsers = make([]User, 0)
+	err := c.Model(&invitedUsers).
+		Where("invited_by IS NOT NULL").
+		Where("deleted_at IS NULL").
+		Where("invited_by = ?", address).
+		Select()
+	if err != nil {
+		return invitedUsers, err
+	}
+
+	return invitedUsers, nil
 }

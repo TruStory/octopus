@@ -2,6 +2,7 @@ package truapi
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -103,12 +104,16 @@ func (ta *TruAPI) HandleTypeformWebhook(r *http.Request) chttp.Response {
 	}
 
 	firstName, lastName, username, email := getSignupRequestDetailsFromPayload(payload)
+	token, err := generateRandomString(32)
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)
+	}
 	user := &db.User{
 		FirstName: firstName,
 		LastName:  lastName,
 		Username:  username,
 		Email:     email,
-		Token:     payload.FormResponse.Token,
+		Token:     token,
 	}
 
 	err = ta.DBClient.AddUser(user)
@@ -122,6 +127,21 @@ func (ta *TruAPI) HandleTypeformWebhook(r *http.Request) chttp.Response {
 	}
 
 	return chttp.SimpleResponse(200, response)
+}
+
+func generateRandomString(length int) (string, error) {
+	random := make([]byte, 16)
+	_, err := rand.Read(random)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(random), nil
+	// bytes := make([]byte, length)
+	// for i := 0; i < length; i++ {
+	// 	bytes[i] = byte(97 + rand.Intn(25)) // a=97 and z=97+25
+	// }
+	// return string(bytes)
 }
 
 func validateTypeformPayload(ta *TruAPI, request *http.Request, payload []byte) error {

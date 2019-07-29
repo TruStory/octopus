@@ -50,7 +50,7 @@ type Queries interface {
 	NotificationEventsByAddress(addr string) ([]NotificationEvent, error)
 	UnreadNotificationEventsCountByAddress(addr string) (*NotificationsCountResponse, error)
 	UnseenNotificationEventsCountByAddress(addr string) (*NotificationsCountResponse, error)
-	FlaggedStoriesByStoryID(storyID int64) ([]FlaggedStory, error)
+	FlaggedStoriesIDs(flagAdmin string, flagLimit int) ([]int64, error)
 	CommentsByArgumentID(argumentID int64) ([]Comment, error)
 	CommentsByClaimID(claimID uint64) ([]Comment, error)
 	Invites() ([]Invite, error)

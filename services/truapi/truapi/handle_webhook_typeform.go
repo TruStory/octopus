@@ -137,11 +137,6 @@ func generateRandomString(length int) (string, error) {
 	}
 
 	return base64.StdEncoding.EncodeToString(random), nil
-	// bytes := make([]byte, length)
-	// for i := 0; i < length; i++ {
-	// 	bytes[i] = byte(97 + rand.Intn(25)) // a=97 and z=97+25
-	// }
-	// return string(bytes)
 }
 
 func validateTypeformPayload(ta *TruAPI, request *http.Request, payload []byte) error {

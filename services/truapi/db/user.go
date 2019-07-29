@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"io"
+	"regexp"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -39,6 +40,19 @@ type UserPassword struct {
 	Current         string `json:"current"`
 	New             string `json:"new"`
 	NewConfirmation string `json:"new_confirmation"`
+}
+
+// UserByEmailOrUsername selects a user either by email or username
+func (c *Client) UserByEmailOrUsername(identifier string) (*User, error) {
+	if isValidEmail(identifier) {
+		return c.UserByEmail(identifier)
+	}
+
+	if isValidUsername(identifier) {
+		return c.UserByUsername(identifier)
+	}
+
+	return nil, errors.New("no such user")
 }
 
 // UserByEmail returns the signedup user using email
@@ -304,6 +318,14 @@ func (c *Client) RejectUserByID(id uint64) error {
 
 // AddUser upserts the user into the database
 func (c *Client) AddUser(user *User) error {
+	if !isValidEmail(user.Email) {
+		return errors.New("invalid email address")
+	}
+
+	if user.Username != "" && !isValidUsername(user.Username) {
+		return errors.New("usernames can only contain alphabets, numbers and underscore")
+	}
+
 	_, err := c.Model(user).
 		Where("email = ?", user.Email).
 		WhereOr("username = ?", user.Username).
@@ -340,4 +362,22 @@ func (c *Client) InvitedUsersByAddress(address string) ([]User, error) {
 	}
 
 	return invitedUsers, nil
+}
+
+func isValidEmail(email string) bool {
+	re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+	if !re.MatchString(email) {
+		return false
+	}
+
+	return true
+}
+
+func isValidUsername(username string) bool {
+	re := regexp.MustCompile("[a-zA-Z0-9_]{1,28}$")
+	if !re.MatchString(username) {
+		return false
+	}
+
+	return true
 }

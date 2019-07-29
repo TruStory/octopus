@@ -1483,6 +1483,7 @@ func (ta *TruAPI) invitesResolver(ctx context.Context) []db.Invite {
 		strings.EqualFold(twitterProfile.Username, "patel0phone") ||
 		strings.EqualFold(twitterProfile.Username, "iam_preethi") ||
 		strings.EqualFold(twitterProfile.Username, "truted2") ||
+		strings.EqualFold(twitterProfile.Username, "mohitmamoria") ||
 		strings.EqualFold(twitterProfile.Username, "shanev") {
 		invites, err := ta.DBClient.Invites()
 		if err != nil {

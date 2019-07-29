@@ -28,6 +28,46 @@ type User struct {
 	RejectedAt time.Time `json:"rejected_at"`
 }
 
+// UserByEmail returns the signedup user using email
+func (c *Client) UserByEmail(email string) (*User, error) {
+	var user User
+	err := c.Model(&user).
+		Where("email = ?", email).
+		Where("signedup_at IS NOT NULL").
+		Where("deleted_at IS NULL").
+		First()
+
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// UserByUsername returns the signedup user using username
+func (c *Client) UserByUsername(username string) (*User, error) {
+	var user User
+	err := c.Model(&user).
+		Where("username = ?", username).
+		Where("signedup_at IS NOT NULL").
+		Where("deleted_at IS NULL").
+		First()
+
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 // UnsignedupUserByIDAndToken returns the unsignedup user using the combination of id and request_token
 func (c *Client) UnsignedupUserByIDAndToken(id uint64, token string) (*User, error) {
 	var user User
@@ -47,6 +87,32 @@ func (c *Client) UnsignedupUserByIDAndToken(id uint64, token string) (*User, err
 	}
 
 	return &user, nil
+}
+
+// GetAuthenticatedUser authenticates the user and returns the authenticated user
+func (c *Client) GetAuthenticatedUser(email, username, password string) (*User, error) {
+	var user *User
+	var err error
+	if email != "" {
+		// if email is present, we'll first attempt with email
+		user, err = c.UserByEmail(email)
+	} else if username != "" {
+		// then, we'll attempt with username
+		user, err = c.UserByUsername(username)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, errors.New("no such user found")
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return nil, errors.New("no such user found")
+	}
+
+	return user, nil
 }
 
 // SignupUser signs up a user by setting the username and a password

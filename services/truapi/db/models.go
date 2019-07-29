@@ -63,6 +63,9 @@ type Queries interface {
 	ClaimOfTheDayIDByCommunityID(communityID string) (int64, error)
 	ClaimImageURL(claimID uint64) (string, error)
 	UnsignedupUserByIDAndToken(id uint64, token string) (*User, error)
+	GetAuthenticatedUser(email, username, password string) (*User, error)
+	UserByEmail(email string) (*User, error)
+	UserByUsername(username string) (*User, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

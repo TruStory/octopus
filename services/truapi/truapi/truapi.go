@@ -128,6 +128,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/spotlight", ta.HandleSpotlight)
 	api.Handle("/webhooks/typeform", WrapHandler(ta.HandleTypeformWebhook))
 	api.Handle("/users/moderation", WrapHandler(ta.HandleUserModeration))
+	api.Handle("/users/authentication", HandleUserAuthentication(ta))
 
 	if apiCtx.Config.App.MockRegistration {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))

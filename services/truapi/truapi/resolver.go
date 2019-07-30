@@ -1046,15 +1046,15 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 		return Settings{}
 	}
 
-	creatorShare, err := strconv.ParseFloat(stakingParams.CreatorShare.String(), 32)
+	creatorShare, err := strconv.ParseFloat(stakingParams.CreatorShare.String(), 64)
 	if err != nil {
 		return Settings{}
 	}
-	interestRate, err := strconv.ParseFloat(stakingParams.InterestRate.String(), 32)
+	interestRate, err := strconv.ParseFloat(stakingParams.InterestRate.String(), 64)
 	if err != nil {
 		return Settings{}
 	}
-	curatorShare, err := strconv.ParseFloat(slashingParams.CuratorShare.String(), 32)
+	curatorShare, err := strconv.ParseFloat(slashingParams.CuratorShare.String(), 64)
 	if err != nil {
 		return Settings{}
 	}

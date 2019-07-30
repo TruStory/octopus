@@ -168,10 +168,16 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 		totalParticipantsPlural = ""
 	}
 
+	// HACK: video debate thumbnail
+	image := fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v", ta.APIContext.Config.App.URL, claimID)
+	if claimID == 824 {
+		image = "https://s3-us-west-1.amazonaws.com/trustory/images/22405a4351507698.jpg"
+	}
+
 	return &Tags{
 		Title:       html.EscapeString(claimObj.Body),
-		Description: fmt.Sprintf("%d participant%s, %s TruStake", totalParticipants, totalParticipantsPlural, totalStaked.Amount.Quo(sdk.NewInt(app.Shanev))),
-		Image:       fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v", ta.APIContext.Config.App.URL, claimID),
+		Description: fmt.Sprintf("%d participant%s, %s %s", totalParticipants, totalParticipantsPlural, totalStaked.Amount.Quo(sdk.NewInt(app.Shanev)), db.CoinDisplayName),
+		Image:       image,
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

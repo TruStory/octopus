@@ -80,9 +80,10 @@ type CommunityConfig struct {
 
 // ParamsConfig is the config for off-chain params
 type ParamsConfig struct {
-	CommentMinLength int `mapstructure:"comment-min-length"`
-	CommentMaxLength int `mapstructure:"comment-max-length"`
-	BlockInterval    int `mapstructure:"block-interval"`
+	CommentMinLength      int `mapstructure:"comment-min-length"`
+	CommentMaxLength      int `mapstructure:"comment-max-length"`
+	BlockInterval         int `mapstructure:"block-interval"`
+	TrendingFeedTimeDecay int `mapstructure:"trending-feed-time-decay"`
 }
 
 // Config contains all the config variables for the API server

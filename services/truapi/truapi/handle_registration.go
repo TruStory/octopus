@@ -153,7 +153,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 		_, pubKey := btcec.PrivKeyFromBytes(btcec.S256(), []byte(fmt.Sprintf("%x", newKeyPair.Serialize())))
 
 		keyPair := &db.KeyPair{
-			TwitterProfileID: twitterUser.ID,
+			TwitterProfileID: uint64(twitterUser.ID),
 			PrivateKey:       fmt.Sprintf("%x", newKeyPair.Serialize()),
 			PublicKey:        fmt.Sprintf("%x", pubKey.SerializeCompressed()),
 		}

@@ -6,7 +6,7 @@ import "github.com/go-pg/pg"
 type KeyPair struct {
 	Timestamps
 	ID               int64  `json:"id"`
-	TwitterProfileID int64  `json:"twitter_profile_id"`
+	TwitterProfileID uint64 `json:"twitter_profile_id"`
 	PrivateKey       string `json:"private_key"`
 	PublicKey        string `json:"public_key"`
 }

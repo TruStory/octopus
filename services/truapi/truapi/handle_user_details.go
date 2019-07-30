@@ -1,10 +1,14 @@
 package truapi
 
 import (
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
+
+	"github.com/btcsuite/btcd/btcec"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 
@@ -90,6 +94,33 @@ func (ta *TruAPI) updateUserDetailsViaRequestToken(r *http.Request) chttp.Respon
 	err = ta.DBClient.SignupUser(request.ID, request.Token, request.Username, request.Password)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+	}
+
+	// MILESTONE -- successfully signedup, let's give the user an address (registering user on the chain)
+	newKeyPair, err := btcec.NewPrivateKey(btcec.S256())
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)
+	}
+	// We are converting the private key of the new key pair in hex string,
+	// then back to byte slice, and finally regenerating the private (suppressed) and public key from it.
+	// This way, it returns the kind of public key that cosmos understands.
+	_, pubKey := btcec.PrivKeyFromBytes(btcec.S256(), []byte(fmt.Sprintf("%x", newKeyPair.Serialize())))
+	keyPair := &db.KeyPair{
+		TwitterProfileID: request.ID,
+		PrivateKey:       fmt.Sprintf("%x", newKeyPair.Serialize()),
+		PublicKey:        fmt.Sprintf("%x", pubKey.SerializeCompressed()),
+	}
+	pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)
+	}
+	address, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)
+	}
+	err = ta.DBClient.AddAddressToUser(request.ID, address.String())
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)
 	}
 
 	return chttp.SimpleResponse(http.StatusOK, nil)

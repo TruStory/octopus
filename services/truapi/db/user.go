@@ -202,6 +202,30 @@ func (c *Client) SignupUser(id uint64, token string, username string, password s
 	return nil
 }
 
+// AddAddressToUser adds a cosmos address to the user
+func (c *Client) AddAddressToUser(id uint64, address string) error {
+	user, err := c.SignedupUserByID(id)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("no such user found")
+	}
+
+	_, err = c.Model(user).
+		Where("id = ?", id).
+		Where("signedup_at IS NOT NULL").
+		Where("deleted_at IS NULL").
+		Set("address = ?", address).
+		Update()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ResetPassword resets the user's password to a new one
 func (c *Client) ResetPassword(id uint64, password string) error {
 	user, err := c.SignedupUserByID(id)

@@ -34,6 +34,7 @@ type Mutations interface {
 	ApproveUserByID(id uint64) error
 	RejectUserByID(id uint64) error
 	SignupUser(id uint64, token string, username string, password string) error
+	AddAddressToUser(id uint64, address string) error
 	UpdatePassword(id uint64, password *UserPassword) error
 	ResetPassword(id uint64, password string) error
 	UpdateProfile(id uint64, profile *UserProfile) error

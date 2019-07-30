@@ -27,12 +27,10 @@ require (
 	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/securecookie v1.1.1
 	github.com/graphql-go/graphql v0.7.8 // indirect
-	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/itskingori/go-wkhtml v0.0.0-20180226001954-aa8c15cb0496
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/joho/godotenv v1.3.0
-	github.com/json-iterator/go v1.1.7 // indirect
 	github.com/julianshen/go-readability v0.0.0-20160929030430-accf5123e283 // indirect
 	github.com/julianshen/og v0.0.0-20170124022037-897162c55567
 	github.com/kylelemons/godebug v1.1.0 // indirect
@@ -58,10 +56,10 @@ require (
 	github.com/ugorji/go v1.1.7 // indirect
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
+	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190730183949-1393eb018365 // indirect
-	google.golang.org/grpc v1.22.1 // indirect
+	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
+	google.golang.org/grpc v1.22.0 // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )
 

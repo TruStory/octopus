@@ -182,7 +182,7 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	if err != nil {
 		return
 	}
-	msg := account.NewMsgRegisterKey(registrarAddr, addr, sk, algo, sdk.NewCoins(app.InitialStake))
+	msg := account.NewMsgRegisterKey(registrarAddr, addr, sk, algo, sdk.NewCoins(app.InitialTruStake))
 	err = msg.ValidateBasic()
 	if err != nil {
 		return

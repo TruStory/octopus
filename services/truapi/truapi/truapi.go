@@ -272,7 +272,8 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterObjectResolver("TwitterProfile", db.TwitterProfile{}, map[string]interface{}{
 		"id": func(_ context.Context, q db.TwitterProfile) string { return string(q.ID) },
 		"avatarURI": func(_ context.Context, q db.TwitterProfile) string {
-			return strings.Replace(q.AvatarURI, "_bigger", "_200x200", 1)
+			largeURI := strings.Replace(q.AvatarURI, "_bigger", "_200x200", 1)
+			return strings.Replace(largeURI, "http://", "//", 1)
 		},
 	})
 

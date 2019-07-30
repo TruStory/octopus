@@ -71,7 +71,7 @@ func (s *service) processExpiredStakes(data []byte, notifications chan<- *Notifi
 				TypeID: int64(expiredStake.ArgumentID),
 				Type:   db.NotificationEarnedStake,
 				Meta:   meta,
-				Action: "Earned TruStake",
+				Action: "Earned TRU",
 			}
 			return
 		}
@@ -83,7 +83,7 @@ func (s *service) processExpiredStakes(data []byte, notifications chan<- *Notifi
 			TypeID: int64(expiredStake.ArgumentID),
 			Type:   db.NotificationEarnedStake,
 			Meta:   meta,
-			Action: "Earned TruStake",
+			Action: "Earned TRU",
 		}
 		notifications <- &Notification{
 			To: expiredStake.Result.StakeCreator.String(),
@@ -93,7 +93,7 @@ func (s *service) processExpiredStakes(data []byte, notifications chan<- *Notifi
 			TypeID: int64(expiredStake.ArgumentID),
 			Type:   db.NotificationEarnedStake,
 			Meta:   meta,
-			Action: "Earned TruStake",
+			Action: "Earned TRU",
 		}
 	}
 }

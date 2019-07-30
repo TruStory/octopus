@@ -156,7 +156,7 @@ func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
 				TypeID: argumentID,
 				Type:   db.NotificationEarnedStake,
 				Meta:   meta,
-				Action: "Earned TruStake",
+				Action: "Earned TRU",
 			}
 		}
 		if p.Type == slashing.PunishmentJailed {

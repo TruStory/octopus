@@ -145,6 +145,7 @@ type Settings struct {
 	MinCommentLength  int32
 	MaxCommentLength  int32
 	BlockIntervalTime int32
+	StakeDisplayDenom string
 
 	// deprecated
 	MinArgumentLength int32

@@ -1096,6 +1096,7 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 		MinCommentLength:  int32(tomlParams.CommentMinLength),
 		MaxCommentLength:  int32(tomlParams.CommentMaxLength),
 		BlockIntervalTime: int32(tomlParams.BlockInterval),
+		StakeDisplayDenom: "TruStake",
 
 		// deprecated
 		MinArgumentLength: int32(stakingParams.ArgumentBodyMinLength),

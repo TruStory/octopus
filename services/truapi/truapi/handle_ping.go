@@ -17,6 +17,12 @@ type PingResponse struct {
 
 // HandlePing takes a `PingRequest` and returns a `PingResponse`
 func (ta *TruAPI) HandlePing(r *http.Request) chttp.Response {
+	ca, _ := ta.DBClient.ConnectedAccountByTypeAndID("twitter", "20765528")
+	ca.Meta.Bio = "updated bio"
+	err := ta.DBClient.UpsertConnectedAccount(ca)
+	if err != nil {
+		panic(err)
+	}
 	responseBytes, _ := json.Marshal(PingResponse{
 		Pong: true,
 	})

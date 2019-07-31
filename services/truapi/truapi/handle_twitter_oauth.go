@@ -6,7 +6,7 @@ import (
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
-	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
+	// "github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	gotwitter "github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/gologin"
 	oauth1Login "github.com/dghubble/gologin/oauth1"
@@ -56,11 +56,11 @@ func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
-		cookie, err := cookies.GetLoginCookie(apiCtx, twitterProfile)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		http.SetCookie(w, cookie)
+		// cookie, err := cookies.GetLoginCookie(apiCtx, twitterProfile)
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// }
+		// http.SetCookie(w, cookie)
 		http.Redirect(w, req, apiCtx.Config.Web.AuthLoginRedir, http.StatusFound)
 	}
 	return http.HandlerFunc(fn)

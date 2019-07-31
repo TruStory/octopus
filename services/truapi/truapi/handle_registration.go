@@ -15,7 +15,8 @@ import (
 	"github.com/TruStory/octopus/services/truapi/chttp"
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
-	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
+
+	// "github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
@@ -91,17 +92,17 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
 		return chttp.SimpleErrorResponse(400, err)
 	}
 
-	cookieValue, err := cookies.MakeLoginCookieValue(ta.APIContext, twitterProfile)
-	if err != nil {
-		return chttp.SimpleErrorResponse(400, err)
-	}
+	// cookieValue, err := cookies.MakeLoginCookieValue(ta.APIContext, twitterProfile)
+	// if err != nil {
+	// 	return chttp.SimpleErrorResponse(400, err)
+	// }
 
 	responseBytes, _ := json.Marshal(RegistrationResponse{
-		UserID:               twitterUser.IDStr,
-		Username:             twitterUser.ScreenName,
-		Fullname:             twitterUser.Name,
-		Address:              addr,
-		AuthenticationCookie: cookieValue,
+		UserID:   twitterUser.IDStr,
+		Username: twitterUser.ScreenName,
+		Fullname: twitterUser.Name,
+		Address:  addr,
+		// AuthenticationCookie: cookieValue,
 		TwitterProfile: RegistrationTwitterProfileResponse{
 			Username:  twitterProfile.Username,
 			FullName:  twitterProfile.FullName,
@@ -124,25 +125,30 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 		return "", errors.New("You are not allowed to register")
 	}
 
-	currentTwitterProfile, err := ta.DBClient.TwitterProfileByID(twitterUser.ID)
+	connectedAccount, err := ta.DBClient.ConnectedAccountByTypeAndID("twitter", fmt.Sprintf("%d", twitterUser.ID))
 	if err != nil {
 		return "", err
 	}
 
 	// if user exists,
 	var addr string
-	if currentTwitterProfile.ID != 0 {
-		addr = currentTwitterProfile.Address
-	}
-
-	// Fetch keypair of the user, if already exists
-	keyPair, err := ta.DBClient.KeyPairByTwitterProfileID(twitterUser.ID)
-	if err != nil {
-		return "", err
+	var user *db.User
+	var keyPair *db.KeyPair
+	if connectedAccount != nil {
+		user, err = ta.DBClient.SignedupUserByID(connectedAccount.UserID)
+		if err != nil {
+			return "", err
+		}
+		// Fetch keypair of the user, if already exists
+		keyPair, err = ta.DBClient.KeyPairByUserID(user.ID)
+		if err != nil {
+			return "", err
+		}
+		addr = user.Address
 	}
 
 	// If not available, create new
-	if keyPair.ID == 0 {
+	if keyPair == nil {
 		newKeyPair, err := btcec.NewPrivateKey(btcec.S256())
 		if err != nil {
 			return "", err
@@ -153,9 +159,9 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 		_, pubKey := btcec.PrivKeyFromBytes(btcec.S256(), []byte(fmt.Sprintf("%x", newKeyPair.Serialize())))
 
 		keyPair := &db.KeyPair{
-			TwitterProfileID: uint64(twitterUser.ID),
-			PrivateKey:       fmt.Sprintf("%x", newKeyPair.Serialize()),
-			PublicKey:        fmt.Sprintf("%x", pubKey.SerializeCompressed()),
+			UserID:     1000,
+			PrivateKey: fmt.Sprintf("%x", newKeyPair.Serialize()),
+			PublicKey:  fmt.Sprintf("%x", pubKey.SerializeCompressed()),
 		}
 		err = ta.DBClient.Add(keyPair)
 		if err != nil {
@@ -163,7 +169,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 		}
 
 		// Register with cosmos only if it wasn't registered before.
-		if currentTwitterProfile.ID == 0 {
+		if user == nil {
 			pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
 			if err != nil {
 				return "", err

@@ -40,6 +40,7 @@ type Mutations interface {
 	UpdateProfile(id uint64, profile *UserProfile) error
 	IssueResetToken(userID uint64) (*PasswordResetToken, error)
 	UseResetToken(prt *PasswordResetToken) error
+	UpsertConnectedAccount(connectedAccount *ConnectedAccount) error
 }
 
 // Queries read from the database
@@ -50,6 +51,7 @@ type Queries interface {
 	TwitterProfileByUsername(username string) (*TwitterProfile, error)
 	UsernamesByPrefix(prefix string) ([]string, error)
 	KeyPairByTwitterProfileID(id int64) (KeyPair, error)
+	KeyPairByUserID(userID uint64) (*KeyPair, error)
 	DeviceTokensByAddress(addr string) ([]DeviceToken, error)
 	NotificationEventsByAddress(addr string) ([]NotificationEvent, error)
 	UnreadNotificationEventsCountByAddress(addr string) (*NotificationsCountResponse, error)
@@ -78,6 +80,7 @@ type Queries interface {
 	InvitedUsersByAddress(address string) ([]User, error)
 	UnusedResetTokensByUser(userID uint64) ([]PasswordResetToken, error)
 	UnusedResetTokenByUserAndToken(userID uint64, token string) (*PasswordResetToken, error)
+	ConnectedAccountByTypeAndID(accountType, accountID string) (*ConnectedAccount, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

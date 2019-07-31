@@ -8,7 +8,7 @@ import (
 var RegexValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 // RegexValidUsername for valid username
-var RegexValidUsername = regexp.MustCompile("[a-zA-Z0-9_]{1,28}$")
+var RegexValidUsername = regexp.MustCompile("^[a-zA-Z0-9_]{1,28}$")
 
 // Some helper methods based on the above regex
 

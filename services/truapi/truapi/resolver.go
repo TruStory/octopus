@@ -69,14 +69,6 @@ type claimMetricsBest struct {
 	BackingChallengeDelta sdk.Int
 }
 
-// claimMetricsTrending represents claim metrics within last 24 hours
-type claimMetricsTrending struct {
-	Claim          claim.Claim
-	TotalArguments int
-	TotalComments  int
-	TotalStakes    int64
-}
-
 // appAccountEarningsFilter is query params for filtering the app account's earnings
 type appAccountEarningsFilter struct {
 	ID   string `graphql:"id"`
@@ -1054,15 +1046,15 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 		return Settings{}
 	}
 
-	creatorShare, err := strconv.ParseFloat(stakingParams.CreatorShare.String(), 32)
+	creatorShare, err := strconv.ParseFloat(stakingParams.CreatorShare.String(), 64)
 	if err != nil {
 		return Settings{}
 	}
-	interestRate, err := strconv.ParseFloat(stakingParams.InterestRate.String(), 32)
+	interestRate, err := strconv.ParseFloat(stakingParams.InterestRate.String(), 64)
 	if err != nil {
 		return Settings{}
 	}
-	curatorShare, err := strconv.ParseFloat(slashingParams.CuratorShare.String(), 32)
+	curatorShare, err := strconv.ParseFloat(slashingParams.CuratorShare.String(), 64)
 	if err != nil {
 		return Settings{}
 	}
@@ -1104,6 +1096,7 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 		MinCommentLength:  int32(tomlParams.CommentMinLength),
 		MaxCommentLength:  int32(tomlParams.CommentMaxLength),
 		BlockIntervalTime: int32(tomlParams.BlockInterval),
+		StakeDisplayDenom: "TruStake",
 
 		// deprecated
 		MinArgumentLength: int32(stakingParams.ArgumentBodyMinLength),
@@ -1112,132 +1105,6 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 		MaxSummaryLength:  int32(stakingParams.ArgumentSummaryMaxLength),
 		DefaultStake:      sdk.NewCoin(app.StakeDenom, sdk.NewInt(30*app.Shanev)),
 	}
-}
-
-func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, filter FeedFilter) []claim.Claim {
-	if filter == Latest {
-		// Reverse chronological order
-		return claims
-	} else if filter == Best {
-		// Total amount staked
-		// Total stakers
-		// Total comments
-		// Smallest delta between Backing vs Challenge stake
-		metrics := make([]claimMetricsBest, 0)
-		for _, claim := range claims {
-			totalAmountStaked := claim.TotalBacked.Add(claim.TotalChallenged).Amount
-			totalStakers := claim.TotalStakers
-			totalComments := len(ta.claimCommentsResolver(ctx, queryByClaimID{ID: claim.ID}))
-			var backingChallengeDelta sdk.Int
-			if claim.TotalBacked.IsGTE(claim.TotalChallenged) {
-				backingChallengeDelta = claim.TotalBacked.Sub(claim.TotalChallenged).Amount
-			} else {
-				backingChallengeDelta = claim.TotalChallenged.Sub(claim.TotalBacked).Amount
-			}
-			metric := claimMetricsBest{
-				Claim:                 claim,
-				TotalAmountStaked:     totalAmountStaked,
-				TotalStakers:          totalStakers,
-				TotalComments:         totalComments,
-				BackingChallengeDelta: backingChallengeDelta,
-			}
-			metrics = append(metrics, metric)
-		}
-		sort.Slice(metrics, func(i, j int) bool {
-			if metrics[i].TotalAmountStaked.GT(metrics[j].TotalAmountStaked) {
-				return true
-			}
-			if metrics[i].TotalAmountStaked.LT(metrics[j].TotalAmountStaked) {
-				return false
-			}
-			if metrics[i].TotalStakers > metrics[j].TotalStakers {
-				return true
-			}
-			if metrics[i].TotalStakers < metrics[j].TotalStakers {
-				return false
-			}
-			if metrics[i].TotalComments > metrics[j].TotalComments {
-				return true
-			}
-			if metrics[i].TotalComments < metrics[j].TotalComments {
-				return false
-			}
-			if metrics[i].BackingChallengeDelta.GT(metrics[j].BackingChallengeDelta) {
-				return true
-			}
-			return false
-		})
-		bestClaims := make([]claim.Claim, 0)
-		for _, metric := range metrics {
-			bestClaims = append(bestClaims, metric.Claim)
-		}
-		return bestClaims
-	} else if filter == Trending {
-		// highest volume of activity in last 72 hours
-		// # of new arguments
-		// # of new agree stakes    TODO: for now its only stakes created on arguments written in the last 72 hours
-		// # of new comments
-		metrics := make([]claimMetricsTrending, 0)
-		for _, claim := range claims {
-			comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: claim.ID})
-			recentComments := 0
-			totalComments := 0
-			for _, comment := range comments {
-				totalComments++
-				if comment.CreatedAt.After(time.Now().AddDate(0, 0, -3)) {
-					recentComments++
-				}
-			}
-			arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claim.ID})
-			recentArguments := 0
-			totalArguments := 0
-			var totalStakes int64
-			for _, argument := range arguments {
-				totalArguments++
-				if argument.CreatedTime.After(time.Now().AddDate(0, 0, -3)) {
-					recentArguments++
-					totalStakes += argument.TotalStake.Amount.Int64()
-				}
-			}
-
-			if totalArguments+totalComments > 0 {
-				metric := claimMetricsTrending{
-					Claim:          claim,
-					TotalComments:  recentComments,
-					TotalArguments: recentArguments,
-					TotalStakes:    totalStakes,
-				}
-				metrics = append(metrics, metric)
-			}
-		}
-		sort.Slice(metrics, func(i, j int) bool {
-			if metrics[i].TotalArguments > metrics[j].TotalArguments {
-				return true
-			}
-			if metrics[i].TotalArguments < metrics[j].TotalArguments {
-				return false
-			}
-			if metrics[i].TotalStakes > metrics[j].TotalStakes {
-				return true
-			}
-			if metrics[i].TotalStakes < metrics[j].TotalStakes {
-				return false
-			}
-			if metrics[i].TotalComments > metrics[j].TotalComments {
-				return true
-			}
-			if metrics[i].TotalComments < metrics[j].TotalComments {
-				return false
-			}
-			return metrics[j].Claim.CreatedTime.Before(metrics[i].Claim.CreatedTime)
-		})
-		trendingClaims := make([]claim.Claim, 0)
-		for _, metric := range metrics {
-			trendingClaims = append(trendingClaims, metric.Claim)
-		}
-		return trendingClaims
-	}
-	return claims
 }
 
 func (ta *TruAPI) appAccountCommunityEarningsResolver(ctx context.Context, q queryByAddress) []appAccountCommunityEarning {

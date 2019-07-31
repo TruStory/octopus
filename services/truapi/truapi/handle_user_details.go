@@ -67,7 +67,8 @@ func (ta *TruAPI) updateUserDetails(r *http.Request) chttp.Response {
 	// or a token has to be present (for [scenario a]).
 
 	// attempt to get the cookie
-	_, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
+	u, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
+	fmt.Println(err, u)
 	if err == http.ErrNoCookie {
 		// no cookie present; proceed via token
 		return ta.updateUserDetailsViaRequestToken(r)

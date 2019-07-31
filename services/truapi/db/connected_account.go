@@ -21,7 +21,7 @@ type ConnectedAccount struct {
 	UserID      uint64               `json:"user_id"`
 	AccountType string               `json:"account_type"`
 	AccountID   string               `json:"account_id"`
-	Meta        ConnectedAccountMeta `json:meta"`
+	Meta        ConnectedAccountMeta `json:"meta"`
 }
 
 // ConnectedAccountByTypeAndID returns the connected account by type and id

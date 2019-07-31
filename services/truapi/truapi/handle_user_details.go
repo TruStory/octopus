@@ -32,12 +32,19 @@ type UserTwitterProfileResponse struct {
 	AvatarURI string `json:"avatarURI"`
 }
 
-// UpdateUserViaTokenRequest updates a user via one-time use token
-type UpdateUserViaTokenRequest struct {
-	ID       uint64 `json:"id"`
-	Token    string `json:"token"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+// RegisterUserRequest represents the schema of the http request to create a new user
+type RegisterUserRequest struct {
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	Username  string `json:"username"`
+}
+
+// VerifyUserViaTokenRequest updates a user via one-time use token
+type VerifyUserViaTokenRequest struct {
+	ID    uint64 `json:"id"`
+	Token string `json:"token"`
 }
 
 // UpdateUserViaCookieRequest updates a user's profile fields
@@ -52,6 +59,8 @@ type UpdateUserViaCookieRequest struct {
 // HandleUserDetails takes a `UserRequest` and returns a `UserResponse`
 func (ta *TruAPI) HandleUserDetails(r *http.Request) chttp.Response {
 	switch r.Method {
+	case http.MethodPost:
+		return ta.createNewUser(r)
 	case http.MethodPut:
 		return ta.updateUserDetails(r)
 	default:
@@ -59,30 +68,9 @@ func (ta *TruAPI) HandleUserDetails(r *http.Request) chttp.Response {
 	}
 }
 
-func (ta *TruAPI) updateUserDetails(r *http.Request) chttp.Response {
-	// There are two scenarios when a user can be updated:
-	// a.) When users are setting their username + password (signing up) after admin approval (one-time process)
-	// b.) When users are updating their profile (bio, photo, etc) from their account settings
-	// To update a user, either the user cookie has to be present (for [scenario b]),
-	// or a token has to be present (for [scenario a]).
+func (ta *TruAPI) createNewUser(r *http.Request) chttp.Response {
+	var request RegisterUserRequest
 
-	// attempt to get the cookie
-	u, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
-	fmt.Println(err, u)
-	if err == http.ErrNoCookie {
-		// no cookie present; proceed via token
-		return ta.updateUserDetailsViaRequestToken(r)
-	}
-	if err != nil {
-		return chttp.SimpleErrorResponse(401, err)
-	}
-
-	// cookie found, proceed via cookie
-	return ta.updateUserDetailsViaCookie(r)
-}
-
-func (ta *TruAPI) updateUserDetailsViaRequestToken(r *http.Request) chttp.Response {
-	var request UpdateUserViaTokenRequest
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
@@ -92,12 +80,60 @@ func (ta *TruAPI) updateUserDetailsViaRequestToken(r *http.Request) chttp.Respon
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}
 
-	err = ta.DBClient.SignupUser(request.ID, request.Token, request.Username, request.Password)
+	user := &db.User{
+		FirstName: request.FirstName,
+		LastName:  request.LastName,
+		Email:     request.Email,
+		Password:  request.Password,
+		Username:  request.Username,
+	}
+
+	err = ta.DBClient.SignupUser(user)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}
 
-	// MILESTONE -- successfully signedup, let's give the user an address (registering user on the chain)
+	return chttp.SimpleResponse(http.StatusOK, nil)
+}
+
+func (ta *TruAPI) updateUserDetails(r *http.Request) chttp.Response {
+	// There are two scenarios when a user can be updated:
+	// a.) When users are verifying their email address (via token)
+	// b.) When users are updating their profile (bio, photo, etc) from their account settings
+	// To update a user, either the user cookie has to be present (for [scenario b]),
+	// or a token has to be present (for [scenario a]).
+
+	// attempt to get the cookie
+	_, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
+	if err == http.ErrNoCookie {
+		// no cookie present; proceed via token
+		return ta.verifyUserViaToken(r)
+	}
+	if err != nil {
+		return chttp.SimpleErrorResponse(401, err)
+	}
+
+	// cookie found, proceed via cookie
+	return ta.updateUserDetailsViaCookie(r)
+}
+
+func (ta *TruAPI) verifyUserViaToken(r *http.Request) chttp.Response {
+	var request VerifyUserViaTokenRequest
+	reqBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+	}
+	err = json.Unmarshal(reqBody, &request)
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+	}
+
+	err = ta.DBClient.VerifyUser(request.ID, request.Token)
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+	}
+
+	// MILESTONE -- successfully verified, let's give the user an address (registering user on the chain)
 	newKeyPair, err := btcec.NewPrivateKey(btcec.S256())
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)
@@ -125,7 +161,6 @@ func (ta *TruAPI) updateUserDetailsViaRequestToken(r *http.Request) chttp.Respon
 	}
 
 	return chttp.SimpleResponse(http.StatusOK, nil)
-
 }
 
 func (ta *TruAPI) updateUserDetailsViaCookie(r *http.Request) chttp.Response {

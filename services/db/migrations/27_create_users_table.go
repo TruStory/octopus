@@ -23,7 +23,7 @@ func init() {
 			token VARCHAR(65) DEFAULT NULL,
 			approved_at TIMESTAMP DEFAULT NULL,
 			rejected_at TIMESTAMP DEFAULT NULL,
-			signedup_at TIMESTAMP DEFAULT NULL,
+			verified_at TIMESTAMP DEFAULT NULL,
 			created_at TIMESTAMP DEFAULT NOW(),
 			updated_at TIMESTAMP DEFAULT NOW(),
 			deleted_at TIMESTAMP

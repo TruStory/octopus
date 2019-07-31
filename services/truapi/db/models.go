@@ -33,7 +33,8 @@ type Mutations interface {
 	AddUser(user *User) error
 	ApproveUserByID(id uint64) error
 	RejectUserByID(id uint64) error
-	SignupUser(id uint64, token string, username string, password string) error
+	SignupUser(user *User) error
+	VerifyUser(id uint64, token string) error
 	AddAddressToUser(id uint64, address string) error
 	UpdatePassword(id uint64, password *UserPassword) error
 	ResetPassword(id uint64, password string) error
@@ -70,9 +71,8 @@ type Queries interface {
 	OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error)
 	ClaimOfTheDayIDByCommunityID(communityID string) (int64, error)
 	ClaimImageURL(claimID uint64) (string, error)
-	SignedupUserByID(id uint64) (*User, error)
-	UnsignedupUserByIDAndToken(id uint64, token string) (*User, error)
-	GetAuthenticatedUser(email, username, password string) (*User, error)
+	VerifiedUserByID(id uint64) (*User, error)
+	GetAuthenticatedUser(identifier, password string) (*User, error)
 	UserByEmailOrUsername(identifier string) (*User, error)
 	UserByEmail(email string) (*User, error)
 	UserByUsername(username string) (*User, error)

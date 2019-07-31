@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/base64"
 	"errors"
 	"time"
 
@@ -73,14 +74,14 @@ func (c *Client) IssueResetToken(userID uint64) (*PasswordResetToken, error) {
 	}
 
 	// all well...
-	token, err := generateToken(64)
+	token, err := generateCryptoSafeRandomBytes(64)
 	if err != nil {
 		return nil, errors.New("token could not be generated")
 	}
 
 	prt := &PasswordResetToken{
 		UserID: userID,
-		Token:  token,
+		Token:  base64.StdEncoding.EncodeToString(token),
 	}
 	_, err = c.Model(prt).Insert()
 	if err != nil {

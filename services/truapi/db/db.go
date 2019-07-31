@@ -2,7 +2,6 @@ package db
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
@@ -76,12 +75,12 @@ func (c *Client) FindAll(models interface{}) error {
 }
 
 // Misc functions
-func generateToken(length int) (string, error) {
-	random := make([]byte, 16)
+func generateCryptoSafeRandomBytes(strength int) ([]byte, error) {
+	random := make([]byte, strength)
 	_, err := rand.Read(random)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return base64.StdEncoding.EncodeToString(random), nil
+	return random, nil
 }

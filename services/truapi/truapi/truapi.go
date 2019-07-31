@@ -126,8 +126,6 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/claim_of_the_day", WithUser(apiCtx, WrapHandler(ta.HandleClaimOfTheDayID)))
 	api.Handle("/claim/image", WithUser(apiCtx, WrapHandler(ta.HandleClaimImage)))
 	api.HandleFunc("/spotlight", ta.HandleSpotlight)
-	api.Handle("/webhooks/typeform", WrapHandler(ta.HandleTypeformWebhook))
-	api.Handle("/users/moderation", WrapHandler(ta.HandleUserModeration))
 	api.Handle("/users/password-reset", WrapHandler(ta.HandleUserForgotPassword))
 	api.Handle("/users/authentication", HandleUserAuthentication(ta))
 

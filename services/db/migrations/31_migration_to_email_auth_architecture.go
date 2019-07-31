@@ -18,8 +18,7 @@ func init() {
 			address,
 			created_at,
 			updated_at,
-			approved_at,
-			signedup_at
+			approved_at
 		) SELECT 
 			full_name,
 			email,
@@ -29,8 +28,7 @@ func init() {
 			address,
 			created_at,
 			updated_at,
-			NOW(),
-			NOW() 
+			NOW()
 		FROM twitter_profiles;`)
 		if err != nil {
 			return err

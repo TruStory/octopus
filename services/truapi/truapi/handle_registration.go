@@ -135,7 +135,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
 	var user *db.User
 	var keyPair *db.KeyPair
 	if connectedAccount != nil {
-		user, err = ta.DBClient.SignedupUserByID(connectedAccount.UserID)
+		user, err = ta.DBClient.VerifiedUserByID(connectedAccount.UserID)
 		if err != nil {
 			return "", err
 		}

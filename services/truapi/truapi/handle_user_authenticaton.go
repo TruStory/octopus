@@ -10,9 +10,8 @@ import (
 
 // AuthenticationRequest represents the http request to authenticate a user's account
 type AuthenticationRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Identifier string `json:"identifier"`
+	Password   string `json:"password"`
 }
 
 // HandleUserAuthentication handles the moderation of the users who have requested to signup
@@ -36,7 +35,7 @@ func HandleUserAuthentication(ta *TruAPI) http.Handler {
 			return
 		}
 
-		user, err := ta.DBClient.GetAuthenticatedUser(request.Email, request.Username, request.Password)
+		user, err := ta.DBClient.GetAuthenticatedUser(request.Identifier, request.Password)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

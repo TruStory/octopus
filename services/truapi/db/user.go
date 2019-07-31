@@ -2,6 +2,7 @@ package db
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"io"
 	"regexp"
@@ -22,11 +23,12 @@ type User struct {
 	Username   string    `json:"username"`
 	Email      string    `json:"email"`
 	Address    string    `json:"address"`
-	Password   string    `json:"password"`
+	Password   string    `json:"-"`
 	InvitedBy  string    `json:"invited_by"`
-	Token      string    `json:"token"`
+	Token      string    `json:"-"`
 	ApprovedAt time.Time `json:"approved_at"`
 	RejectedAt time.Time `json:"rejected_at"`
+	VerifiedAt time.Time `json:"verified_at"`
 }
 
 // UserProfile contains the fields that make up the user profile
@@ -55,12 +57,12 @@ func (c *Client) UserByEmailOrUsername(identifier string) (*User, error) {
 	return nil, errors.New("no such user")
 }
 
-// UserByEmail returns the signedup user using email
+// UserByEmail returns the verified user using email
 func (c *Client) UserByEmail(email string) (*User, error) {
 	var user User
 	err := c.Model(&user).
 		Where("email = ?", email).
-		Where("signedup_at IS NOT NULL").
+		Where("verified_at IS NOT NULL").
 		Where("deleted_at IS NULL").
 		First()
 
@@ -75,12 +77,12 @@ func (c *Client) UserByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-// UserByUsername returns the signedup user using username
+// UserByUsername returns the verified user using username
 func (c *Client) UserByUsername(username string) (*User, error) {
 	var user User
 	err := c.Model(&user).
 		Where("username = ?", username).
-		Where("signedup_at IS NOT NULL").
+		Where("verified_at IS NOT NULL").
 		Where("deleted_at IS NULL").
 		First()
 
@@ -95,33 +97,12 @@ func (c *Client) UserByUsername(username string) (*User, error) {
 	return &user, nil
 }
 
-// SignedupUserByID returns the signedup user by ID
-func (c *Client) SignedupUserByID(id uint64) (*User, error) {
+// VerifiedUserByID returns the verified user by ID
+func (c *Client) VerifiedUserByID(id uint64) (*User, error) {
 	var user User
 	err := c.Model(&user).
 		Where("id = ?", id).
-		Where("signedup_at IS NOT NULL").
-		Where("deleted_at IS NULL").
-		First()
-
-	if err == pg.ErrNoRows {
-		return nil, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-// UnsignedupUserByIDAndToken returns the unsignedup user using the combination of id and request_token
-func (c *Client) UnsignedupUserByIDAndToken(id uint64, token string) (*User, error) {
-	var user User
-	err := c.Model(&user).
-		Where("id = ?", id).
-		Where("token = ?", token).
-		Where("signedup_at IS NULL").
+		Where("verified_at IS NOT NULL").
 		Where("deleted_at IS NULL").
 		First()
 
@@ -137,16 +118,9 @@ func (c *Client) UnsignedupUserByIDAndToken(id uint64, token string) (*User, err
 }
 
 // GetAuthenticatedUser authenticates the user and returns the authenticated user
-func (c *Client) GetAuthenticatedUser(email, username, password string) (*User, error) {
-	var user *User
-	var err error
-	if email != "" {
-		// if email is present, we'll first attempt with email
-		user, err = c.UserByEmail(email)
-	} else if username != "" {
-		// then, we'll attempt with username
-		user, err = c.UserByUsername(username)
-	}
+func (c *Client) GetAuthenticatedUser(identifier, password string) (*User, error) {
+	user, err := c.UserByEmailOrUsername(identifier)
+
 	if err != nil {
 		return nil, err
 	}
@@ -162,39 +136,26 @@ func (c *Client) GetAuthenticatedUser(email, username, password string) (*User, 
 	return user, nil
 }
 
-// SignupUser signs up a user by setting the username and a password
-func (c *Client) SignupUser(id uint64, token string, username string, password string) error {
-	user, err := c.UnsignedupUserByIDAndToken(id, token)
+// SignupUser signs up a new user
+func (c *Client) SignupUser(user *User) error {
+	salt, err := generateCryptoSafeRandomBytes(16)
 	if err != nil {
 		return err
 	}
-	if user == nil {
-		return errors.New("no such user found")
-	}
-	if user.ApprovedAt.IsZero() {
-		return errors.New("user is not approved for signing up")
-	}
-
-	salt := make([]byte, 16)
-	_, err = io.ReadFull(rand.Reader, salt)
+	token, err := generateCryptoSafeRandomBytes(32)
 	if err != nil {
 		return err
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword(salt, []byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword(salt, []byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	_, err = c.Model(user).
-		Where("id = ?", id).
-		Where("token = ?", token).
-		Where("signedup_at IS NULL").
-		Where("deleted_at IS NULL").
-		Set("username = ?", username).
-		Set("password = ?", string(hashedPassword)).
-		Set("signedup_at = ?", time.Now()).
-		Update()
+	user.Password = string(hashedPassword)
+	user.Token = base64.StdEncoding.EncodeToString(token)
+	user.ApprovedAt = time.Now()
 
+	_, err = c.Model(user).Insert()
 	if err != nil {
 		return err
 	}
@@ -202,9 +163,30 @@ func (c *Client) SignupUser(id uint64, token string, username string, password s
 	return nil
 }
 
+// VerifyUser verifies the user via token
+func (c *Client) VerifyUser(id uint64, token string) error {
+	var user User
+	result, err := c.Model(&user).
+		Where("id = ?", id).
+		Where("token = ?", token).
+		Where("verified_at IS NULL").
+		Where("deleted_at IS NULL").
+		Set("verified_at = ?", time.Now()).
+		Update()
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return errors.New("invalid token")
+	}
+
+	return nil
+}
+
 // AddAddressToUser adds a cosmos address to the user
 func (c *Client) AddAddressToUser(id uint64, address string) error {
-	user, err := c.SignedupUserByID(id)
+	user, err := c.VerifiedUserByID(id)
 	if err != nil {
 		return err
 	}
@@ -214,7 +196,7 @@ func (c *Client) AddAddressToUser(id uint64, address string) error {
 
 	_, err = c.Model(user).
 		Where("id = ?", id).
-		Where("signedup_at IS NOT NULL").
+		Where("verified_at IS NOT NULL").
 		Where("deleted_at IS NULL").
 		Set("address = ?", address).
 		Update()
@@ -228,7 +210,7 @@ func (c *Client) AddAddressToUser(id uint64, address string) error {
 
 // ResetPassword resets the user's password to a new one
 func (c *Client) ResetPassword(id uint64, password string) error {
-	user, err := c.SignedupUserByID(id)
+	user, err := c.VerifiedUserByID(id)
 	if err != nil {
 		return err
 	}
@@ -261,7 +243,7 @@ func (c *Client) ResetPassword(id uint64, password string) error {
 
 // UpdatePassword changes a password for a user
 func (c *Client) UpdatePassword(id uint64, password *UserPassword) error {
-	user, err := c.SignedupUserByID(id)
+	user, err := c.VerifiedUserByID(id)
 	if err != nil {
 		return err
 	}
@@ -294,7 +276,7 @@ func (c *Client) UpdatePassword(id uint64, password *UserPassword) error {
 
 	_, err = c.Model(user).
 		Where("id = ?", id).
-		Where("signedup_at IS NOT NULL").
+		Where("verified_at IS NOT NULL").
 		Where("deleted_at IS NULL").
 		Set("password = ?", string(hashedPassword)).
 		Update()
@@ -308,7 +290,7 @@ func (c *Client) UpdatePassword(id uint64, password *UserPassword) error {
 
 // UpdateProfile changes a profile fields for a user
 func (c *Client) UpdateProfile(id uint64, profile *UserProfile) error {
-	user, err := c.SignedupUserByID(id)
+	user, err := c.VerifiedUserByID(id)
 	if err != nil {
 		return err
 	}
@@ -326,7 +308,7 @@ func (c *Client) UpdateProfile(id uint64, profile *UserProfile) error {
 
 	_, err = c.Model(user).
 		Where("id = ?", id).
-		Where("signedup_at IS NOT NULL").
+		Where("verified_at IS NOT NULL").
 		Where("deleted_at IS NULL").
 		Set("first_name = ?", profile.FirstName).
 		Set("last_name = ?", profile.LastName).
@@ -344,7 +326,7 @@ func (c *Client) ApproveUserByID(id uint64) error {
 	user := new(User)
 	_, err := c.Model(user).
 		Where("id = ?", id).
-		Where("signedup_at IS NULL"). // the flag can be updated only until the user hasn't signed up
+		Where("verified_at IS NULL"). // the flag can be updated only until the user hasn't signed up
 		Set("approved_at = NOW()").
 		Set("rejected_at = NULL").
 		Update()
@@ -361,7 +343,7 @@ func (c *Client) RejectUserByID(id uint64) error {
 	user := new(User)
 	_, err := c.Model(user).
 		Where("id = ?", id).
-		Where("signedup_at IS NULL"). // the flag can be updated only until the user hasn't signed up
+		Where("verified_at IS NULL"). // the flag can be updated only until the user hasn't signed up
 		Set("rejected_at = ?", time.Now()).
 		Set("approved_at = NULL").
 		Update()

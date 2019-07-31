@@ -3,10 +3,15 @@ package truapi
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
+	"unicode"
+
+	"github.com/TruStory/octopus/services/truapi/truapi/regex"
 
 	"github.com/btcsuite/btcd/btcec"
 
@@ -78,6 +83,11 @@ func (ta *TruAPI) createNewUser(r *http.Request) chttp.Response {
 	err = json.Unmarshal(reqBody, &request)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+	}
+
+	err = validateRegisterRequest(request)
+	if err != nil {
+		return chttp.SimpleErrorResponse(http.StatusBadRequest, err)
 	}
 
 	user := &db.User{
@@ -234,4 +244,84 @@ func (ta *TruAPI) getUserDetails(r *http.Request) chttp.Response {
 	})
 
 	return chttp.SimpleResponse(200, responseBytes)
+}
+
+func validateRegisterRequest(request RegisterUserRequest) error {
+	request.FirstName = strings.TrimSpace(request.FirstName)
+	request.LastName = strings.TrimSpace(request.LastName)
+	request.Email = strings.TrimSpace(request.Email)
+	request.Username = strings.TrimSpace(request.Username)
+	request.Password = strings.TrimSpace(request.Password)
+
+	if request.FirstName == "" {
+		return errors.New("first name cannot be empty")
+	}
+
+	if request.LastName == "" {
+		return errors.New("last name cannot be empty")
+	}
+
+	if request.Email == "" {
+		return errors.New("email cannot be empty")
+	}
+	if !regex.IsValidEmail(request.Email) {
+		return errors.New("invalid email provided")
+	}
+
+	if request.Username == "" {
+		return errors.New("username cannot be empty")
+	}
+	if !regex.IsValidUsername(request.Username) {
+		return errors.New("usernames can only contain alphabets, numbers and underscore")
+	}
+
+	err := validatePassword(request.Password)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validatePassword(password string) error {
+	hasMinLength, hasUppercaseLetter, hasLowercaseLetter, hasNumber, hasSpecial := false, false, false, false, false
+
+	for _, char := range password {
+		switch {
+		case unicode.IsNumber(char):
+			hasNumber = true
+		case unicode.IsUpper(char):
+			hasUppercaseLetter = true
+		case unicode.IsLower(char):
+			hasLowercaseLetter = true
+		case unicode.IsPunct(char) || unicode.IsSymbol(char):
+			hasSpecial = true
+		}
+	}
+
+	if len(password) >= 8 {
+		hasMinLength = true
+	}
+
+	if !hasMinLength {
+		return errors.New("password must be 8 characters long")
+	}
+
+	if !hasNumber {
+		return errors.New("password must have a number")
+	}
+
+	if !hasUppercaseLetter {
+		return errors.New("password must have an uppercase letter")
+	}
+
+	if !hasLowercaseLetter {
+		return errors.New("password must have a lowercase letter")
+	}
+
+	if !hasSpecial {
+		return errors.New("password must have a special character")
+	}
+
+	return nil
 }

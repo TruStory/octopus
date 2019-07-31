@@ -184,7 +184,6 @@ func (c *Client) MarkAllNotificationEventsAsSeenByAddress(addr string) error {
 
 // MarkThreadNotificationsAsRead mark previous notification replies of the same thread as read.
 func (c *Client) MarkThreadNotificationsAsRead(addr string, claimID int64) error {
-	fmt.Println("address", addr, claimID)
 	notificationEvent := new(NotificationEvent)
 	_, err := c.Model(notificationEvent).
 		Where("notification_event.address = ?", addr).

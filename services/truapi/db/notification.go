@@ -181,3 +181,19 @@ func (c *Client) MarkAllNotificationEventsAsSeenByAddress(addr string) error {
 
 	return nil
 }
+
+// MarkThreadNotificationsAsRead mark previous notification replies of the same thread as read.
+func (c *Client) MarkThreadNotificationsAsRead(addr string, claimID int64) error {
+	fmt.Println("address", addr, claimID)
+	notificationEvent := new(NotificationEvent)
+	_, err := c.Model(notificationEvent).
+		Where("notification_event.address = ?", addr).
+		Where("notification_event.type = ?", NotificationCommentAction).
+		Where("(notification_event.meta->>'claimId')::integer = ?", claimID).
+		Set("read = ?", true).
+		Update()
+	if err != nil {
+		return err
+	}
+	return nil
+}

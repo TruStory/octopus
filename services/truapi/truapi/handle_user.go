@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -12,8 +11,6 @@ import (
 	"unicode"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/regex"
-
-	"github.com/btcsuite/btcd/btcec"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 

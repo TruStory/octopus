@@ -67,10 +67,9 @@ func (c *Client) IssueResetToken(userID int64) (*PasswordResetToken, error) {
 		return nil, err
 	}
 	// if within the validity period, too many resets are issued
-	if len(unused) >= PasswordResetTokenLimitWithinValidity {
-		if time.Now().Before(unused[PasswordResetTokenLimitWithinValidity-1].CreatedAt.Add(PasswordResetTokenValidity)) {
-			return nil, errors.New("too many password reset tokens are issued")
-		}
+	beforeTime := unused[PasswordResetTokenLimitWithinValidity-1].CreatedAt.Add(PasswordResetTokenValidity)
+	if len(unused) >= PasswordResetTokenLimitWithinValidity && time.Now().Before(beforeTime) {
+		return nil, errors.New("too many password reset tokens are issued")
 	}
 
 	// all well...

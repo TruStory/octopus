@@ -42,6 +42,7 @@ type Mutations interface {
 	IssueResetToken(userID uint64) (*PasswordResetToken, error)
 	UseResetToken(prt *PasswordResetToken) error
 	UpsertConnectedAccount(connectedAccount *ConnectedAccount) error
+	AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) (*User, error)
 }
 
 // Queries read from the database
@@ -76,6 +77,7 @@ type Queries interface {
 	UserByEmailOrUsername(identifier string) (*User, error)
 	UserByEmail(email string) (*User, error)
 	UserByUsername(username string) (*User, error)
+	UserByConnectedAccountTypeAndID(accountType, accountID string) (*User, error)
 	InvitedUsers() ([]User, error)
 	InvitedUsersByAddress(address string) ([]User, error)
 	UnusedResetTokensByUser(userID uint64) ([]PasswordResetToken, error)

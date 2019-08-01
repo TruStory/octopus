@@ -5,8 +5,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
-	"regexp"
 	"time"
+
+	"github.com/TruStory/octopus/services/truapi/truapi/regex"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -22,6 +23,8 @@ type User struct {
 	LastName   string    `json:"last_name"`
 	Username   string    `json:"username"`
 	Email      string    `json:"email"`
+	Bio        string    `json:"bio"`
+	AvatarURL  string    `json:"avatar_url"`
 	Address    string    `json:"address"`
 	Password   string    `json:"-"`
 	InvitedBy  string    `json:"invited_by"`
@@ -46,11 +49,11 @@ type UserPassword struct {
 
 // UserByEmailOrUsername selects a user either by email or username
 func (c *Client) UserByEmailOrUsername(identifier string) (*User, error) {
-	if isValidEmail(identifier) {
+	if regex.IsValidEmail(identifier) {
 		return c.UserByEmail(identifier)
 	}
 
-	if isValidUsername(identifier) {
+	if regex.IsValidUsername(identifier) {
 		return c.UserByUsername(identifier)
 	}
 
@@ -155,7 +158,7 @@ func (c *Client) SignupUser(user *User) error {
 	user.Token = base64.StdEncoding.EncodeToString(token)
 	user.ApprovedAt = time.Now()
 
-	_, err = c.Model(user).Insert()
+	err = c.AddUser(user)
 	if err != nil {
 		return err
 	}
@@ -186,17 +189,9 @@ func (c *Client) VerifyUser(id uint64, token string) error {
 
 // AddAddressToUser adds a cosmos address to the user
 func (c *Client) AddAddressToUser(id uint64, address string) error {
-	user, err := c.VerifiedUserByID(id)
-	if err != nil {
-		return err
-	}
-	if user == nil {
-		return errors.New("no such user found")
-	}
-
-	_, err = c.Model(user).
+	var user User
+	_, err := c.Model(&user).
 		Where("id = ?", id).
-		Where("verified_at IS NOT NULL").
 		Where("deleted_at IS NULL").
 		Set("address = ?", address).
 		Update()
@@ -357,14 +352,6 @@ func (c *Client) RejectUserByID(id uint64) error {
 
 // AddUser upserts the user into the database
 func (c *Client) AddUser(user *User) error {
-	if !isValidEmail(user.Email) {
-		return errors.New("invalid email address")
-	}
-
-	if user.Username != "" && !isValidUsername(user.Username) {
-		return errors.New("usernames can only contain alphabets, numbers and underscore")
-	}
-
 	_, err := c.Model(user).
 		Where("email = ?", user.Email).
 		WhereOr("username = ?", user.Username).
@@ -403,12 +390,42 @@ func (c *Client) InvitedUsersByAddress(address string) ([]User, error) {
 	return invitedUsers, nil
 }
 
-func isValidEmail(email string) bool {
-	re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-	return re.MatchString(email)
+// AddUserViaConnectedAccount adds a new user using a new connected account
+func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) (*User, error) {
+	user := &User{
+		FirstName:  connectedAccount.Meta.FullName,
+		Username:   connectedAccount.Meta.Username,
+		Email:      connectedAccount.Meta.Email,
+		Bio:        connectedAccount.Meta.Bio,
+		AvatarURL:  connectedAccount.Meta.AvatarURL,
+		ApprovedAt: time.Now(),
+	}
+	err := c.AddUser(user)
+	if err != nil {
+		return nil, err
+	}
+
+	connectedAccount.UserID = user.ID
+	err = c.UpsertConnectedAccount(connectedAccount)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
-func isValidUsername(username string) bool {
-	re := regexp.MustCompile("[a-zA-Z0-9_]{1,28}$")
-	return re.MatchString(username)
+// UserByConnectedAccountTypeAndID returns the user that has a given connected account
+func (c *Client) UserByConnectedAccountTypeAndID(accountType, accountID string) (*User, error) {
+	connectedAccount, err := c.ConnectedAccountByTypeAndID(accountType, accountID)
+	if err != nil {
+		return nil, err
+	}
+
+	user := &User{ID: connectedAccount.UserID}
+	err = c.Find(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }

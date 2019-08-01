@@ -4,24 +4,19 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
 
-	// "github.com/TruStory/octopus/services/truapi/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
-	"github.com/spf13/viper"
-	"github.com/tendermint/tmlibs/cli"
 )
 
 // RegistrationRequest is a JSON request body representing a twitter profile that a user wishes to register
@@ -72,149 +67,125 @@ func (ta *TruAPI) HandleRegistration(r *http.Request) chttp.Response {
 
 // RegisterTwitterUser registers a new twitter user
 func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
-	addr, err := CalibrateUser(ta, twitterUser)
+	user, err := CalibrateUser(ta, twitterUser)
 	if err != nil {
 		return chttp.SimpleErrorResponse(400, err)
 	}
 
-	twitterProfile := &db.TwitterProfile{
-		ID:          twitterUser.ID,
-		Address:     addr,
-		Username:    twitterUser.ScreenName,
-		FullName:    twitterUser.Name,
-		Email:       twitterUser.Email,
-		AvatarURI:   strings.Replace(twitterUser.ProfileImageURL, "_normal", "_bigger", 1),
-		Description: twitterUser.Description,
-	}
-
-	err = ta.DBClient.UpsertTwitterProfile(twitterProfile)
+	cookieValue, err := cookies.MakeLoginCookieValue(ta.APIContext, user)
 	if err != nil {
 		return chttp.SimpleErrorResponse(400, err)
 	}
-
-	// cookieValue, err := cookies.MakeLoginCookieValue(ta.APIContext, twitterProfile)
-	// if err != nil {
-	// 	return chttp.SimpleErrorResponse(400, err)
-	// }
 
 	responseBytes, _ := json.Marshal(RegistrationResponse{
-		UserID:   twitterUser.IDStr,
-		Username: twitterUser.ScreenName,
-		Fullname: twitterUser.Name,
-		Address:  addr,
-		// AuthenticationCookie: cookieValue,
+		UserID:               twitterUser.IDStr,
+		Username:             twitterUser.ScreenName,
+		Fullname:             twitterUser.Name,
+		Address:              user.Address,
+		AuthenticationCookie: cookieValue,
 		TwitterProfile: RegistrationTwitterProfileResponse{
-			Username:  twitterProfile.Username,
-			FullName:  twitterProfile.FullName,
-			AvatarURI: twitterProfile.AvatarURI,
+			Username:  user.Username,
+			FullName:  user.FirstName,
+			AvatarURI: user.AvatarURL,
 		},
 	})
 
 	return chttp.SimpleResponse(201, responseBytes)
 }
 
-// CalibrateUser takes a twitter authenticated user and makes sure it has properly
-// been calibrated in the database with all proper keypairs
-func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (string, error) {
-	isWhitelisted, err := isWhitelistedUser(twitterUser)
-	if err != nil {
-		return "", err
-	}
-
-	if !isWhitelisted {
-		return "", errors.New("You are not allowed to register")
-	}
-
+// CalibrateUser takes a twitter authenticated user and makes sure it has
+// been properly calibrated in the database with all proper keypairs
+func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 	connectedAccount, err := ta.DBClient.ConnectedAccountByTypeAndID("twitter", fmt.Sprintf("%d", twitterUser.ID))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	// if user exists,
-	var addr string
-	var user *db.User
-	var keyPair *db.KeyPair
-	if connectedAccount != nil {
-		user, err = ta.DBClient.VerifiedUserByID(connectedAccount.UserID)
-		if err != nil {
-			return "", err
+	if connectedAccount == nil {
+		// this user is logging in for the first time, thus, register them
+		connectedAccount = &db.ConnectedAccount{
+			AccountType: "twitter",
+			AccountID:   fmt.Sprintf("%d", twitterUser.ID),
+			Meta: db.ConnectedAccountMeta{
+				Email:     twitterUser.Email,
+				Bio:       twitterUser.Description,
+				Username:  twitterUser.ScreenName,
+				FullName:  twitterUser.Name,
+				AvatarURL: strings.Replace(twitterUser.ProfileImageURL, "_normal", "_bigger", 1),
+			},
 		}
-		// Fetch keypair of the user, if already exists
-		keyPair, err = ta.DBClient.KeyPairByUserID(user.ID)
-		if err != nil {
-			return "", err
-		}
-		addr = user.Address
-	}
 
-	// If not available, create new
-	if keyPair == nil {
-		newKeyPair, err := btcec.NewPrivateKey(btcec.S256())
+		user, err := ta.DBClient.AddUserViaConnectedAccount(connectedAccount)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		// We are converting the private key of the new key pair in hex string,
-		// then back to byte slice, and finally regenerating the private (suppressed) and public key from it.
-		// This way, it returns the kind of public key that cosmos understands.
-		_, pubKey := btcec.PrivKeyFromBytes(btcec.S256(), []byte(fmt.Sprintf("%x", newKeyPair.Serialize())))
 
-		keyPair := &db.KeyPair{
-			UserID:     1000,
-			PrivateKey: fmt.Sprintf("%x", newKeyPair.Serialize()),
-			PublicKey:  fmt.Sprintf("%x", pubKey.SerializeCompressed()),
+		// generating a signing keypair for the user
+		keyPair, err := makeNewKeyPair()
+		if err != nil {
+			return nil, err
 		}
+		keyPair.UserID = user.ID
+
+		// registering on the chain
+		pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
+		if err != nil {
+			return nil, err
+		}
+		address, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
+		if err != nil {
+			return nil, err
+		}
+
+		// adding the keypair in the database
 		err = ta.DBClient.Add(keyPair)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-
-		// Register with cosmos only if it wasn't registered before.
-		if user == nil {
-			pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
-			if err != nil {
-				return "", err
-			}
-			newAddr, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
-			if err != nil {
-				return "", err
-			}
-			addr = newAddr.String()
+		// adding the address to the user
+		err = ta.DBClient.AddAddressToUser(user.ID, address.String())
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// this user is already our user, so, we'll just update their meta fields to stay updated
+		connectedAccount.Meta = db.ConnectedAccountMeta{
+			Email:     twitterUser.Email,
+			Bio:       twitterUser.Description,
+			Username:  twitterUser.ScreenName,
+			FullName:  twitterUser.Name,
+			AvatarURL: strings.Replace(twitterUser.ProfileImageURL, "_normal", "_bigger", 1),
+		}
+		err = ta.DBClient.UpsertConnectedAccount(connectedAccount)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	return addr, nil
+	// finally fetching a fresh copy of the user and returning back
+	user, err := ta.DBClient.UserByConnectedAccountTypeAndID(connectedAccount.AccountType, connectedAccount.AccountID)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
-func isWhitelistedUser(twitterUser *twitter.User) (bool, error) {
-	path := filepath.Join(viper.GetString(cli.HomeFlag), "twitter-whitelist.json")
-	absPath, err := filepath.Abs(path)
+func makeNewKeyPair() (*db.KeyPair, error) {
+	newKeyPair, err := btcec.NewPrivateKey(btcec.S256())
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	whitelistedUserJSON, err := ioutil.ReadFile(absPath)
-	// if the .whitelisted file doesn't exist, we assume that
-	// anybody can register. Thus, to remove the whitelisting feature
-	// in future, we all need to do is delete the file.
-	if os.IsNotExist(err) {
-		return true, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	var whitelistedUsers []string
-	err = json.Unmarshal(whitelistedUserJSON, &whitelistedUsers)
-	if err != nil {
-		return false, err
-	}
+	// We are converting the private key of the new key pair in hex string,
+	// then back to byte slice, and finally regenerating the private (suppressed) and public key from it.
+	// This way, it returns the kind of public key that cosmos understands.
+	_, pubKey := btcec.PrivKeyFromBytes(btcec.S256(), []byte(fmt.Sprintf("%x", newKeyPair.Serialize())))
 
-	for _, whitelistedUser := range whitelistedUsers {
-		if strings.EqualFold(whitelistedUser, twitterUser.ScreenName) {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return &db.KeyPair{
+		PrivateKey: fmt.Sprintf("%x", newKeyPair.Serialize()),
+		PublicKey:  fmt.Sprintf("%x", pubKey.SerializeCompressed()),
+	}, nil
 }
 
 func getTwitterUser(apiCtx truCtx.TruAPIContext, authToken string, authTokenSecret string) (*twitter.User, error) {

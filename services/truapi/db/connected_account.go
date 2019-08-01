@@ -10,7 +10,7 @@ type ConnectedAccountMeta struct {
 	Bio       string `json:"bio,omitempty"`
 	Username  string `json:"username,omitempty"`
 	FullName  string `json:"full_name,omitempty"`
-	AvatarURL string `json:"avatart_url,omitempty"`
+	AvatarURL string `json:"avatar_url,omitempty"`
 }
 
 // ConnectedAccount represents the third-party accounts connected to a user
@@ -49,8 +49,14 @@ func (c *Client) ConnectedAccountByTypeAndID(accountType, accountID string) (*Co
 func (c *Client) UpsertConnectedAccount(connectedAccount *ConnectedAccount) error {
 	_, err := c.Model(connectedAccount).
 		OnConflict("(account_type, account_id) DO UPDATE").
-		Set("meta = jsonb_set(connected_accounts.meta, array[bio], EXCLUDED.bio, true)").
-		// Set("meta->'email' = EXCLUDED.meta->'email', meta->'bio' = EXCLUDED.meta->'bio', meta->'username' = EXCLUDED.meta->'username', meta->'full_name' = EXCLUDED.meta->'full_name', meta->'avatar_url' = EXCLUDED.meta->'avatar_url'").
+		Set(`
+			meta = 
+				jsonb_set('{}', array['email'], EXCLUDED.meta->'email', true)
+				|| jsonb_set('{}', array['username'], EXCLUDED.meta->'username', true)
+				|| jsonb_set('{}', array['bio'], EXCLUDED.meta->'bio', true)
+				|| jsonb_set('{}', array['full_name'], EXCLUDED.meta->'full_name', true)
+				|| jsonb_set('{}', array['avatar_url'], EXCLUDED.meta->'avatar_url', true)
+		`).
 		Insert()
 
 	return err

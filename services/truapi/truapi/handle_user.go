@@ -144,19 +144,11 @@ func (ta *TruAPI) verifyUserViaToken(r *http.Request) chttp.Response {
 	}
 
 	// MILESTONE -- successfully verified, let's give the user an address (registering user on the chain)
-	newKeyPair, err := btcec.NewPrivateKey(btcec.S256())
+	keyPair, err := makeNewKeyPair()
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)
 	}
-	// We are converting the private key of the new key pair in hex string,
-	// then back to byte slice, and finally regenerating the private (suppressed) and public key from it.
-	// This way, it returns the kind of public key that cosmos understands.
-	_, pubKey := btcec.PrivKeyFromBytes(btcec.S256(), []byte(fmt.Sprintf("%x", newKeyPair.Serialize())))
-	keyPair := &db.KeyPair{
-		UserID:     request.ID,
-		PrivateKey: fmt.Sprintf("%x", newKeyPair.Serialize()),
-		PublicKey:  fmt.Sprintf("%x", pubKey.SerializeCompressed()),
-	}
+	// registering the keypair
 	pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)

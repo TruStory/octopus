@@ -48,7 +48,7 @@ type RegisterUserRequest struct {
 
 // VerifyUserViaTokenRequest updates a user via one-time use token
 type VerifyUserViaTokenRequest struct {
-	ID    uint64 `json:"id"`
+	ID    int64  `json:"id"`
 	Token string `json:"token"`
 }
 
@@ -153,9 +153,9 @@ func (ta *TruAPI) verifyUserViaToken(r *http.Request) chttp.Response {
 	// This way, it returns the kind of public key that cosmos understands.
 	_, pubKey := btcec.PrivKeyFromBytes(btcec.S256(), []byte(fmt.Sprintf("%x", newKeyPair.Serialize())))
 	keyPair := &db.KeyPair{
-		TwitterProfileID: request.ID,
-		PrivateKey:       fmt.Sprintf("%x", newKeyPair.Serialize()),
-		PublicKey:        fmt.Sprintf("%x", pubKey.SerializeCompressed()),
+		UserID:     request.ID,
+		PrivateKey: fmt.Sprintf("%x", newKeyPair.Serialize()),
+		PublicKey:  fmt.Sprintf("%x", pubKey.SerializeCompressed()),
 	}
 	pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
 	if err != nil {

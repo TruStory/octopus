@@ -17,8 +17,8 @@ type ConnectedAccountMeta struct {
 type ConnectedAccount struct {
 	Timestamps
 
-	ID          uint64               `json:"id"`
-	UserID      uint64               `json:"user_id"`
+	ID          int64                `json:"id"`
+	UserID      int64                `json:"user_id"`
 	AccountType string               `json:"account_type"`
 	AccountID   string               `json:"account_id"`
 	Meta        ConnectedAccountMeta `json:"meta"`

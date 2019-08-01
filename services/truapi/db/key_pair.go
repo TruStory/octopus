@@ -6,14 +6,14 @@ import "github.com/go-pg/pg"
 type KeyPair struct {
 	Timestamps
 	ID               int64  `json:"id"`
-	UserID           uint64 `json:"user_id"`
+	UserID           int64  `json:"user_id"`
 	TwitterProfileID uint64 `json:"twitter_profile_id"`
 	PrivateKey       string `json:"private_key"`
 	PublicKey        string `json:"public_key"`
 }
 
 // KeyPairByUserID returns the key-pair for the user
-func (c *Client) KeyPairByUserID(userID uint64) (*KeyPair, error) {
+func (c *Client) KeyPairByUserID(userID int64) (*KeyPair, error) {
 	keyPair := new(KeyPair)
 	err := c.Model(keyPair).Where("user_id = ?", userID).First()
 

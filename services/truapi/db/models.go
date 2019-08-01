@@ -32,15 +32,15 @@ type Mutations interface {
 	DeleteClaimOfTheDayID(communityID string) error
 	AddClaimImage(claimImage *ClaimImage) error
 	AddUser(user *User) error
-	ApproveUserByID(id uint64) error
-	RejectUserByID(id uint64) error
+	ApproveUserByID(id int64) error
+	RejectUserByID(id int64) error
 	SignupUser(user *User) error
-	VerifyUser(id uint64, token string) error
-	AddAddressToUser(id uint64, address string) error
-	UpdatePassword(id uint64, password *UserPassword) error
-	ResetPassword(id uint64, password string) error
-	UpdateProfile(id uint64, profile *UserProfile) error
-	IssueResetToken(userID uint64) (*PasswordResetToken, error)
+	VerifyUser(id int64, token string) error
+	AddAddressToUser(id int64, address string) error
+	UpdatePassword(id int64, password *UserPassword) error
+	ResetPassword(id int64, password string) error
+	UpdateProfile(id int64, profile *UserProfile) error
+	IssueResetToken(userID int64) (*PasswordResetToken, error)
 	UseResetToken(prt *PasswordResetToken) error
 	UpsertConnectedAccount(connectedAccount *ConnectedAccount) error
 	AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) (*User, error)
@@ -54,7 +54,7 @@ type Queries interface {
 	TwitterProfileByUsername(username string) (*TwitterProfile, error)
 	UsernamesByPrefix(prefix string) ([]string, error)
 	KeyPairByTwitterProfileID(id int64) (KeyPair, error)
-	KeyPairByUserID(userID uint64) (*KeyPair, error)
+	KeyPairByUserID(userID int64) (*KeyPair, error)
 	DeviceTokensByAddress(addr string) ([]DeviceToken, error)
 	NotificationEventsByAddress(addr string) ([]NotificationEvent, error)
 	UnreadNotificationEventsCountByAddress(addr string) (*NotificationsCountResponse, error)
@@ -73,7 +73,7 @@ type Queries interface {
 	OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error)
 	ClaimOfTheDayIDByCommunityID(communityID string) (int64, error)
 	ClaimImageURL(claimID uint64) (string, error)
-	VerifiedUserByID(id uint64) (*User, error)
+	VerifiedUserByID(id int64) (*User, error)
 	GetAuthenticatedUser(identifier, password string) (*User, error)
 	UserByEmailOrUsername(identifier string) (*User, error)
 	UserByEmail(email string) (*User, error)
@@ -81,8 +81,8 @@ type Queries interface {
 	UserByConnectedAccountTypeAndID(accountType, accountID string) (*User, error)
 	InvitedUsers() ([]User, error)
 	InvitedUsersByAddress(address string) ([]User, error)
-	UnusedResetTokensByUser(userID uint64) ([]PasswordResetToken, error)
-	UnusedResetTokenByUserAndToken(userID uint64, token string) (*PasswordResetToken, error)
+	UnusedResetTokensByUser(userID int64) ([]PasswordResetToken, error)
+	UnusedResetTokenByUserAndToken(userID int64, token string) (*PasswordResetToken, error)
 	ConnectedAccountByTypeAndID(accountType, accountID string) (*ConnectedAccount, error)
 }
 

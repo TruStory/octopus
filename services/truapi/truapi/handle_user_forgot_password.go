@@ -18,7 +18,7 @@ type ForgotPasswordRequest struct {
 
 // PasswordResetRequest represents the http request for a user to reset their password
 type PasswordResetRequest struct {
-	UserID   uint64 `json:"user_id"`
+	UserID   int64  `json:"user_id"`
 	Token    string `json:"token"`
 	Password string `json:"password"`
 }

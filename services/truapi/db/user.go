@@ -18,7 +18,7 @@ import (
 type User struct {
 	Timestamps
 
-	ID         uint64    `json:"id"`
+	ID         int64     `json:"id"`
 	FirstName  string    `json:"first_name"`
 	LastName   string    `json:"last_name"`
 	Username   string    `json:"username"`
@@ -101,7 +101,7 @@ func (c *Client) UserByUsername(username string) (*User, error) {
 }
 
 // VerifiedUserByID returns the verified user by ID
-func (c *Client) VerifiedUserByID(id uint64) (*User, error) {
+func (c *Client) VerifiedUserByID(id int64) (*User, error) {
 	var user User
 	err := c.Model(&user).
 		Where("id = ?", id).
@@ -167,7 +167,7 @@ func (c *Client) SignupUser(user *User) error {
 }
 
 // VerifyUser verifies the user via token
-func (c *Client) VerifyUser(id uint64, token string) error {
+func (c *Client) VerifyUser(id int64, token string) error {
 	var user User
 	result, err := c.Model(&user).
 		Where("id = ?", id).
@@ -188,7 +188,7 @@ func (c *Client) VerifyUser(id uint64, token string) error {
 }
 
 // AddAddressToUser adds a cosmos address to the user
-func (c *Client) AddAddressToUser(id uint64, address string) error {
+func (c *Client) AddAddressToUser(id int64, address string) error {
 	var user User
 	_, err := c.Model(&user).
 		Where("id = ?", id).
@@ -204,7 +204,7 @@ func (c *Client) AddAddressToUser(id uint64, address string) error {
 }
 
 // ResetPassword resets the user's password to a new one
-func (c *Client) ResetPassword(id uint64, password string) error {
+func (c *Client) ResetPassword(id int64, password string) error {
 	user, err := c.VerifiedUserByID(id)
 	if err != nil {
 		return err
@@ -237,7 +237,7 @@ func (c *Client) ResetPassword(id uint64, password string) error {
 }
 
 // UpdatePassword changes a password for a user
-func (c *Client) UpdatePassword(id uint64, password *UserPassword) error {
+func (c *Client) UpdatePassword(id int64, password *UserPassword) error {
 	user, err := c.VerifiedUserByID(id)
 	if err != nil {
 		return err
@@ -276,7 +276,7 @@ func (c *Client) UpdatePassword(id uint64, password *UserPassword) error {
 }
 
 // UpdateProfile changes a profile fields for a user
-func (c *Client) UpdateProfile(id uint64, profile *UserProfile) error {
+func (c *Client) UpdateProfile(id int64, profile *UserProfile) error {
 	user, err := c.VerifiedUserByID(id)
 	if err != nil {
 		return err
@@ -309,7 +309,7 @@ func (c *Client) UpdateProfile(id uint64, profile *UserProfile) error {
 }
 
 // ApproveUserByID approves a user to signup (set their password + username)
-func (c *Client) ApproveUserByID(id uint64) error {
+func (c *Client) ApproveUserByID(id int64) error {
 	user := new(User)
 	_, err := c.Model(user).
 		Where("id = ?", id).
@@ -326,7 +326,7 @@ func (c *Client) ApproveUserByID(id uint64) error {
 }
 
 // RejectUserByID rejects a user from signing up (set their password + username)
-func (c *Client) RejectUserByID(id uint64) error {
+func (c *Client) RejectUserByID(id int64) error {
 	user := new(User)
 	_, err := c.Model(user).
 		Where("id = ?", id).

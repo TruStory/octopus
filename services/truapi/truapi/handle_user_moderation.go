@@ -23,7 +23,7 @@ const (
 
 // ModerationRequest represents the http request to moderate a user's request to signup
 type ModerationRequest struct {
-	UserID     uint64     `json:"user_id"`
+	UserID     int64      `json:"user_id"`
 	Moderation Moderation `json:"moderation"`
 }
 
@@ -58,7 +58,7 @@ func (ta *TruAPI) HandleUserModeration(r *http.Request) chttp.Response {
 	return chttp.SimpleResponse(http.StatusOK, nil)
 }
 
-func sendSignupEmail(ta *TruAPI, userID uint64) error {
+func sendSignupEmail(ta *TruAPI, userID int64) error {
 	user := db.User{ID: userID}
 	err := ta.DBClient.Find(&user)
 	if err != nil {

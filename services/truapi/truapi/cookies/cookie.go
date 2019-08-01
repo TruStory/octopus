@@ -30,7 +30,7 @@ const (
 
 // AuthenticatedUser denotes the data structure of the data inside the encrypted cookie
 type AuthenticatedUser struct {
-	ID              uint64
+	ID              int64
 	Address         string
 	AuthenticatedAt int64
 

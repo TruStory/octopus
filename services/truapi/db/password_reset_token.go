@@ -17,14 +17,14 @@ const (
 type PasswordResetToken struct {
 	Timestamps
 
-	ID     uint64    `json:"id"`
-	UserID uint64    `json:"user_id"`
+	ID     int64     `json:"id"`
+	UserID int64     `json:"user_id"`
 	Token  string    `json:"token"`
 	UsedAt time.Time `json:"used_at"`
 }
 
 // UnusedResetTokenByUserAndToken returns the unused reset token by the user id and the token
-func (c *Client) UnusedResetTokenByUserAndToken(userID uint64, token string) (*PasswordResetToken, error) {
+func (c *Client) UnusedResetTokenByUserAndToken(userID int64, token string) (*PasswordResetToken, error) {
 	var prt = new(PasswordResetToken)
 	err := c.Model(prt).
 		Where("used_at IS NULL").
@@ -45,7 +45,7 @@ func (c *Client) UnusedResetTokenByUserAndToken(userID uint64, token string) (*P
 }
 
 // UnusedResetTokensByUser returns all the unused reset tokens by the user id, latest first
-func (c *Client) UnusedResetTokensByUser(userID uint64) ([]PasswordResetToken, error) {
+func (c *Client) UnusedResetTokensByUser(userID int64) ([]PasswordResetToken, error) {
 	var prts = make([]PasswordResetToken, 0)
 	err := c.Model(&prts).
 		Where("used_at IS NULL").
@@ -61,7 +61,7 @@ func (c *Client) UnusedResetTokensByUser(userID uint64) ([]PasswordResetToken, e
 }
 
 // IssueResetToken inserts a token into the database
-func (c *Client) IssueResetToken(userID uint64) (*PasswordResetToken, error) {
+func (c *Client) IssueResetToken(userID int64) (*PasswordResetToken, error) {
 	unused, err := c.UnusedResetTokensByUser(userID)
 	if err != nil {
 		return nil, err

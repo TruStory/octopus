@@ -14,7 +14,7 @@ type NotificationsCountResponse struct {
 }
 
 // CoinDisplayName is the name of the coin presented to end users.
-const CoinDisplayName = "TruStake"
+const CoinDisplayName = "TRU"
 
 // Types of notifications.
 const (

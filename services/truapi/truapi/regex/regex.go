@@ -10,6 +10,9 @@ var RegexValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z
 // RegexValidUsername for valid username
 var RegexValidUsername = regexp.MustCompile("^[a-zA-Z0-9_]{1,28}$")
 
+// RegexHasTrustory for finding trustory in the strings
+var RegexHasTrustory = regexp.MustCompile("(?i)trustory")
+
 // Some helper methods based on the above regex
 
 // IsValidEmail returns whether an email matches the valid email regex or not
@@ -20,4 +23,9 @@ func IsValidEmail(email string) bool {
 // IsValidUsername returns whether an username matches the valid username regex or not
 func IsValidUsername(username string) bool {
 	return RegexValidUsername.MatchString(username)
+}
+
+// HasTrustory returns whether the string contains the brand name in it or not
+func HasTrustory(str string) bool {
+	return RegexHasTrustory.MatchString(str)
 }

@@ -274,6 +274,10 @@ func validateRegisterRequest(request RegisterUserRequest) error {
 	if !regex.IsValidUsername(request.Username) {
 		return errors.New("usernames can only contain alphabets, numbers and underscore")
 	}
+	// https://play.golang.org/p/DxRDseAtacL
+	if regex.HasTrustory(request.Username) {
+		return errors.New("usernames cannot seem to be related to trustory")
+	}
 
 	err := validatePassword(request.Password)
 	if err != nil {

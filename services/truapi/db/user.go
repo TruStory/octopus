@@ -65,7 +65,6 @@ func (c *Client) UserByEmail(email string) (*User, error) {
 	var user User
 	err := c.Model(&user).
 		Where("email = ?", email).
-		Where("verified_at IS NOT NULL").
 		Where("deleted_at IS NULL").
 		First()
 
@@ -85,7 +84,6 @@ func (c *Client) UserByUsername(username string) (*User, error) {
 	var user User
 	err := c.Model(&user).
 		Where("username = ?", username).
-		Where("verified_at IS NOT NULL").
 		Where("deleted_at IS NULL").
 		First()
 
@@ -392,6 +390,22 @@ func (c *Client) InvitedUsersByAddress(address string) ([]User, error) {
 
 // AddUserViaConnectedAccount adds a new user using a new connected account
 func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) (*User, error) {
+	// a.) check if their email address is associated with an existing account.
+	// if yes, merge them with that account
+	if connectedAccount.Meta.Email != "" {
+		user, err := c.UserByEmail(connectedAccount.Meta.Email)
+		if user != nil {
+			connectedAccount.UserID = user.ID
+			err = c.UpsertConnectedAccount(connectedAccount)
+			if err != nil {
+				return nil, err
+			}
+
+			return user, nil
+		}
+	}
+
+	// b.) if no existing account found, continue creating a new account
 	user := &User{
 		FirstName:  connectedAccount.Meta.FullName,
 		Username:   connectedAccount.Meta.Username,

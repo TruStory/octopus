@@ -120,32 +120,35 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 			return nil, err
 		}
 
-		// generating a signing keypair for the user
-		keyPair, err := makeNewKeyPair()
-		if err != nil {
-			return nil, err
-		}
-		keyPair.UserID = user.ID
+		// generating a signing keypair for the user,
+		// if they don't have it yet
+		if user.Address == "" {
+			keyPair, err := makeNewKeyPair()
+			if err != nil {
+				return nil, err
+			}
+			keyPair.UserID = user.ID
 
-		// registering on the chain
-		pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
-		if err != nil {
-			return nil, err
-		}
-		address, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
-		if err != nil {
-			return nil, err
-		}
+			// registering on the chain
+			pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
+			if err != nil {
+				return nil, err
+			}
+			address, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
+			if err != nil {
+				return nil, err
+			}
 
-		// adding the keypair in the database
-		err = ta.DBClient.Add(keyPair)
-		if err != nil {
-			return nil, err
-		}
-		// adding the address to the user
-		err = ta.DBClient.AddAddressToUser(user.ID, address.String())
-		if err != nil {
-			return nil, err
+			// adding the keypair in the database
+			err = ta.DBClient.Add(keyPair)
+			if err != nil {
+				return nil, err
+			}
+			// adding the address to the user
+			err = ta.DBClient.AddAddressToUser(user.ID, address.String())
+			if err != nil {
+				return nil, err
+			}
 		}
 	} else {
 		// this user is already our user, so, we'll just update their meta fields to stay updated

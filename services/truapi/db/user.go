@@ -38,6 +38,8 @@ type User struct {
 type UserProfile struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
+	Bio       string `json:"bio"`
+	AvatarURL string `json:"avatar_url"`
 }
 
 // UserPassword contains the fields that allows users to update their passwords
@@ -242,14 +244,6 @@ func (c *Client) UpdatePassword(id uint64, password *UserPassword) error {
 	}
 	if user == nil {
 		return errors.New("no such user found")
-	}
-
-	if password.New == "" {
-		return errors.New("invalid new password")
-	}
-
-	if password.New != password.NewConfirmation {
-		return errors.New("new passwords do not match")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password.Current))

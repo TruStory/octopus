@@ -191,6 +191,14 @@ func (ta *TruAPI) updateUserDetailsViaCookie(r *http.Request) chttp.Response {
 
 	// if user wants to change their password
 	if request.Password != nil {
+		if request.Password.New != request.Password.NewConfirmation {
+			return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, errors.New("new passwords do not match"))
+		}
+
+		err = validatePassword(request.Password.New)
+		if err != nil {
+			return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		}
 		err = ta.DBClient.UpdatePassword(user.ID, request.Password)
 		if err != nil {
 			return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)

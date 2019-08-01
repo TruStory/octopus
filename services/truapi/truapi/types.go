@@ -56,7 +56,7 @@ type AppAccount struct {
 	CreatedTime   time.Time
 }
 
-// EarnedCoin represents trusteak earned in each category
+// EarnedCoin represents TRU earned in each category
 type EarnedCoin struct {
 	sdk.Coin
 	CommunityID string

@@ -5,7 +5,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
-	github.com/TruStory/truchain v0.1.26-0.20190723222107-23ca5c3c919c
+	github.com/TruStory/truchain v0.1.26-0.20190730151006-7ab10f51ef98
 	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.18.1
@@ -53,7 +53,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/tendermint/tendermint v0.31.5
 	github.com/tendermint/tmlibs v0.9.0
-	github.com/ugorji/go v1.1.7 // indirect
+	github.com/ugorji/go/codec v1.1.7 // indirect
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7

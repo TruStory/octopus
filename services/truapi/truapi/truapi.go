@@ -118,6 +118,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/upload", ta.HandleUpload)
 	api.Handle("/flagStory", WithUser(apiCtx, WrapHandler(ta.HandleFlagStory)))
 	api.Handle("/comments", WithUser(apiCtx, WrapHandler(ta.HandleComment)))
+	api.HandleFunc("/comments/open/{claimID:[0-9]+}", ta.handleThreadOpened)
 	api.Handle("/invite", WithUser(apiCtx, WrapHandler(ta.HandleInvite)))
 	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)

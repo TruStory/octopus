@@ -3,12 +3,15 @@ package truapi
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-pg/pg"
+	"github.com/gorilla/mux"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
 // UpdateNotificationEventRequest represents the JSON request
@@ -83,6 +86,31 @@ func markAllAsRead(ta *TruAPI, r *http.Request) chttp.Response {
 	}
 
 	return chttp.SimpleResponse(200, nil)
+}
+
+func (ta *TruAPI) handleThreadOpened(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	if vars["claimID"] == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	claimID, err := strconv.ParseInt(vars["claimID"], 10, 64)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
+	// ignore if user is not present
+	if err != nil || user == nil {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	err = ta.DBClient.MarkThreadNotificationsAsRead(user.Address, claimID)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func markAllAsSeen(ta *TruAPI, r *http.Request) chttp.Response {

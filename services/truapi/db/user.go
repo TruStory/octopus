@@ -388,6 +388,9 @@ func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) 
 	// if yes, merge them with that account
 	if connectedAccount.Meta.Email != "" {
 		user, err := c.UserByEmail(connectedAccount.Meta.Email)
+		if err != nil {
+			return nil, err
+		}
 		if user != nil {
 			connectedAccount.UserID = user.ID
 			err = c.UpsertConnectedAccount(connectedAccount)

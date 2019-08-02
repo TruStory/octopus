@@ -62,18 +62,17 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 		parsedComment, mentions := s.parseCosmosMentions(c.Body)
 		parsedComment = stripmd.Strip(parsedComment)
 		meta := db.NotificationMeta{
-			ClaimID:    &c.ClaimID,
-			ArgumentID: &c.ArgumentID,
-			CommentID:  &n.ID,
+			ClaimID:   &c.ClaimID,
+			CommentID: &n.ID,
 		}
 		typeId := c.ClaimID
-		if typeId == 0 {
-			typeId = c.ArgumentID
-		}
-
 		mentionType := db.MentionComment
-		meta.MentionType = &mentionType
 		for _, p := range mentions {
+			mentionMeta := db.NotificationMeta{
+				ClaimID:     &c.ClaimID,
+				CommentID:   &n.ID,
+				MentionType: &mentionType,
+			}
 			if _, ok := notified[p]; ok {
 				continue
 			}
@@ -84,7 +83,7 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 				TypeID: typeId,
 				Type:   db.NotificationMentionAction,
 				Msg:    fmt.Sprintf("mentioned you %s: %s", mentionType.String(), parsedComment),
-				Meta:   meta,
+				Meta:   mentionMeta,
 				Action: "Mentioned you in a reply",
 				Trim:   true,
 			}

@@ -1059,6 +1059,11 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 		return Settings{}
 	}
 
+	argumentCreationInterest := staking.Interest(stakingParams.InterestRate, stakingParams.ArgumentCreationStake, stakingParams.Period)
+	upvoteInterest := staking.Interest(stakingParams.InterestRate, stakingParams.UpvoteStake, stakingParams.Period)
+	upvoteCreatorReward := upvoteInterest.Mul(stakingParams.CreatorShare)
+	upvoteStakerReward := upvoteInterest.Sub(upvoteCreatorReward)
+
 	tomlParams := ta.APIContext.Config.Params
 	return Settings{
 		// account params
@@ -1083,6 +1088,9 @@ func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 		InterestRate:             interestRate,
 		StakingAdmins:            mapAccounts(stakingParams.StakingAdmins),
 		MaxArgumentsPerClaim:     int32(stakingParams.MaxArgumentsPerClaim),
+		ArgumentCreationReward:   sdk.NewCoin(app.StakeDenom, argumentCreationInterest.RoundInt()),
+		UpvoteCreatorReward:      sdk.NewCoin(app.StakeDenom, upvoteCreatorReward.RoundInt()),
+		UpvoteStakerReward:       sdk.NewCoin(app.StakeDenom, upvoteStakerReward.RoundInt()),
 
 		// slashing params
 		MinSlashCount:           int32(slashingParams.MinSlashCount),

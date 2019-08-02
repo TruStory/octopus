@@ -18,20 +18,21 @@ import (
 type User struct {
 	Timestamps
 
-	ID            int64     `json:"id"`
-	FullName      string    `json:"full_name"`
-	Username      string    `json:"username"`
-	Email         string    `json:"email"`
-	Bio           string    `json:"bio"`
-	AvatarURL     string    `json:"avatar_url"`
-	Address       string    `json:"address"`
-	Password      string    `json:"-"`
-	ReferredBy    int64     `json:"referred_by"`
-	Token         string    `json:"-"`
-	ApprovedAt    time.Time `json:"approved_at"`
-	RejectedAt    time.Time `json:"rejected_at"`
-	VerifiedAt    time.Time `json:"verified_at"`
-	BlacklistedAt time.Time `json:"blacklisted_at"`
+	ID                  int64     `json:"id"`
+	FullName            string    `json:"full_name"`
+	Username            string    `json:"username"`
+	Email               string    `json:"email"`
+	Bio                 string    `json:"bio"`
+	AvatarURL           string    `json:"avatar_url"`
+	Address             string    `json:"address"`
+	Password            string    `json:"-"`
+	ReferredBy          int64     `json:"referred_by"`
+	Token               string    `json:"-"`
+	ApprovedAt          time.Time `json:"approved_at"`
+	RejectedAt          time.Time `json:"rejected_at"`
+	VerifiedAt          time.Time `json:"verified_at"`
+	BlacklistedAt       time.Time `json:"blacklisted_at"`
+	LastAuthenticatedAt time.Time `json:"last_authenticated_at"`
 }
 
 // UserProfile contains the fields that make up the user profile
@@ -158,7 +159,26 @@ func (c *Client) GetAuthenticatedUser(identifier, password string) (*User, error
 		return nil, errors.New("no such user found")
 	}
 
+	err = c.TouchLastAuthenticatedAt(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	return user, nil
+}
+
+// TouchLastAuthenticatedAt updates the last_authenticated_at column with the current timestamp
+func (c *Client) TouchLastAuthenticatedAt(id int64) error {
+	var user User
+	_, err := c.Model(&user).
+		Where("id = ?", id).
+		Where("deleted_at IS NULL").
+		Set("last_authenticated_at = ?", time.Now()).
+		Update()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // SignupUser signs up a new user

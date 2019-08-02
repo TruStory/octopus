@@ -38,6 +38,7 @@ type Mutations interface {
 	BlacklistUser(id int64) error
 	UnblacklistUser(id int64) error
 	VerifyUser(id int64, token string) error
+	TouchLastAuthenticatedAt(id int64) error
 	AddAddressToUser(id int64, address string) error
 	UpdatePassword(id int64, password *UserPassword) error
 	ResetPassword(id int64, password string) error

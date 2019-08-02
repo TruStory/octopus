@@ -24,6 +24,7 @@ func init() {
 			rejected_at TIMESTAMP DEFAULT NULL,
 			verified_at TIMESTAMP DEFAULT NULL,
 			blacklisted_at TIMESTAMP DEFAULT NULL,
+			last_authenticated_at TIMESTAMP DEFAULT NULL,
 			created_at TIMESTAMP DEFAULT NOW(),
 			updated_at TIMESTAMP DEFAULT NOW(),
 			deleted_at TIMESTAMP

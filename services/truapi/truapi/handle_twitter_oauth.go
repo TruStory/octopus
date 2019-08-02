@@ -29,6 +29,12 @@ func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 			return
 		}
 
+		err = ta.DBClient.TouchLastAuthenticatedAt(user.ID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		cookie, err := cookies.GetLoginCookie(apiCtx, user)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

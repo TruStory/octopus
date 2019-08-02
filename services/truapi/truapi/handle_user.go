@@ -113,6 +113,7 @@ func (ta *TruAPI) updateUserDetails(w http.ResponseWriter, r *http.Request) {
 	if err == http.ErrNoCookie {
 		// no cookie present; proceed via token
 		ta.verifyUserViaToken(w, r)
+		return
 	}
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusUnauthorized)
@@ -159,7 +160,6 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	render.Response(w, r, true, http.StatusOK)
 }
 

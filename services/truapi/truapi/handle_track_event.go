@@ -13,7 +13,8 @@ import (
 
 // EventProperties holds tracking event information
 type EventProperties struct {
-	ClaimID *int64 `json:"claimId,omitempty"`
+	ClaimID    *int64 `json:"claimId,omitempty"`
+	ArgumentID *int64 `json:"argumentId,omitempty"`
 }
 
 // TrackEvent represents an event that is tracked
@@ -24,7 +25,8 @@ type TrackEvent struct {
 
 // TrackEventClaimOpened event tracks opened claims
 const (
-	TrackEventClaimOpened = "claim_opened"
+	TrackEventClaimOpened    = "claim_opened"
+	TrackEventArgumentOpened = "argument_opened"
 )
 
 // HandleTrackEvent records an event in the database
@@ -42,6 +44,8 @@ func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	var dbEvent db.TrackEvent
+
 	switch evt.Event {
 	case TrackEventClaimOpened:
 		if evt.Properties.ClaimID == nil {
@@ -55,35 +59,66 @@ func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		claimID := int64(claim.ID)
-		dbEvent := db.TrackEvent{
+		dbEvent = db.TrackEvent{
 			Event: TrackEventClaimOpened,
 			Meta: db.TrackEventMeta{
 				ClaimID:     &claimID,
 				CommunityID: &claim.CommunityID,
 			},
 		}
-		user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
-		if ok && user != nil {
-			dbEvent.Address = user.Address
-			dbEvent.TwitterProfileID = user.TwitterProfileID
+	case TrackEventArgumentOpened:
+		if evt.Properties.ClaimID == nil {
+			fmt.Println("empty claim id")
+			w.WriteHeader(http.StatusOK)
+			return
 		}
+		if evt.Properties.ArgumentID == nil {
+			fmt.Println("empty argument id")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		claim := ta.claimResolver(r.Context(), queryByClaimID{ID: uint64(*evt.Properties.ClaimID)})
+		if claim.ID == 0 {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		claimID := int64(*evt.Properties.ClaimID)
+		argumentID := int64(*evt.Properties.ArgumentID)
+		dbEvent = db.TrackEvent{
+			Event: TrackEventArgumentOpened,
+			Meta: db.TrackEventMeta{
+				ClaimID:     &claimID,
+				ArgumentID:  &argumentID,
+				CommunityID: &claim.CommunityID,
+			},
+		}
+	}
 
-		if user == nil {
-			sess, err := cookies.GetAnonymousSession(ta.APIContext, r)
-			if err != nil {
-				fmt.Println("unable to get session id cookie")
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-			dbEvent.IsAnonymous = true
-			dbEvent.SessionID = sess.SessionID
-		}
-		err := ta.DBClient.Add(&dbEvent)
-		if err != nil {
-			fmt.Println("error adding track event", err)
-		}
+	if dbEvent.Event == "" {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+
+	user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
+	if ok && user != nil {
+		dbEvent.Address = user.Address
+		dbEvent.TwitterProfileID = user.TwitterProfileID
+	}
+
+	if user == nil {
+		sess, err := cookies.GetAnonymousSession(ta.APIContext, r)
+		if err != nil {
+			fmt.Println("unable to get session id cookie")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		dbEvent.IsAnonymous = true
+		dbEvent.SessionID = sess.SessionID
+	}
+	err = ta.DBClient.Add(&dbEvent)
+	if err != nil {
+		fmt.Println("error adding track event", err)
+	}
+
 	w.WriteHeader(http.StatusOK)
 }

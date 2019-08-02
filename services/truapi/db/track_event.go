@@ -5,6 +5,7 @@ import "time"
 type TrackEventMeta struct {
 	ClaimID     *int64  `json:"claimId,omitempty"`
 	CommunityID *string `json:"communityId,omitempty"`
+	ArgumentID  *int64  `json:"argumentId,omitempty"`
 }
 
 // TrackEvent represents analytics events track from the app.

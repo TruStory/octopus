@@ -36,11 +36,11 @@ type UserTwitterProfileResponse struct {
 
 // RegisterUserRequest represents the schema of the http request to create a new user
 type RegisterUserRequest struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `json:"email"`
-	Password  string `json:"password"`
-	Username  string `json:"username"`
+	FullName   string `json:"full_name"`
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	Username   string `json:"username"`
+	ReferredBy string `json:"referred_by"`
 }
 
 // VerifyUserViaTokenRequest updates a user via one-time use token
@@ -88,14 +88,13 @@ func (ta *TruAPI) createNewUser(r *http.Request) chttp.Response {
 	}
 
 	user := &db.User{
-		FirstName: request.FirstName,
-		LastName:  request.LastName,
-		Email:     request.Email,
-		Password:  request.Password,
-		Username:  request.Username,
+		FullName: request.FullName,
+		Email:    request.Email,
+		Password: request.Password,
+		Username: request.Username,
 	}
 
-	err = ta.DBClient.SignupUser(user)
+	err = ta.DBClient.SignupUser(user, request.ReferredBy)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}
@@ -244,18 +243,13 @@ func (ta *TruAPI) getUserDetails(r *http.Request) chttp.Response {
 }
 
 func validateRegisterRequest(request RegisterUserRequest) error {
-	request.FirstName = strings.TrimSpace(request.FirstName)
-	request.LastName = strings.TrimSpace(request.LastName)
+	request.FullName = strings.TrimSpace(request.FullName)
 	request.Email = strings.TrimSpace(request.Email)
 	request.Username = strings.TrimSpace(request.Username)
 	request.Password = strings.TrimSpace(request.Password)
 
-	if request.FirstName == "" {
+	if request.FullName == "" {
 		return errors.New("first name cannot be empty")
-	}
-
-	if request.LastName == "" {
-		return errors.New("last name cannot be empty")
 	}
 
 	if request.Email == "" {

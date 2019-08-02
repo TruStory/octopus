@@ -57,11 +57,10 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(500, err)
 	}
 	friend := &db.User{
-		FirstName: "friend",
-		LastName:  "friend",
-		Email:     request.Email,
-		InvitedBy: user.Address,
-		Token:     token,
+		FullName:   "friend",
+		Email:      request.Email,
+		ReferredBy: user.ID,
+		Token:      token,
 	}
 	err = ta.DBClient.AddUser(friend)
 	// TODO: error on duplicate entry should return unique error code

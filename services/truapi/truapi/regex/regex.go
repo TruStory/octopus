@@ -11,6 +11,7 @@ var RegexValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z
 var RegexValidUsername = regexp.MustCompile("^[a-zA-Z0-9_]{1,28}$")
 
 // RegexHasTrustory for finding trustory in the strings
+// https://play.golang.org/p/NrZWfW5LgSr
 var RegexHasTrustory = regexp.MustCompile("(?i)trustory")
 
 // Some helper methods based on the above regex

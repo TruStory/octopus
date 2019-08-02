@@ -11,15 +11,14 @@ func init() {
 		fmt.Println("creating users table...")
 		_, err := db.Exec(`CREATE TABLE users(
 			id BIGSERIAL PRIMARY KEY,
-			first_name VARCHAR(128) NOT NULL,
-			last_name VARCHAR(128) DEFAULT NULL,
+			full_name VARCHAR(128) NOT NULL,
 			bio TEXT DEFAULT NULL,
 			avatar_url TEXT DEFAULT NULL,
 			email VARCHAR(128) UNIQUE DEFAULT NULL,
 			username VARCHAR(128) UNIQUE DEFAULT NULL,
 			address VARCHAR(65) DEFAULT NULL,
 			password VARCHAR(256) DEFAULT NULL,
-			invited_by BIGINT DEFAULT NULL,
+			referred_by BIGINT DEFAULT NULL,
 			token VARCHAR(65) DEFAULT NULL,
 			approved_at TIMESTAMP DEFAULT NULL,
 			rejected_at TIMESTAMP DEFAULT NULL,

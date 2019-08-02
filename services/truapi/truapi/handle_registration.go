@@ -85,7 +85,7 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
 		AuthenticationCookie: cookieValue,
 		TwitterProfile: RegistrationTwitterProfileResponse{
 			Username:  user.Username,
-			FullName:  user.FirstName,
+			FullName:  user.FullName,
 			AvatarURI: user.AvatarURL,
 		},
 	})

@@ -3,9 +3,9 @@ package messages
 import (
 	"bytes"
 	"fmt"
-	
-	"github.com/TruStory/octopus/services/truapi/db"
+
 	"github.com/TruStory/octopus/services/truapi/context"
+	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/postman"
 )
 
@@ -15,7 +15,7 @@ func MakeSignupMessage(client *postman.Postman, config context.Config, user db.U
 		Name       string
 		SignupLink string
 	}{
-		Name:       user.FirstName,
+		Name:       user.FullName,
 		SignupLink: makeSignupLink(config, user),
 	}
 

@@ -19,15 +19,14 @@ type User struct {
 	Timestamps
 
 	ID         int64     `json:"id"`
-	FirstName  string    `json:"first_name"`
-	LastName   string    `json:"last_name"`
+	FullName   string    `json:"full_name"`
 	Username   string    `json:"username"`
 	Email      string    `json:"email"`
 	Bio        string    `json:"bio"`
 	AvatarURL  string    `json:"avatar_url"`
 	Address    string    `json:"address"`
 	Password   string    `json:"-"`
-	InvitedBy  string    `json:"invited_by"`
+	ReferredBy int64     `json:"referred_by"`
 	Token      string    `json:"-"`
 	ApprovedAt time.Time `json:"approved_at"`
 	RejectedAt time.Time `json:"rejected_at"`
@@ -36,8 +35,7 @@ type User struct {
 
 // UserProfile contains the fields that make up the user profile
 type UserProfile struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+	FullName  string `json:"full_name"`
 	Bio       string `json:"bio"`
 	AvatarURL string `json:"avatar_url"`
 }
@@ -62,7 +60,7 @@ func (c *Client) UserByEmailOrUsername(identifier string) (*User, error) {
 	return nil, errors.New("no such user")
 }
 
-// UserByEmail returns the verified user using email
+// UserByEmail returns the user using email
 func (c *Client) UserByEmail(email string) (*User, error) {
 	var user User
 	err := c.Model(&user).
@@ -81,11 +79,30 @@ func (c *Client) UserByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-// UserByUsername returns the verified user using username
+// UserByUsername returns the user using username
 func (c *Client) UserByUsername(username string) (*User, error) {
 	var user User
 	err := c.Model(&user).
 		Where("username = ?", username).
+		Where("deleted_at IS NULL").
+		First()
+
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// UserByAddress returns the verified user using address
+func (c *Client) UserByAddress(address string) (*User, error) {
+	var user User
+	err := c.Model(&user).
+		Where("address = ?", address).
 		Where("deleted_at IS NULL").
 		First()
 
@@ -140,7 +157,7 @@ func (c *Client) GetAuthenticatedUser(identifier, password string) (*User, error
 }
 
 // SignupUser signs up a new user
-func (c *Client) SignupUser(user *User) error {
+func (c *Client) SignupUser(user *User, referrerCode string) error {
 	salt, err := generateCryptoSafeRandomBytes(16)
 	if err != nil {
 		return err
@@ -157,6 +174,14 @@ func (c *Client) SignupUser(user *User) error {
 	user.Password = string(hashedPassword)
 	user.Token = base64.StdEncoding.EncodeToString(token)
 	user.ApprovedAt = time.Now()
+
+	referrer, err := c.UserByAddress(referrerCode)
+	if err != nil {
+		return err
+	}
+	if referrer != nil {
+		user.ReferredBy = referrer.ID
+	}
 
 	err = c.AddUser(user)
 	if err != nil {
@@ -285,20 +310,15 @@ func (c *Client) UpdateProfile(id int64, profile *UserProfile) error {
 		return errors.New("no such user found")
 	}
 
-	if profile.FirstName == "" {
-		return errors.New("first name cannot be left blank")
-	}
-
-	if profile.LastName == "" {
-		return errors.New("last name cannot be left blank")
+	if profile.FullName == "" {
+		return errors.New("name cannot be left blank")
 	}
 
 	_, err = c.Model(user).
 		Where("id = ?", id).
 		Where("verified_at IS NOT NULL").
 		Where("deleted_at IS NULL").
-		Set("first_name = ?", profile.FirstName).
-		Set("last_name = ?", profile.LastName).
+		Set("full_name = ?", profile.FullName).
 		Update()
 
 	if err != nil {
@@ -404,7 +424,7 @@ func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) 
 
 	// b.) if no existing account found, continue creating a new account
 	user := &User{
-		FirstName:  connectedAccount.Meta.FullName,
+		FullName:   connectedAccount.Meta.FullName,
 		Username:   connectedAccount.Meta.Username,
 		Email:      connectedAccount.Meta.Email,
 		Bio:        connectedAccount.Meta.Bio,

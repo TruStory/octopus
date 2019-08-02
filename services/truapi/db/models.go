@@ -34,7 +34,7 @@ type Mutations interface {
 	AddUser(user *User) error
 	ApproveUserByID(id int64) error
 	RejectUserByID(id int64) error
-	SignupUser(user *User) error
+	SignupUser(user *User, referrerCode string) error
 	VerifyUser(id int64, token string) error
 	AddAddressToUser(id int64, address string) error
 	UpdatePassword(id int64, password *UserPassword) error
@@ -78,6 +78,7 @@ type Queries interface {
 	UserByEmailOrUsername(identifier string) (*User, error)
 	UserByEmail(email string) (*User, error)
 	UserByUsername(username string) (*User, error)
+	UserByAddress(address string) (*User, error)
 	UserByConnectedAccountTypeAndID(accountType, accountID string) (*User, error)
 	InvitedUsers() ([]User, error)
 	InvitedUsersByAddress(address string) ([]User, error)

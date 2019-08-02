@@ -103,17 +103,16 @@ func (ta *TruAPI) HandleTypeformWebhook(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}
 
-	firstName, lastName, username, email := getSignupRequestDetailsFromPayload(payload)
+	firstName, _, username, email := getSignupRequestDetailsFromPayload(payload)
 	token, err := generateRandomString(32)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)
 	}
 	user := &db.User{
-		FirstName: firstName,
-		LastName:  lastName,
-		Username:  username,
-		Email:     email,
-		Token:     token,
+		FullName: firstName,
+		Username: username,
+		Email:    email,
+		Token:    token,
 	}
 
 	err = ta.DBClient.AddUser(user)

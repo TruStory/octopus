@@ -10,7 +10,7 @@ func init() {
 	migrations.MustRegisterTx(func(db migrations.DB) error {
 		fmt.Println("seeding users table...")
 		_, err := db.Exec(`INSERT INTO users(
-			first_name, 
+			full_name, 
 			email,
 			bio,
 			avatar_url,

@@ -111,7 +111,7 @@ func BasicAuth(apiCtx truCtx.TruAPIContext, handler http.Handler) http.HandlerFu
 		if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(apiCtx.Config.Admin.Username)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(apiCtx.Config.Admin.Password)) != 1 {
 			w.Header().Set("WWW-Authenticate", `Basic realm=please authenticate`)
 			w.WriteHeader(401)
-			w.Write([]byte("Unauthorised.\n"))
+			_, _ = w.Write([]byte("Unauthorised.\n"))
 			return
 		}
 

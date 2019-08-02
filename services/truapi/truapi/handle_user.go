@@ -233,7 +233,7 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 
 	// Chain was restarted and DB was wiped so Address and TwitterProfileID contained in cookie is stale.
 	if twitterProfile.ID == 0 {
-		render.Error(w, r, err.Error(), http.StatusUnauthorized)
+		render.Error(w, r, "error", http.StatusUnauthorized)
 		return
 	}
 

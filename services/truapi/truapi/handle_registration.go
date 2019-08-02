@@ -74,7 +74,7 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
 
 	err = ta.DBClient.TouchLastAuthenticatedAt(user.ID)
 	if err != nil {
-		chttp.SimpleErrorResponse(400, err)
+		return chttp.SimpleErrorResponse(400, err)
 	}
 
 	cookieValue, err := cookies.MakeLoginCookieValue(ta.APIContext, user)

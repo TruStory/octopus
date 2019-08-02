@@ -59,7 +59,6 @@ func (ta *TruAPI) forgotPassword(w http.ResponseWriter, r *http.Request) {
 	sendResetTokenToUser(ta, prt, user)
 
 	render.Response(w, r, true, http.StatusOK)
-	return
 }
 
 func (ta *TruAPI) resetPassword(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +97,6 @@ func (ta *TruAPI) resetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Response(w, r, true, http.StatusOK)
-	return
 }
 
 func sendResetTokenToUser(ta *TruAPI, prt *db.PasswordResetToken, user *db.User) {

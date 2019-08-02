@@ -18,19 +18,20 @@ import (
 type User struct {
 	Timestamps
 
-	ID         int64     `json:"id"`
-	FullName   string    `json:"full_name"`
-	Username   string    `json:"username"`
-	Email      string    `json:"email"`
-	Bio        string    `json:"bio"`
-	AvatarURL  string    `json:"avatar_url"`
-	Address    string    `json:"address"`
-	Password   string    `json:"-"`
-	ReferredBy int64     `json:"referred_by"`
-	Token      string    `json:"-"`
-	ApprovedAt time.Time `json:"approved_at"`
-	RejectedAt time.Time `json:"rejected_at"`
-	VerifiedAt time.Time `json:"verified_at"`
+	ID            int64     `json:"id"`
+	FullName      string    `json:"full_name"`
+	Username      string    `json:"username"`
+	Email         string    `json:"email"`
+	Bio           string    `json:"bio"`
+	AvatarURL     string    `json:"avatar_url"`
+	Address       string    `json:"address"`
+	Password      string    `json:"-"`
+	ReferredBy    int64     `json:"referred_by"`
+	Token         string    `json:"-"`
+	ApprovedAt    time.Time `json:"approved_at"`
+	RejectedAt    time.Time `json:"rejected_at"`
+	VerifiedAt    time.Time `json:"verified_at"`
+	BlacklistedAt time.Time `json:"blacklisted_at"`
 }
 
 // UserProfile contains the fields that make up the user profile
@@ -146,6 +147,10 @@ func (c *Client) GetAuthenticatedUser(identifier, password string) (*User, error
 	}
 	if user == nil {
 		return nil, errors.New("no such user found")
+	}
+
+	if !user.BlacklistedAt.IsZero() {
+		return nil, errors.New("the user is blacklisted and cannot be authenticated")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
@@ -371,6 +376,24 @@ func (c *Client) AddUser(user *User) error {
 		SelectOrInsert()
 
 	return err
+}
+
+// BlacklistUser blacklists a user and prevents them from logging in
+func (c *Client) BlacklistUser(id int64) error {
+	var user User
+	result, err := c.Model(&user).
+		Where("id = ?", id).
+		Set("blacklisted_at = ?", time.Now()).
+		Update()
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return errors.New("invalid user")
+	}
+
+	return nil
 }
 
 // InvitedUsers returns all the users who are invited

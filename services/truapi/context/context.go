@@ -86,9 +86,10 @@ type ParamsConfig struct {
 	TrendingFeedTimeDecay int `mapstructure:"trending-feed-time-decay"`
 }
 
-// TypeformConfig is the config for the typeform API
-type TypeformConfig struct {
-	PayloadSecret string `mapstructure:"typeform-payload-secret"`
+// AdminConfig is the config for the admin authentication
+type AdminConfig struct {
+	Username string `mapstructure:"admin-username"`
+	Password string `mapstructure:"admin-password"`
 }
 
 // AWSConfig is the config for the AWS SDK
@@ -111,7 +112,7 @@ type Config struct {
 	Web       WebConfig
 	Community CommunityConfig
 	Params    ParamsConfig
-	Typeform  TypeformConfig
+	Admin     AdminConfig
 	AWS       AWSConfig
 }
 

@@ -2,6 +2,7 @@ package truapi
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -95,6 +96,29 @@ func WithUser(apiCtx truCtx.TruAPIContext, h http.Handler) http.Handler {
 	})
 }
 
+// BasicAuth wraps a handler requiring HTTP basic auth for it using the given
+// username and password and the specified realm, which shouldn't contain quotes.
+//
+// Most web browser display a dialog with something like:
+//
+//    The website says: "<realm>"
+//
+// Which is really stupid so you may want to set the realm to a message rather than
+// an actual realm.
+func BasicAuth(apiCtx truCtx.TruAPIContext, handler http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(apiCtx.Config.Admin.Username)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(apiCtx.Config.Admin.Password)) != 1 {
+			w.Header().Set("WWW-Authenticate", `Basic realm=please authenticate`)
+			w.WriteHeader(401)
+			w.Write([]byte("Unauthorised.\n"))
+			return
+		}
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
 // RegisterRoutes applies the TruStory API routes to the `chttp.API` router
 func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	sessionHandler := cookies.AnonymousSessionHandler(ta.APIContext)
@@ -127,6 +151,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/claim_of_the_day", WithUser(apiCtx, WrapHandler(ta.HandleClaimOfTheDayID)))
 	api.Handle("/claim/image", WithUser(apiCtx, WrapHandler(ta.HandleClaimImage)))
 	api.HandleFunc("/spotlight", ta.HandleSpotlight)
+	api.HandleFunc("/users/blacklist", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleUserBlacklisting)))
 	api.Handle("/users/password-reset", WrapHandler(ta.HandleUserForgotPassword))
 	api.Handle("/users/authentication", HandleUserAuthentication(ta))
 

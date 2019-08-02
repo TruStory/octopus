@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
+	"strconv"
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/regex"
@@ -484,15 +485,21 @@ func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) 
 	}
 
 	// b.) if no existing account found, continue creating a new account
+	// (if the their connected account's username is not available on the platform,
+	// we'll create a random one for them that they can edit later.)
+	username, err := getUniqueUsername(c, connectedAccount.Meta.Username, "")
+	if err != nil {
+		return nil, err
+	}
 	user := &User{
 		FullName:   connectedAccount.Meta.FullName,
-		Username:   connectedAccount.Meta.Username,
+		Username:   username,
 		Email:      connectedAccount.Meta.Email,
 		Bio:        connectedAccount.Meta.Bio,
 		AvatarURL:  connectedAccount.Meta.AvatarURL,
 		ApprovedAt: time.Now(),
 	}
-	err := c.AddUser(user)
+	err = c.AddUser(user)
 	if err != nil {
 		return nil, err
 	}
@@ -520,4 +527,24 @@ func (c *Client) UserByConnectedAccountTypeAndID(accountType, accountID string) 
 	}
 
 	return user, nil
+}
+
+func getUniqueUsername(c *Client, username string, suffix string) (string, error) {
+	candidate := username + suffix
+	user, err := c.UserByUsername(username + suffix)
+	if err != nil {
+		return "", err
+	}
+	if user != nil {
+		intSuffix := 0
+		if suffix != "" {
+			intSuffix, err = strconv.Atoi(suffix)
+			if err != nil {
+				return "", err
+			}
+		}
+		return getUniqueUsername(c, username, strconv.Itoa(intSuffix+1))
+	}
+
+	return candidate, nil
 }

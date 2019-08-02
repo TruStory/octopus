@@ -159,6 +159,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/spotlight", ta.HandleSpotlight)
 	api.HandleFunc("/users/blacklist", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleUserBlacklisting)))
 	api.HandleFunc("/users/password-reset", ta.HandleUserForgotPassword)
+	api.HandleFunc("/utilities/unique-username", ta.HandleUniqueUsernameUtility)
 	api.Handle("/users/authentication", HandleUserAuthentication(ta))
 
 	if apiCtx.Config.App.MockRegistration {

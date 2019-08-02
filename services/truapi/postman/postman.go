@@ -2,7 +2,6 @@ package postman
 
 import (
 	"html/template"
-	"log"
 
 	"github.com/TruStory/octopus/services/truapi/context"
 
@@ -30,7 +29,7 @@ type Message struct {
 }
 
 // NewPostman creates the client to deliver SES emails
-func NewPostman(config context.Config) *Postman {
+func NewPostman(config context.Config) (*Postman, error) {
 	// setting up all message templates
 	box := packr.New("Email Templates", "./templates")
 	templates := []string{
@@ -41,13 +40,11 @@ func NewPostman(config context.Config) *Postman {
 		templateFilename := templateName + ".html.tmpl"
 		filename, err := box.FindString(templateFilename)
 		if err != nil {
-			log.Fatal(err)
-			panic(err)
+			return nil, err
 		}
 		parsedTemplate, err := template.New(templateFilename).Parse(filename)
 		if err != nil {
-			log.Fatal(err)
-			panic(err)
+			return nil, err
 		}
 
 		messages[templateName] = parsedTemplate
@@ -56,8 +53,7 @@ func NewPostman(config context.Config) *Postman {
 		Region: aws.String(config.AWS.Region)},
 	)
 	if err != nil {
-		log.Fatal(err)
-		panic(err)
+		return nil, err
 	}
 
 	// returning the client
@@ -67,7 +63,7 @@ func NewPostman(config context.Config) *Postman {
 		CharSet:  "UTF-8",
 		SES:      ses.New(session),
 		Messages: messages,
-	}
+	}, nil
 }
 
 // Deliver sends the email to the designated recipient

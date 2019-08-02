@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -56,12 +57,17 @@ type TruAPI struct {
 
 // NewTruAPI returns a `TruAPI` instance populated with the existing app and a new GraphQL client
 func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
+	postman, err := postman.NewPostman(apiCtx.Config)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
 	ta := TruAPI{
 		API:                     chttp.NewAPI(apiCtx, supported),
 		APIContext:              apiCtx,
 		GraphQLClient:           graphql.NewGraphQLClient(),
 		DBClient:                db.NewDBClient(apiCtx.Config),
-		Postman:                 postman.NewPostman(apiCtx.Config),
+		Postman:                 postman,
 		commentsNotificationsCh: make(chan CommentNotificationRequest),
 		httpClient: &http.Client{
 			Timeout: time.Second * 5,

@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -73,11 +72,7 @@ func (ta *TruAPI) HandleUserDetails(r *http.Request) chttp.Response {
 func (ta *TruAPI) createNewUser(r *http.Request) chttp.Response {
 	var request RegisterUserRequest
 
-	reqBody, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
-	}
-	err = json.Unmarshal(reqBody, &request)
+	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}
@@ -125,11 +120,7 @@ func (ta *TruAPI) updateUserDetails(r *http.Request) chttp.Response {
 
 func (ta *TruAPI) verifyUserViaToken(r *http.Request) chttp.Response {
 	var request VerifyUserViaTokenRequest
-	reqBody, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
-	}
-	err = json.Unmarshal(reqBody, &request)
+	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}
@@ -168,11 +159,7 @@ func (ta *TruAPI) updateUserDetailsViaCookie(r *http.Request) chttp.Response {
 	}
 
 	var request UpdateUserViaCookieRequest
-	reqBody, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
-	}
-	err = json.Unmarshal(reqBody, &request)
+	err = json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}

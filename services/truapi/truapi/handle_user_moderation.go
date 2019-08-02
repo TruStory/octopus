@@ -3,7 +3,6 @@ package truapi
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
@@ -30,11 +29,7 @@ type ModerationRequest struct {
 // HandleUserModeration handles the moderation of the users who have requested to signup
 func (ta *TruAPI) HandleUserModeration(r *http.Request) chttp.Response {
 	var request ModerationRequest
-	reqBody, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
-	}
-	err = json.Unmarshal(reqBody, &request)
+	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}

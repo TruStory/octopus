@@ -37,11 +37,7 @@ func (ta *TruAPI) HandleUserForgotPassword(r *http.Request) chttp.Response {
 
 func (ta *TruAPI) forgotPassword(r *http.Request) chttp.Response {
 	var request ForgotPasswordRequest
-	reqBody, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
-	}
-	err = json.Unmarshal(reqBody, &request)
+	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
 	}

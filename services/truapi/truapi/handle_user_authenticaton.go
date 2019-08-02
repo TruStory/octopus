@@ -2,7 +2,6 @@ package truapi
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
@@ -24,12 +23,7 @@ func HandleUserAuthentication(ta *TruAPI) http.Handler {
 		}
 
 		var request AuthenticationRequest
-		reqBody, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
-			return
-		}
-		err = json.Unmarshal(reqBody, &request)
+		err := json.NewDecoder(r.Body).Decode(&request)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 			return

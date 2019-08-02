@@ -396,6 +396,24 @@ func (c *Client) BlacklistUser(id int64) error {
 	return nil
 }
 
+// UnblacklistUser unblacklists a user and allows them from logging in again
+func (c *Client) UnblacklistUser(id int64) error {
+	var user User
+	result, err := c.Model(&user).
+		Where("id = ?", id).
+		Set("blacklisted_at = NULL").
+		Update()
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return errors.New("invalid user")
+	}
+
+	return nil
+}
+
 // InvitedUsers returns all the users who are invited
 func (c *Client) InvitedUsers() ([]User, error) {
 	var invitedUsers = make([]User, 0)

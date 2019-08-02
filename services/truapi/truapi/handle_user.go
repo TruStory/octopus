@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 	"unicode"
 
@@ -20,18 +19,12 @@ import (
 
 // UserResponse is a JSON response body representing the result of User
 type UserResponse struct {
-	UserID         string                     `json:"userId"`
-	Username       string                     `json:"username"` // deprecated. Use UserTwitterProfileResponse.Username
-	Fullname       string                     `json:"fullname"` // deprecated. Use UserTwitterProfileResponse.Fullname
-	Address        string                     `json:"address"`
-	TwitterProfile UserTwitterProfileResponse `json:"twitterProfile"`
-}
-
-// UserTwitterProfileResponse is a JSON response body representing the TwitterProfile of a user
-type UserTwitterProfileResponse struct {
+	UserID    int64  `json:"user_id"`
 	Username  string `json:"username"`
-	FullName  string `json:"fullName"`
-	AvatarURI string `json:"avatarURI"`
+	FullName  string `json:"full_name"`
+	Address   string `json:"address"`
+	Bio       string `json:"bio"`
+	AvatarURL string `json:"avatar_url"`
 }
 
 // RegisterUserRequest represents the schema of the http request to create a new user
@@ -215,7 +208,7 @@ func (ta *TruAPI) updateUserDetailsViaCookie(w http.ResponseWriter, r *http.Requ
 }
 
 func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
-	user, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
+	authenticatedUser, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
 	if err == http.ErrNoCookie {
 		render.Error(w, r, err.Error(), http.StatusUnauthorized)
 		return
@@ -225,28 +218,20 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	twitterProfile, err := ta.DBClient.TwitterProfileByID(user.TwitterProfileID)
+	user := &db.User{ID: authenticatedUser.ID}
+	err = ta.DBClient.Find(user)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	// Chain was restarted and DB was wiped so Address and TwitterProfileID contained in cookie is stale.
-	if twitterProfile.ID == 0 {
-		render.Error(w, r, "error", http.StatusUnauthorized)
-		return
-	}
-
 	response := UserResponse{
-		UserID:   strconv.FormatInt(twitterProfile.ID, 10),
-		Fullname: twitterProfile.FullName,
-		Username: twitterProfile.Username,
-		Address:  twitterProfile.Address,
-		TwitterProfile: UserTwitterProfileResponse{
-			Username:  twitterProfile.Username,
-			FullName:  twitterProfile.FullName,
-			AvatarURI: twitterProfile.AvatarURI,
-		},
+		UserID:    user.ID,
+		FullName:  user.FullName,
+		Username:  user.Username,
+		Address:   user.Address,
+		Bio:       user.Bio,
+		AvatarURL: user.AvatarURL,
 	}
 
 	render.Response(w, r, response, http.StatusOK)

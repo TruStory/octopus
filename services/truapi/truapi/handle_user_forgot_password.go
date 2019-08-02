@@ -2,13 +2,10 @@ package truapi
 
 import (
 	"encoding/json"
-	"errors"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/TruStory/octopus/services/truapi/db"
-
-	"github.com/TruStory/octopus/services/truapi/chttp"
+	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
 // ForgotPasswordRequest represents the http request when a user forgets a password
@@ -24,71 +21,84 @@ type PasswordResetRequest struct {
 }
 
 // HandleUserForgotPassword handles the resetting of user's password if they forget
-func (ta *TruAPI) HandleUserForgotPassword(r *http.Request) chttp.Response {
+func (ta *TruAPI) HandleUserForgotPassword(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		return ta.forgotPassword(r)
+		ta.forgotPassword(w, r)
 	case http.MethodPut:
-		return ta.resetPassword(r)
+		ta.resetPassword(w, r)
 	default:
-		return chttp.SimpleErrorResponse(http.StatusMethodNotAllowed, errors.New("method not allowed"))
+		render.Error(w, r, "method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func (ta *TruAPI) forgotPassword(r *http.Request) chttp.Response {
+func (ta *TruAPI) forgotPassword(w http.ResponseWriter, r *http.Request) {
 	var request ForgotPasswordRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	user, err := ta.DBClient.UserByEmailOrUsername(request.Identifier)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusNotFound, err)
+		render.Error(w, r, err.Error(), http.StatusNotFound)
+		return
 	}
 	if user == nil {
-		return chttp.SimpleErrorResponse(http.StatusNotFound, errors.New("no such user"))
+		render.Error(w, r, "no such user", http.StatusNotFound)
+		return
 	}
 
 	prt, err := ta.DBClient.IssueResetToken(user.ID)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	sendResetTokenToUser(ta, prt, user)
 
-	return chttp.SimpleResponse(http.StatusOK, nil)
+	render.Response(w, r, true, http.StatusOK)
+	return
 }
 
-func (ta *TruAPI) resetPassword(r *http.Request) chttp.Response {
+func (ta *TruAPI) resetPassword(w http.ResponseWriter, r *http.Request) {
 	var request PasswordResetRequest
-	reqBody, err := ioutil.ReadAll(r.Body)
+	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
-	err = json.Unmarshal(reqBody, &request)
+
+	err = validatePassword(request.Password)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	prt, err := ta.DBClient.UnusedResetTokenByUserAndToken(request.UserID, request.Token)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 	if prt == nil {
-		return chttp.SimpleErrorResponse(http.StatusNotFound, errors.New("no such token"))
+		render.Error(w, r, "no such token", http.StatusNotFound)
+		return
 	}
 
 	err = ta.DBClient.UseResetToken(prt)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 	err = ta.DBClient.ResetPassword(request.UserID, request.Password)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	return chttp.SimpleResponse(http.StatusOK, nil)
+	render.Response(w, r, true, http.StatusOK)
+	return
 }
 
 func sendResetTokenToUser(ta *TruAPI, prt *db.PasswordResetToken, user *db.User) {

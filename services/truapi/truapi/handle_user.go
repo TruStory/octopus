@@ -9,11 +9,12 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/TruStory/octopus/services/truapi/truapi/render"
+
 	"github.com/TruStory/octopus/services/truapi/truapi/regex"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 
-	"github.com/TruStory/octopus/services/truapi/chttp"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 )
 
@@ -58,28 +59,30 @@ type UpdateUserViaCookieRequest struct {
 }
 
 // HandleUserDetails takes a `UserRequest` and returns a `UserResponse`
-func (ta *TruAPI) HandleUserDetails(r *http.Request) chttp.Response {
+func (ta *TruAPI) HandleUserDetails(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		return ta.createNewUser(r)
+		ta.createNewUser(w, r)
 	case http.MethodPut:
-		return ta.updateUserDetails(r)
+		ta.updateUserDetails(w, r)
 	default:
-		return ta.getUserDetails(r)
+		ta.getUserDetails(w, r)
 	}
 }
 
-func (ta *TruAPI) createNewUser(r *http.Request) chttp.Response {
+func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 	var request RegisterUserRequest
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	err = validateRegisterRequest(request)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusBadRequest, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	user := &db.User{
@@ -91,13 +94,14 @@ func (ta *TruAPI) createNewUser(r *http.Request) chttp.Response {
 
 	err = ta.DBClient.SignupUser(user, request.ReferredBy)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	return chttp.SimpleResponse(http.StatusOK, nil)
+	render.Response(w, r, true, http.StatusOK)
 }
 
-func (ta *TruAPI) updateUserDetails(r *http.Request) chttp.Response {
+func (ta *TruAPI) updateUserDetails(w http.ResponseWriter, r *http.Request) {
 	// There are two scenarios when a user can be updated:
 	// a.) When users are verifying their email address (via token)
 	// b.) When users are updating their profile (bio, photo, etc) from their account settings
@@ -108,113 +112,132 @@ func (ta *TruAPI) updateUserDetails(r *http.Request) chttp.Response {
 	_, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
 	if err == http.ErrNoCookie {
 		// no cookie present; proceed via token
-		return ta.verifyUserViaToken(r)
+		ta.verifyUserViaToken(w, r)
 	}
 	if err != nil {
-		return chttp.SimpleErrorResponse(401, err)
+		render.Error(w, r, err.Error(), http.StatusUnauthorized)
+		return
 	}
 
 	// cookie found, proceed via cookie
-	return ta.updateUserDetailsViaCookie(r)
+	ta.updateUserDetailsViaCookie(w, r)
 }
 
-func (ta *TruAPI) verifyUserViaToken(r *http.Request) chttp.Response {
+func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 	var request VerifyUserViaTokenRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	err = ta.DBClient.VerifyUser(request.ID, request.Token)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// MILESTONE -- successfully verified, let's give the user an address (registering user on the chain)
 	keyPair, err := makeNewKeyPair()
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	// registering the keypair
 	pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	address, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	err = ta.DBClient.AddAddressToUser(request.ID, address.String())
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusInternalServerError, err)
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	return chttp.SimpleResponse(http.StatusOK, nil)
+	render.Response(w, r, true, http.StatusOK)
 }
 
-func (ta *TruAPI) updateUserDetailsViaCookie(r *http.Request) chttp.Response {
+func (ta *TruAPI) updateUserDetailsViaCookie(w http.ResponseWriter, r *http.Request) {
 	user, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
 	if err != nil {
-		return chttp.SimpleErrorResponse(401, err)
+		render.Error(w, r, err.Error(), http.StatusUnauthorized)
+		return
 	}
 
 	var request UpdateUserViaCookieRequest
 	err = json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// if user wants to change their password
 	if request.Password != nil {
 		if request.Password.New != request.Password.NewConfirmation {
-			return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, errors.New("new passwords do not match"))
+			render.Error(w, r, "new passwords do not match", http.StatusBadRequest)
+			return
 		}
 
 		err = validatePassword(request.Password.New)
 		if err != nil {
-			return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+			render.Error(w, r, err.Error(), http.StatusBadRequest)
+			return
 		}
 		err = ta.DBClient.UpdatePassword(user.ID, request.Password)
 		if err != nil {
-			return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+			render.Error(w, r, err.Error(), http.StatusBadRequest)
+			return
 		}
 
-		return chttp.SimpleResponse(http.StatusOK, nil)
+		render.Response(w, r, true, http.StatusOK)
+		return
 	}
 
 	// if user wants to change their profile
 	if request.Profile != nil {
 		err = ta.DBClient.UpdateProfile(user.ID, request.Profile)
 		if err != nil {
-			return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+			render.Error(w, r, err.Error(), http.StatusBadRequest)
+			return
 		}
 
-		return chttp.SimpleResponse(http.StatusOK, nil)
+		render.Response(w, r, true, http.StatusOK)
+		return
 	}
 
-	return chttp.SimpleResponse(http.StatusOK, nil)
+	render.Response(w, r, true, http.StatusOK)
 }
 
-func (ta *TruAPI) getUserDetails(r *http.Request) chttp.Response {
+func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 	user, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
 	if err == http.ErrNoCookie {
-		return chttp.SimpleErrorResponse(401, err)
+		render.Error(w, r, err.Error(), http.StatusUnauthorized)
+		return
 	}
 	if err != nil {
-		return chttp.SimpleErrorResponse(401, err)
+		render.Error(w, r, err.Error(), http.StatusUnauthorized)
+		return
 	}
 
 	twitterProfile, err := ta.DBClient.TwitterProfileByID(user.TwitterProfileID)
 	if err != nil {
-		return chttp.SimpleErrorResponse(401, err)
+		render.Error(w, r, err.Error(), http.StatusUnauthorized)
+		return
 	}
 
 	// Chain was restarted and DB was wiped so Address and TwitterProfileID contained in cookie is stale.
 	if twitterProfile.ID == 0 {
-		return chttp.SimpleErrorResponse(401, err)
+		render.Error(w, r, err.Error(), http.StatusUnauthorized)
+		return
 	}
 
-	responseBytes, _ := json.Marshal(UserResponse{
+	response := UserResponse{
 		UserID:   strconv.FormatInt(twitterProfile.ID, 10),
 		Fullname: twitterProfile.FullName,
 		Username: twitterProfile.Username,
@@ -224,9 +247,9 @@ func (ta *TruAPI) getUserDetails(r *http.Request) chttp.Response {
 			FullName:  twitterProfile.FullName,
 			AvatarURI: twitterProfile.AvatarURI,
 		},
-	})
+	}
 
-	return chttp.SimpleResponse(200, responseBytes)
+	render.Response(w, r, response, http.StatusOK)
 }
 
 func validateRegisterRequest(request RegisterUserRequest) error {

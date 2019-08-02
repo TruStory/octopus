@@ -134,7 +134,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/presigned", WrapHandler(ta.HandlePresigned))
 	api.Handle("/unsigned", WrapHandler(ta.HandleUnsigned))
 	api.Handle("/register", WrapHandler(ta.HandleRegistration))
-	api.Handle("/user", WrapHandler(ta.HandleUserDetails))
+	api.HandleFunc("/user", ta.HandleUserDetails)
 	api.Handle("/user/search", WrapHandler(ta.HandleUsernameSearch))
 	api.Handle("/notification", WithUser(apiCtx, WrapHandler(ta.HandleNotificationEvent)))
 	api.HandleFunc("/deviceToken", ta.HandleDeviceTokenRegistration)
@@ -152,7 +152,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/claim/image", WithUser(apiCtx, WrapHandler(ta.HandleClaimImage)))
 	api.HandleFunc("/spotlight", ta.HandleSpotlight)
 	api.HandleFunc("/users/blacklist", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleUserBlacklisting)))
-	api.Handle("/users/password-reset", WrapHandler(ta.HandleUserForgotPassword))
+	api.HandleFunc("/users/password-reset", ta.HandleUserForgotPassword)
 	api.Handle("/users/authentication", HandleUserAuthentication(ta))
 
 	if apiCtx.Config.App.MockRegistration {

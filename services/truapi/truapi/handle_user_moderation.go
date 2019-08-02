@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/TruStory/octopus/services/truapi/chttp"
+	"github.com/TruStory/octopus/services/truapi/truapi/render"
+
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/postman/messages"
 )
@@ -27,11 +28,12 @@ type ModerationRequest struct {
 }
 
 // HandleUserModeration handles the moderation of the users who have requested to signup
-func (ta *TruAPI) HandleUserModeration(r *http.Request) chttp.Response {
+func (ta *TruAPI) HandleUserModeration(w http.ResponseWriter, r *http.Request) {
 	var request ModerationRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// TODO: make sure only admins can take this action
@@ -44,13 +46,15 @@ func (ta *TruAPI) HandleUserModeration(r *http.Request) chttp.Response {
 	} else if request.Moderation == ModerationRejected {
 		err = ta.DBClient.RejectUserByID(request.UserID)
 	} else {
-		return chttp.SimpleErrorResponse(http.StatusBadRequest, fmt.Errorf("moderation must either be '%s' or '%s' only", ModerationApproved, ModerationRejected))
+		render.Error(w, r, fmt.Sprintf("moderation must either be '%s' or '%s' only", ModerationApproved, ModerationRejected), http.StatusBadRequest)
+		return
 	}
 	if err != nil {
-		return chttp.SimpleErrorResponse(http.StatusUnprocessableEntity, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	return chttp.SimpleResponse(http.StatusOK, nil)
+	render.Response(w, r, true, http.StatusOK)
 }
 
 func sendSignupEmail(ta *TruAPI, userID int64) error {

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/russross/blackfriday/v2"
+
 	"github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/postman"
@@ -24,11 +26,12 @@ func MakeSignupMessage(client *postman.Postman, config context.Config, user db.U
 		return nil, err
 	}
 
+	compiledBody := string(blackfriday.Run(body.Bytes()))
 	return &postman.Message{
 		To:       user.Email,
-		Subject:  "Welcome to TruStory - you've been approved to join.",
-		HTMLBody: body.String(),
-		TextBody: body.String(),
+		Subject:  "Getting you started with TruStory Beta",
+		HTMLBody: compiledBody,
+		TextBody: compiledBody,
 	}, nil
 }
 

@@ -58,11 +58,10 @@ func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		claimID := int64(claim.ID)
 		dbEvent = db.TrackEvent{
 			Event: TrackEventClaimOpened,
 			Meta: db.TrackEventMeta{
-				ClaimID:     &claimID,
+				ClaimID:     evt.Properties.ClaimID,
 				CommunityID: &claim.CommunityID,
 			},
 		}
@@ -82,13 +81,11 @@ func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		claimID := int64(*evt.Properties.ClaimID)
-		argumentID := int64(*evt.Properties.ArgumentID)
 		dbEvent = db.TrackEvent{
 			Event: TrackEventArgumentOpened,
 			Meta: db.TrackEventMeta{
-				ClaimID:     &claimID,
-				ArgumentID:  &argumentID,
+				ClaimID:     evt.Properties.ClaimID,
+				ArgumentID:  evt.Properties.ArgumentID,
 				CommunityID: &claim.CommunityID,
 			},
 		}

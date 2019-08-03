@@ -26,12 +26,10 @@ func MakeSignupMessage(client *postman.Postman, config context.Config, user db.U
 		return nil, err
 	}
 
-	compiledBody := string(blackfriday.Run(body.Bytes()))
 	return &postman.Message{
-		To:       user.Email,
-		Subject:  "Getting you started with TruStory Beta",
-		HTMLBody: compiledBody,
-		TextBody: compiledBody,
+		To:      []string{user.Email},
+		Subject: "Getting you started with TruStory Beta",
+		Body:    string(blackfriday.Run(body.Bytes())),
 	}, nil
 }
 

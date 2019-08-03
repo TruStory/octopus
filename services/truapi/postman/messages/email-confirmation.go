@@ -26,12 +26,10 @@ func MakeEmailConfirmationMessage(client *postman.Postman, config context.Config
 		return nil, err
 	}
 
-	compiledBody := string(blackfriday.Run(body.Bytes()))
 	return &postman.Message{
-		To:       user.Email,
-		Subject:  "Confirm your email address",
-		HTMLBody: compiledBody,
-		TextBody: compiledBody,
+		To:      []string{user.Email},
+		Subject: "Confirm your email address",
+		Body:    string(blackfriday.Run(body.Bytes())),
 	}, nil
 }
 

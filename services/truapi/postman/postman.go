@@ -22,10 +22,10 @@ type Postman struct {
 
 // Message represents an email that can be sent
 type Message struct {
-	To       string
-	Subject  string
-	HTMLBody string
-	TextBody string
+	To      []string
+	CC      []string
+	Subject string
+	Body    string
 }
 
 // NewPostman creates the client to deliver SES emails
@@ -68,14 +68,19 @@ func NewPostman(config context.Config) (*Postman, error) {
 
 // Deliver sends the email to the designated recipient
 func (postman *Postman) Deliver(message Message) error {
+	cc, to := []*string{}, []*string{}
+	for _, address := range message.CC {
+		cc = append(cc, aws.String(address))
+	}
+	for _, address := range message.To {
+		to = append(to, aws.String(address))
+	}
 	// Assemble the email.
 	input := &ses.SendEmailInput{
 		Source: aws.String(postman.Sender),
 		Destination: &ses.Destination{
-			CcAddresses: []*string{},
-			ToAddresses: []*string{
-				aws.String(message.To),
-			},
+			CcAddresses: cc,
+			ToAddresses: to,
 		},
 		Message: &ses.Message{
 			Subject: &ses.Content{
@@ -85,11 +90,7 @@ func (postman *Postman) Deliver(message Message) error {
 			Body: &ses.Body{
 				Html: &ses.Content{
 					Charset: aws.String(postman.CharSet),
-					Data:    aws.String(message.HTMLBody),
-				},
-				Text: &ses.Content{
-					Charset: aws.String(postman.CharSet),
-					Data:    aws.String(message.TextBody),
+					Data:    aws.String(message.Body),
 				},
 			},
 		},

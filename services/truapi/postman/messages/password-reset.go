@@ -26,12 +26,10 @@ func MakePasswordResetMessage(client *postman.Postman, config context.Config, us
 		return nil, err
 	}
 
-	compiledBody := string(blackfriday.Run(body.Bytes()))
 	return &postman.Message{
-		To:       user.Email,
-		Subject:  "Reset your password?",
-		HTMLBody: compiledBody,
-		TextBody: compiledBody,
+		To:      []string{user.Email},
+		Subject: "Reset your password?",
+		Body:    string(blackfriday.Run(body.Bytes())),
 	}, nil
 }
 

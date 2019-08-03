@@ -28,13 +28,11 @@ func MakeInvitationMessage(client *postman.Postman, config context.Config, name,
 		return nil, err
 	}
 
-	compiledBody := string(blackfriday.Run(body.Bytes()))
-	fmt.Println(compiledBody)
 	return &postman.Message{
-		To:       email,
-		Subject:  fmt.Sprintf("You’ve been invited to TruStory Beta by %s!", referrer.FullName),
-		HTMLBody: compiledBody,
-		TextBody: compiledBody,
+		To:      []string{email},
+		CC:      []string{referrer.Email},
+		Subject: fmt.Sprintf("You’ve been invited to TruStory Beta by %s!", referrer.FullName),
+		Body:    string(blackfriday.Run(body.Bytes())),
 	}, nil
 }
 

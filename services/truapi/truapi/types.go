@@ -132,6 +132,9 @@ type Settings struct {
 	InterestRate             float64
 	StakingAdmins            []string
 	MaxArgumentsPerClaim     int32
+	ArgumentCreationReward   sdk.Coin
+	UpvoteCreatorReward      sdk.Coin
+	UpvoteStakerReward       sdk.Coin
 
 	// slashing params
 	MinSlashCount           int32

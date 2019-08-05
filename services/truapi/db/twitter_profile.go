@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/go-pg/pg"
 )
@@ -24,61 +25,48 @@ func (t TwitterProfile) String() string {
 		t.ID, t.Address, t.Username, t.FullName, t.AvatarURI)
 }
 
-// UsernamesByPrefix returns the first five usernames for the provided prefix string
-func (c *Client) UsernamesByPrefix(prefix string) (usernames []string, err error) {
-	var twitterProfiles []TwitterProfile
-	sqlFragment := fmt.Sprintf("username ILIKE '%s", prefix)
-	err = c.Model(&twitterProfiles).Where(sqlFragment + "%'").Limit(5).Select()
-	if err == pg.ErrNoRows {
-		return usernames, nil
-	}
-	if err != nil {
-		return usernames, err
-	}
-	for _, twitterProfile := range twitterProfiles {
-		usernames = append(usernames, twitterProfile.Username)
-	}
-
-	return usernames, nil
-}
-
-// TwitterProfileByID implements `Datastore`
-// Finds a Twitter profile by the given twitter profile id
-func (c *Client) TwitterProfileByID(id int64) (TwitterProfile, error) {
-	twitterProfile := new(TwitterProfile)
-	err := c.Model(twitterProfile).Where("id = ?", id).Select()
-
-	if err == pg.ErrNoRows {
-		return *twitterProfile, nil
-	}
-
-	if err != nil {
-		return *twitterProfile, err
-	}
-
-	return *twitterProfile, nil
-}
-
 // TwitterProfileByAddress implements `Datastore`
 // Finds a Twitter profile by the given address
+// Deprecated: use UserProfileByAddress instead
 func (c *Client) TwitterProfileByAddress(addr string) (*TwitterProfile, error) {
 	twitterProfile := new(TwitterProfile)
-	err := c.Model(twitterProfile).Where("address = ?", addr).Select()
+	user := new(User)
+	err := c.Model(user).Where("address = ?", addr).Select()
 	if err == pg.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return twitterProfile, err
 	}
+
+	twitterProfile = &TwitterProfile{
+		Timestamps:  user.Timestamps,
+		Address:     user.Address,
+		Username:    user.Username,
+		FullName:    user.FullName,
+		Email:       "",
+		AvatarURI:   user.AvatarURL,
+		Description: user.Bio,
+	}
+
+	connectedAccount := new(ConnectedAccount)
+	err = c.Model(connectedAccount).Where("user_id = ?", user.ID).Select()
+	if err != nil {
+		return twitterProfile, err
+	}
+
+	twitterProfile.ID, err = strconv.ParseInt(connectedAccount.AccountID, 10, 64)
 
 	return twitterProfile, nil
 }
 
 // TwitterProfileByUsername implements `Datastore`
 // Finds a Twitter profile by the given username
+// Deprecated: use UserProfileByUsername instead
 func (c *Client) TwitterProfileByUsername(username string) (*TwitterProfile, error) {
 	twitterProfile := new(TwitterProfile)
-	err := c.Model(twitterProfile).Where("username = ?", username).First()
+	user := new(User)
+	err := c.Model(user).Where("username = ?", username).First()
 	if err == pg.ErrNoRows {
 		return nil, nil
 	}
@@ -86,16 +74,24 @@ func (c *Client) TwitterProfileByUsername(username string) (*TwitterProfile, err
 		return twitterProfile, err
 	}
 
+	twitterProfile = &TwitterProfile{
+		Timestamps:  user.Timestamps,
+		ID:          user.ID,
+		Address:     user.Address,
+		Username:    user.Username,
+		FullName:    user.FullName,
+		Email:       "",
+		AvatarURI:   user.AvatarURL,
+		Description: user.Bio,
+	}
+
+	connectedAccount := new(ConnectedAccount)
+	err = c.Model(connectedAccount).Where("user_id = ?", user.ID).Select()
+	if err != nil {
+		return twitterProfile, err
+	}
+
+	twitterProfile.ID, err = strconv.ParseInt(connectedAccount.AccountID, 10, 64)
+
 	return twitterProfile, nil
-}
-
-// UpsertTwitterProfile implements `Datastore`.
-// Updates an existing Twitter profile or creates a new one.
-func (c *Client) UpsertTwitterProfile(profile *TwitterProfile) error {
-	_, err := c.Model(profile).
-		OnConflict("(id) DO UPDATE").
-		Set("address = EXCLUDED.address, username = EXCLUDED.username, full_name = EXCLUDED.full_name, avatar_uri = EXCLUDED.avatar_uri, email = EXCLUDED.email, description = EXCLUDED.description").
-		Insert()
-
-	return err
 }

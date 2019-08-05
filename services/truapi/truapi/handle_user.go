@@ -22,11 +22,23 @@ import (
 // UserResponse is a JSON response body representing the result of User
 type UserResponse struct {
 	UserID    int64  `json:"user_id"`
-	Username  string `json:"username"`
 	FullName  string `json:"full_name"`
+	Username  string `json:"username"`
 	Address   string `json:"address"`
 	Bio       string `json:"bio"`
 	AvatarURL string `json:"avatar_url"`
+
+	// deprecated
+	TwitterProfile *UserTwitterProfileResponse `json:"twitterProfile"`
+	UserIDLegacy   int64                       `json:"userId"`
+	FullNameLegacy string                      `json:"fullname"`
+}
+
+// UserTwitterProfileResponse is a JSON response body representing the TwitterProfile of a user
+type UserTwitterProfileResponse struct {
+	Username  string `json:"username"`
+	FullName  string `json:"fullName"`
+	AvatarURI string `json:"avatarURI"`
 }
 
 // RegisterUserRequest represents the schema of the http request to create a new user
@@ -246,6 +258,15 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		Address:   user.Address,
 		Bio:       user.Bio,
 		AvatarURL: user.AvatarURL,
+
+		// deprecated
+		TwitterProfile: &UserTwitterProfileResponse{
+			AvatarURI: user.AvatarURL,
+			FullName:  user.FullName,
+			Username:  user.Username,
+		},
+		UserIDLegacy:   user.ID,
+		FullNameLegacy: user.FullName,
 	}
 
 	render.Response(w, r, response, http.StatusOK)

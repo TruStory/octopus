@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"strconv"
 	"time"
@@ -547,4 +548,64 @@ func getUniqueUsername(c *Client, username string, suffix string) (string, error
 	}
 
 	return candidate, nil
+}
+
+// UsernamesByPrefix returns the first five usernames for the provided prefix string
+func (c *Client) UsernamesByPrefix(prefix string) (usernames []string, err error) {
+	var users []User
+	sqlFragment := fmt.Sprintf("username ILIKE '%s", prefix)
+	err = c.Model(&users).Where(sqlFragment + "%'").Limit(5).Select()
+	if err == pg.ErrNoRows {
+		return usernames, nil
+	}
+	if err != nil {
+		return usernames, err
+	}
+	for _, user := range users {
+		usernames = append(usernames, user.Username)
+	}
+
+	return usernames, nil
+}
+
+// UserProfileByAddress fetches user profile details by address
+func (c *Client) UserProfileByAddress(addr string) (*UserProfile, error) {
+	userProfile := new(UserProfile)
+	user := new(User)
+	err := c.Model(user).Where("address = ?", addr).Select()
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return userProfile, err
+	}
+
+	userProfile = &UserProfile{
+		FullName:  user.FullName,
+		Bio:       user.Bio,
+		AvatarURL: user.AvatarURL,
+	}
+
+	return userProfile, nil
+}
+
+// UserProfileByUsername fetches user profile by username
+func (c *Client) UserProfileByUsername(username string) (*UserProfile, error) {
+	userProfile := new(UserProfile)
+	user := new(User)
+	err := c.Model(user).Where("username = ?", username).First()
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return userProfile, err
+	}
+
+	userProfile = &UserProfile{
+		FullName:  user.FullName,
+		Bio:       user.Bio,
+		AvatarURL: user.AvatarURL,
+	}
+
+	return userProfile, nil
 }

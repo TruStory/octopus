@@ -283,9 +283,6 @@ func (ta *TruAPI) RegisterResolvers() {
 		"availableBalance": func(_ context.Context, q AppAccount) sdk.Coin {
 			return sdk.NewCoin(app.StakeDenom, q.Coins.AmountOf(app.StakeDenom))
 		},
-		"twitterProfile": func(ctx context.Context, q AppAccount) db.TwitterProfile {
-			return ta.twitterProfileResolver(ctx, q.Address)
-		},
 		"totalClaims": func(ctx context.Context, q AppAccount) int {
 			return len(ta.appAccountClaimsCreatedResolver(ctx, queryByAddress{ID: q.Address}))
 		},
@@ -307,12 +304,26 @@ func (ta *TruAPI) RegisterResolvers() {
 		"pendingStake": func(ctx context.Context, q AppAccount) []EarnedCoin {
 			return ta.pendingStakeResolver(ctx, queryByAddress{ID: q.Address})
 		},
+		"userProfile": func(ctx context.Context, q AppAccount) db.UserProfile {
+			return ta.userProfileResolver(ctx, q.Address)
+		},
+		// deprecated, use "userProfile" instead
+		"twitterProfile": func(ctx context.Context, q AppAccount) db.TwitterProfile {
+			return ta.twitterProfileResolver(ctx, q.Address)
+		},
 	})
 
 	ta.GraphQLClient.RegisterObjectResolver("TwitterProfile", db.TwitterProfile{}, map[string]interface{}{
 		"id": func(_ context.Context, q db.TwitterProfile) string { return string(q.ID) },
 		"avatarURI": func(_ context.Context, q db.TwitterProfile) string {
 			largeURI := strings.Replace(q.AvatarURI, "_bigger", "_200x200", 1)
+			return strings.Replace(largeURI, "http://", "//", 1)
+		},
+	})
+
+	ta.GraphQLClient.RegisterObjectResolver("User", db.UserProfile{}, map[string]interface{}{
+		"avatarURL": func(_ context.Context, q db.UserProfile) string {
+			largeURI := strings.Replace(q.AvatarURL, "_bigger", "_200x200", 1)
 			return strings.Replace(largeURI, "http://", "//", 1)
 		},
 	})

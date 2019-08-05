@@ -28,8 +28,8 @@ type Message struct {
 	Body    string
 }
 
-// NewPostman creates the client to deliver SES emails
-func NewPostman(config context.Config) (*Postman, error) {
+// NewVanillaPostman creates the client without the truapi dependency
+func NewVanillaPostman(region, sender string) (*Postman, error) {
 	// setting up all message templates
 	box := packr.New("Email Templates", "./templates")
 	templates := []string{
@@ -50,7 +50,7 @@ func NewPostman(config context.Config) (*Postman, error) {
 		messages[templateName] = parsedTemplate
 	}
 	session, err := session.NewSession(&aws.Config{
-		Region: aws.String(config.AWS.Region)},
+		Region: aws.String(region)},
 	)
 	if err != nil {
 		return nil, err
@@ -58,12 +58,17 @@ func NewPostman(config context.Config) (*Postman, error) {
 
 	// returning the client
 	return &Postman{
-		Region:   config.AWS.Region,
-		Sender:   config.AWS.Sender,
+		Region:   region,
+		Sender:   sender,
 		CharSet:  "UTF-8",
 		SES:      ses.New(session),
 		Messages: messages,
 	}, nil
+}
+
+// NewPostman creates the client to deliver SES emails
+func NewPostman(config context.Config) (*Postman, error) {
+	return NewVanillaPostman(config.AWS.Region, config.AWS.Sender)
 }
 
 // Deliver sends the email to the designated recipient

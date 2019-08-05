@@ -208,6 +208,21 @@ func GetAnonSessionCookie(apiCtx truCtx.TruAPIContext) (*http.Cookie, error) {
 func AnonymousSessionHandler(apiCtx truCtx.TruAPIContext) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			if r.Header.Get("x-mobile-request") == "true" {
+				cookie := &http.Cookie{
+					Name:     AnonSessionCookieName,
+					Path:     "/",
+					HttpOnly: true,
+					MaxAge:   -1,
+					Domain:   apiCtx.Config.Host.Name,
+				}
+
+				http.SetCookie(w, cookie)
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			_, err := GetAnonymousSession(apiCtx, r)
 			// cookie is present continue to next handler
 			if err == nil {

@@ -19,6 +19,14 @@ func init() {
 			deleted_at TIMESTAMP,
 			CONSTRAINT no_duplicate_address_community UNIQUE(address, community_id)
 		)`)
+
+		if err != nil {
+			return err
+		}
+		_, err = db.Exec(`INSERT INTO 
+ 					followed_communities(address, community_id, following_since, created_at, updated_at)
+					SELECT address, 'general', now(), now(), now() FROM twitter_profiles
+					ON CONFLICT DO NOTHING`)
 		return err
 	}, func(db migrations.DB) error {
 		fmt.Println("dropping followed_communities table...")

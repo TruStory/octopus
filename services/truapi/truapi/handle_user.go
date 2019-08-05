@@ -8,6 +8,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/TruStory/octopus/services/truapi/postman/messages"
+
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/regex"
@@ -88,6 +90,18 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 	err = ta.DBClient.SignupUser(user, request.ReferredBy)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	message, err := messages.MakeEmailConfirmationMessage(ta.Postman, ta.APIContext.Config, *user)
+	if err != nil {
+		render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
+		return
+	}
+
+	err = ta.Postman.Deliver(*message)
+	if err != nil {
+		render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
 		return
 	}
 

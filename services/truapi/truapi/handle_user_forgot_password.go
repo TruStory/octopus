@@ -2,7 +2,10 @@ package truapi
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+
+	"github.com/TruStory/octopus/services/truapi/postman/messages"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
@@ -56,7 +59,11 @@ func (ta *TruAPI) forgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sendResetTokenToUser(ta, prt, user)
+	err = sendResetTokenToUser(ta, prt, user)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	render.Response(w, r, true, http.StatusOK)
 }
@@ -99,6 +106,15 @@ func (ta *TruAPI) resetPassword(w http.ResponseWriter, r *http.Request) {
 	render.Response(w, r, true, http.StatusOK)
 }
 
-func sendResetTokenToUser(ta *TruAPI, prt *db.PasswordResetToken, user *db.User) {
-	// TODO: send password reset email
+func sendResetTokenToUser(ta *TruAPI, prt *db.PasswordResetToken, user *db.User) error {
+	message, err := messages.MakePasswordResetMessage(ta.Postman, ta.APIContext.Config, *user, *prt)
+	if err != nil {
+		return errors.New("error sending password reset email")
+	}
+
+	err = ta.Postman.Deliver(*message)
+	if err != nil {
+		return errors.New("error sending password reset email")
+	}
+	return nil
 }

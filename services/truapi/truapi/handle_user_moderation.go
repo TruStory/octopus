@@ -36,7 +36,6 @@ func (ta *TruAPI) HandleUserModeration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: make sure only admins can take this action
 	if request.Moderation == ModerationApproved {
 		err = ta.DBClient.ApproveUserByID(request.UserID)
 		// if approved, send them a signup email

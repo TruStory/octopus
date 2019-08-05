@@ -125,8 +125,6 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/spotlight", ta.HandleSpotlight)
 	api.Handle("/communities/follow",
 		WithUser(apiCtx, http.HandlerFunc(ta.handleFollowCommunities))).Methods(http.MethodPost)
-	api.Handle("/communities/following",
-		WithUser(apiCtx, http.HandlerFunc(ta.handleFollowCommunities)))
 	api.Handle("/communities/unfollow/{communityID}",
 		WithUser(apiCtx, http.HandlerFunc(ta.handleUnfollowCommunity))).Methods(http.MethodDelete)
 

@@ -2,15 +2,19 @@ package truapi
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/TruStory/octopus/services/truapi/postman"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
@@ -43,6 +47,7 @@ type TruAPI struct {
 	APIContext    truCtx.TruAPIContext
 	GraphQLClient *graphql.Client
 	DBClient      db.Datastore
+	Postman       *postman.Postman
 
 	// notifications
 	notificationsInitialized bool
@@ -52,11 +57,17 @@ type TruAPI struct {
 
 // NewTruAPI returns a `TruAPI` instance populated with the existing app and a new GraphQL client
 func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
+	postman, err := postman.NewPostman(apiCtx.Config)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
 	ta := TruAPI{
 		API:                     chttp.NewAPI(apiCtx, supported),
 		APIContext:              apiCtx,
 		GraphQLClient:           graphql.NewGraphQLClient(),
 		DBClient:                db.NewDBClient(apiCtx.Config),
+		Postman:                 postman,
 		commentsNotificationsCh: make(chan CommentNotificationRequest),
 		httpClient: &http.Client{
 			Timeout: time.Second * 5,
@@ -91,6 +102,29 @@ func WithUser(apiCtx truCtx.TruAPIContext, h http.Handler) http.Handler {
 	})
 }
 
+// BasicAuth wraps a handler requiring HTTP basic auth for it using the given
+// username and password and the specified realm, which shouldn't contain quotes.
+//
+// Most web browser display a dialog with something like:
+//
+//    The website says: "<realm>"
+//
+// Which is really stupid so you may want to set the realm to a message rather than
+// an actual realm.
+func BasicAuth(apiCtx truCtx.TruAPIContext, handler http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(apiCtx.Config.Admin.Username)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(apiCtx.Config.Admin.Password)) != 1 {
+			w.Header().Set("WWW-Authenticate", `Basic realm=please authenticate`)
+			w.WriteHeader(401)
+			_, _ = w.Write([]byte("Unauthorised.\n"))
+			return
+		}
+
+		handler.ServeHTTP(w, r)
+	})
+}
+
 // RegisterRoutes applies the TruStory API routes to the `chttp.API` router
 func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	sessionHandler := cookies.AnonymousSessionHandler(ta.APIContext)
@@ -106,7 +140,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/presigned", WrapHandler(ta.HandlePresigned))
 	api.Handle("/unsigned", WrapHandler(ta.HandleUnsigned))
 	api.Handle("/register", WrapHandler(ta.HandleRegistration))
-	api.Handle("/user", WrapHandler(ta.HandleUserDetails))
+	api.HandleFunc("/user", ta.HandleUserDetails)
 	api.Handle("/user/search", WrapHandler(ta.HandleUsernameSearch))
 	api.Handle("/notification", WithUser(apiCtx, WrapHandler(ta.HandleNotificationEvent)))
 	api.HandleFunc("/deviceToken", ta.HandleDeviceTokenRegistration)
@@ -119,10 +153,16 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
 	api.HandleFunc("/metrics/users", ta.HandleUsersMetrics)
+	api.HandleFunc("/metrics/auth", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleAuthMetrics)))
 	api.Handle("/track/", WithUser(apiCtx, http.HandlerFunc(ta.HandleTrackEvent)))
 	api.Handle("/claim_of_the_day", WithUser(apiCtx, WrapHandler(ta.HandleClaimOfTheDayID)))
 	api.Handle("/claim/image", WithUser(apiCtx, WrapHandler(ta.HandleClaimImage)))
 	api.HandleFunc("/spotlight", ta.HandleSpotlight)
+	api.HandleFunc("/users/blacklist", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleUserBlacklisting)))
+	api.HandleFunc("/users/password-reset", ta.HandleUserForgotPassword)
+	api.HandleFunc("/users/resend-email-verification", ta.HandleResendEmailVerification)
+	api.HandleFunc("/utilities/unique-username", ta.HandleUniqueUsernameUtility)
+	api.Handle("/users/authentication", HandleUserAuthentication(ta))
 	api.Handle("/communities/follow",
 		WithUser(apiCtx, http.HandlerFunc(ta.handleFollowCommunities))).Methods(http.MethodPost)
 	api.Handle("/communities/unfollow/{communityID}",
@@ -248,9 +288,6 @@ func (ta *TruAPI) RegisterResolvers() {
 		"availableBalance": func(_ context.Context, q AppAccount) sdk.Coin {
 			return sdk.NewCoin(app.StakeDenom, q.Coins.AmountOf(app.StakeDenom))
 		},
-		"twitterProfile": func(ctx context.Context, q AppAccount) db.TwitterProfile {
-			return ta.twitterProfileResolver(ctx, q.Address)
-		},
 		"totalClaims": func(ctx context.Context, q AppAccount) int {
 			return len(ta.appAccountClaimsCreatedResolver(ctx, queryByAddress{ID: q.Address}))
 		},
@@ -272,12 +309,26 @@ func (ta *TruAPI) RegisterResolvers() {
 		"pendingStake": func(ctx context.Context, q AppAccount) []EarnedCoin {
 			return ta.pendingStakeResolver(ctx, queryByAddress{ID: q.Address})
 		},
+		"userProfile": func(ctx context.Context, q AppAccount) db.UserProfile {
+			return ta.userProfileResolver(ctx, q.Address)
+		},
+		// deprecated, use "userProfile" instead
+		"twitterProfile": func(ctx context.Context, q AppAccount) db.TwitterProfile {
+			return ta.twitterProfileResolver(ctx, q.Address)
+		},
 	})
 
 	ta.GraphQLClient.RegisterObjectResolver("TwitterProfile", db.TwitterProfile{}, map[string]interface{}{
 		"id": func(_ context.Context, q db.TwitterProfile) string { return string(q.ID) },
 		"avatarURI": func(_ context.Context, q db.TwitterProfile) string {
 			largeURI := strings.Replace(q.AvatarURI, "_bigger", "_200x200", 1)
+			return strings.Replace(largeURI, "http://", "//", 1)
+		},
+	})
+
+	ta.GraphQLClient.RegisterObjectResolver("User", db.UserProfile{}, map[string]interface{}{
+		"avatarURL": func(_ context.Context, q db.UserProfile) string {
+			largeURI := strings.Replace(q.AvatarURL, "_bigger", "_200x200", 1)
 			return strings.Replace(largeURI, "http://", "//", 1)
 		},
 	})
@@ -448,14 +499,18 @@ func (ta *TruAPI) RegisterResolvers() {
 			if q.SenderProfile != nil {
 				return q.SenderProfileID
 			}
-			return q.TwitterProfileID
+			return q.UserProfileID
 		},
 		"title": func(_ context.Context, q db.NotificationEvent) string {
 			return q.Type.String()
 		},
 		"senderProfile": func(ctx context.Context, q db.NotificationEvent) *AppAccount {
 			if q.SenderProfile != nil {
-				return ta.appAccountResolver(ctx, queryByAddress{ID: q.SenderProfile.Address})
+				sender, err := ta.DBClient.UserByID(q.SenderProfileID)
+				if err != nil {
+					return nil
+				}
+				return ta.appAccountResolver(ctx, queryByAddress{ID: sender.Address})
 			}
 			return nil
 		},
@@ -472,9 +527,9 @@ func (ta *TruAPI) RegisterResolvers() {
 				return joinPath(ta.APIContext.Config.App.S3AssetsURL, path.Join("notifications", icon))
 			}
 			if q.SenderProfile != nil {
-				return q.SenderProfile.AvatarURI
+				return q.SenderProfile.AvatarURL
 			}
-			return q.TwitterProfile.AvatarURI
+			return q.UserProfile.AvatarURL
 		},
 		"meta": func(_ context.Context, q db.NotificationEvent) db.NotificationMeta {
 			return q.Meta

@@ -16,8 +16,8 @@ const ClaimByIDQuery = `
     body
     creator {
       id
-			twitterProfile {
-				avatarURI
+			userProfile {
+				avatarURL
 				fullName
 				username
 			}
@@ -37,8 +37,8 @@ const ArgumentByIDQuery = `
 			body
 			creator {
 				address
-				twitterProfile {
-					avatarURI
+				userProfile {
+					avatarURL
 					fullName
 					username
 				}
@@ -58,8 +58,8 @@ const CommentsByClaimIDQuery = `
 			body
 			creator {
 				address
-				twitterProfile {
-					avatarURI
+				userProfile {
+					avatarURL
 					fullName
 					username
 				}
@@ -77,14 +77,14 @@ type CommunityObject struct {
 
 // UserObject defines the schema of a user
 type UserObject struct {
-	Address        string               `json:"address"`
-	TwitterProfile TwitterProfileObject `json:"twitterProfile"`
+	Address     string            `json:"address"`
+	UserProfile UserProfileObject `json:"userProfile"`
 }
 
-// TwitterProfileObject defines the schema of the twitter profile
-type TwitterProfileObject struct {
-	AvatarURI string `json:"avatarURI"`
-	FullName  string `json:"fullName"`
+// UserProfileObject defines the schema of the twitter profile
+type UserProfileObject struct {
+	AvatarURL string `json:"avatar_url"`
+	FullName  string `json:"full_name"`
 	Username  string `json:"username"`
 }
 

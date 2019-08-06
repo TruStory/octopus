@@ -19,8 +19,8 @@ type DeviceToken struct {
 // UpsertDeviceToken implements `Datastore`.
 // Updates an existing DeviceToken or creates a new one.
 func (c *Client) UpsertDeviceToken(token *DeviceToken) error {
-	_, err := c.TwitterProfileByAddress(token.Address)
-	if err == pg.ErrNoRows {
+	user, err := c.UserByAddress(token.Address)
+	if user == nil || err == pg.ErrNoRows {
 		return ErrInvalidAddress
 	}
 	if err != nil {

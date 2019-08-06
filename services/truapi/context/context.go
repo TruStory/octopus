@@ -86,6 +86,18 @@ type ParamsConfig struct {
 	TrendingFeedTimeDecay int `mapstructure:"trending-feed-time-decay"`
 }
 
+// AdminConfig is the config for the admin authentication
+type AdminConfig struct {
+	Username string `mapstructure:"admin-username"`
+	Password string `mapstructure:"admin-password"`
+}
+
+// AWSConfig is the config for the AWS SDK
+type AWSConfig struct {
+	Region string `mapstructure:"aws-region"`
+	Sender string `mapstructure:"aws-ses-sender"`
+}
+
 // Config contains all the config variables for the API server
 type Config struct {
 	ChainID   string `mapstructure:"chain-id"`
@@ -100,6 +112,8 @@ type Config struct {
 	Web       WebConfig
 	Community CommunityConfig
 	Params    ParamsConfig
+	Admin     AdminConfig
+	AWS       AWSConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

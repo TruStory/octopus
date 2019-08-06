@@ -99,7 +99,6 @@ func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
 	user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
 	if ok && user != nil {
 		dbEvent.Address = user.Address
-		dbEvent.TwitterProfileID = user.TwitterProfileID
 	}
 
 	if user == nil {

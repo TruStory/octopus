@@ -186,7 +186,7 @@ func compileClaimPreview(raw []byte, claim ClaimObject) string {
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__ARGUMENT_COUNT"), []byte(strconv.Itoa(claim.ArgumentCount)), -1)
 
 	// CREATED BY
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+claim.Creator.TwitterProfile.Username), -1)
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+claim.Creator.UserProfile.Username), -1)
 
 	// SOURCE
 	if claim.HasSource() {
@@ -217,7 +217,7 @@ func compileArgumentPreview(raw []byte, argument ArgumentObject) string {
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__AGREE_COUNT"), []byte(strconv.Itoa(argument.UpvotedCount)), -1)
 
 	// CREATED BY
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+argument.Creator.TwitterProfile.Username), -1)
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+argument.Creator.UserProfile.Username), -1)
 
 	return string(compiled)
 }
@@ -238,7 +238,7 @@ func compileCommentPreview(raw []byte, comment CommentObject) string {
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_3"), []byte(bodyLines[2]), -1)
 
 	// CREATED BY
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+comment.Creator.TwitterProfile.Username), -1)
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+comment.Creator.UserProfile.Username), -1)
 
 	return string(compiled)
 }

@@ -29,6 +29,24 @@ func init() {
 			updated_at TIMESTAMP DEFAULT NOW(),
 			deleted_at TIMESTAMP
 		)`)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("indexing email column on users table...")
+		_, err = db.Exec(`CREATE INDEX idx_email_on_users ON users(email)`)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("indexing username column on users table...")
+		_, err = db.Exec(`CREATE INDEX idx_username_on_users ON users(username)`)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("indexing address column on users table...")
+		_, err = db.Exec(`CREATE INDEX idx_address_on_users ON users(address)`)
 		return err
 	}, func(db migrations.DB) error {
 		fmt.Println("dropping users table...")

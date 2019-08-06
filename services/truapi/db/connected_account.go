@@ -24,6 +24,22 @@ type ConnectedAccount struct {
 	Meta        ConnectedAccountMeta `json:"meta"`
 }
 
+// ConnectedAccountsByUserID returns the connected accounts for a given user
+func (c *Client) ConnectedAccountsByUserID(userID int64) ([]ConnectedAccount, error) {
+	var connectedAccounts []ConnectedAccount
+
+	err := c.Model(&connectedAccounts).
+		Where("user_id = ?", userID).
+		Where("deleted_at IS NULL").
+		Select()
+
+	if err != nil {
+		return []ConnectedAccount{}, err
+	}
+
+	return connectedAccounts, nil
+}
+
 // ConnectedAccountByTypeAndID returns the connected account by type and id
 func (c *Client) ConnectedAccountByTypeAndID(accountType, accountID string) (*ConnectedAccount, error) {
 	var connectedAccount ConnectedAccount

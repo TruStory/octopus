@@ -92,7 +92,35 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := &db.User{
+	user, err := ta.DBClient.UserByEmail(request.Email)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if user != nil {
+		// if a valid and verified account is already existing for this email, we'll send back an error
+		if !user.VerifiedAt.IsZero() {
+			render.Error(w, r, "there's already an account with this email address", http.StatusBadRequest)
+			return
+		}
+
+		// if the account with this email address is usually logged in via Twitter, we'll let them know
+		connectedAccounts, err := ta.DBClient.ConnectedAccountsByUserID(user.ID)
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if len(connectedAccounts) > 0 {
+			render.Error(w, r, "the account associated with this email is usually accessed via Twitter Login. After logging in via Twitter, set a password in your account settings to login using email/password next time", http.StatusBadRequest)
+			return
+		}
+
+		// if the account with this email address is simply pending verification, we'll let them know
+		render.Error(w, r, "the account associated with this email is not verified yet", http.StatusBadRequest)
+		return
+	}
+
+	user = &db.User{
 		FullName: request.FullName,
 		Email:    request.Email,
 		Password: request.Password,
@@ -105,13 +133,7 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	message, err := messages.MakeEmailConfirmationMessage(ta.Postman, ta.APIContext.Config, *user)
-	if err != nil {
-		render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
-		return
-	}
-
-	err = ta.Postman.Deliver(*message)
+	err = sendVerificationEmail(ta, *user)
 	if err != nil {
 		render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
 		return
@@ -346,6 +368,20 @@ func validatePassword(password string) error {
 
 	if !hasSpecial {
 		return errors.New("password must have a special character")
+	}
+
+	return nil
+}
+
+func sendVerificationEmail(ta *TruAPI, user db.User) error {
+	message, err := messages.MakeEmailConfirmationMessage(ta.Postman, ta.APIContext.Config, user)
+	if err != nil {
+		return err
+	}
+
+	err = ta.Postman.Deliver(*message)
+	if err != nil {
+		return err
 	}
 
 	return nil

@@ -66,12 +66,14 @@ func (c *Client) UpsertConnectedAccount(connectedAccount *ConnectedAccount) erro
 	_, err := c.Model(connectedAccount).
 		OnConflict("(account_type, account_id) DO UPDATE").
 		Set(`
-			meta = 
-				jsonb_set('{}', array['email'], EXCLUDED.meta->'email', true)
-				|| jsonb_set('{}', array['username'], EXCLUDED.meta->'username', true)
-				|| jsonb_set('{}', array['bio'], EXCLUDED.meta->'bio', true)
-				|| jsonb_set('{}', array['full_name'], EXCLUDED.meta->'full_name', true)
-				|| jsonb_set('{}', array['avatar_url'], EXCLUDED.meta->'avatar_url', true)
+			meta = json_build_object(
+				'email', EXCLUDED.meta->'email',
+				'username', EXCLUDED.meta->'username',
+				'bio', EXCLUDED.meta->'bio',
+				'full_name', EXCLUDED.meta->'full_name',
+				'avatar_url', EXCLUDED.meta->'avatar_url'
+			)::jsonb,
+			updated_at = NOW()
 		`).
 		Insert()
 

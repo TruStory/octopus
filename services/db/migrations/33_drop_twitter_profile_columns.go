@@ -23,6 +23,15 @@ func init() {
 		if err != nil {
 			return err
 		}
+		fmt.Println("inserting twitter_profile_id's into key_pairs table")
+		_, err = db.Exec(`UPDATE key_pairs
+			SET twitter_profile_id = connected_accounts.account_id::BIGINT
+			FROM connected_accounts
+			WHERE 
+				connected_accounts.user_id = key_pairs.user_id`)
+		if err != nil {
+			return err
+		}
 		fmt.Println("indexing twitter_profile_id column on key_pairs table...")
 		_, err = db.Exec(`CREATE INDEX idx_twitter_profile_id_on_key_pairs ON key_pairs(twitter_profile_id)`)
 		if err != nil {
@@ -31,6 +40,17 @@ func init() {
 
 		fmt.Println("adding twitter_profile_id column to the track_events table...")
 		_, err = db.Exec(`ALTER TABLE track_events ADD COLUMN twitter_profile_id BIGINT`)
+		if err != nil {
+			return err
+		}
+		fmt.Println("inserting twitter_profile_id's into track_events table")
+		_, err = db.Exec(`UPDATE track_events
+			SET twitter_profile_id = connected_accounts.account_id::BIGINT
+			FROM connected_accounts, users
+			WHERE 
+				connected_accounts.user_id = users.id AND
+				users.address = track_events.address
+			`)
 		return err
 	})
 }

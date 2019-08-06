@@ -27,6 +27,7 @@ require (
 	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/securecookie v1.1.1
 	github.com/graphql-go/graphql v0.7.8 // indirect
+	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/itskingori/go-wkhtml v0.0.0-20180226001954-aa8c15cb0496
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
@@ -39,8 +40,7 @@ require (
 	github.com/matryer/is v1.2.0 // indirect
 	github.com/oklog/ulid v1.3.1
 	github.com/pelletier/go-toml v1.4.0 // indirect
-	github.com/prometheus/common v0.6.0 // indirect
-	github.com/prometheus/procfs v0.0.3 // indirect
+	github.com/prometheus/client_golang v1.1.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/samsarahq/go v0.0.0-20190126203740-720caea591c9 // indirect
@@ -58,10 +58,11 @@ require (
 	github.com/ugorji/go v1.1.7 // indirect
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
+	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
-	google.golang.org/grpc v1.22.0 // indirect
+	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa // indirect
+	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
+	google.golang.org/grpc v1.22.1 // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )
 

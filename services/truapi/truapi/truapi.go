@@ -494,14 +494,18 @@ func (ta *TruAPI) RegisterResolvers() {
 			if q.SenderProfile != nil {
 				return q.SenderProfileID
 			}
-			return q.TwitterProfileID
+			return q.UserProfileID
 		},
 		"title": func(_ context.Context, q db.NotificationEvent) string {
 			return q.Type.String()
 		},
 		"senderProfile": func(ctx context.Context, q db.NotificationEvent) *AppAccount {
 			if q.SenderProfile != nil {
-				return ta.appAccountResolver(ctx, queryByAddress{ID: q.SenderProfile.Address})
+				sender, err := ta.DBClient.UserByID(q.SenderProfileID)
+				if err != nil {
+					return nil
+				}
+				return ta.appAccountResolver(ctx, queryByAddress{ID: sender.Address})
 			}
 			return nil
 		},
@@ -518,9 +522,9 @@ func (ta *TruAPI) RegisterResolvers() {
 				return joinPath(ta.APIContext.Config.App.S3AssetsURL, path.Join("notifications", icon))
 			}
 			if q.SenderProfile != nil {
-				return q.SenderProfile.AvatarURI
+				return q.SenderProfile.AvatarURL
 			}
-			return q.TwitterProfile.AvatarURI
+			return q.UserProfile.AvatarURL
 		},
 		"meta": func(_ context.Context, q db.NotificationEvent) db.NotificationMeta {
 			return q.Meta

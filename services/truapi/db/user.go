@@ -27,14 +27,14 @@ type User struct {
 	Bio                 string    `json:"bio"`
 	AvatarURL           string    `json:"avatar_url"`
 	Address             string    `json:"address"`
-	Password            string    `json:"-"`
+	Password            string    `json:"-" graphql:"-"`
 	ReferredBy          int64     `json:"referred_by"`
-	Token               string    `json:"-"`
-	ApprovedAt          time.Time `json:"approved_at"`
-	RejectedAt          time.Time `json:"rejected_at"`
-	VerifiedAt          time.Time `json:"verified_at"`
-	BlacklistedAt       time.Time `json:"blacklisted_at"`
-	LastAuthenticatedAt time.Time `json:"last_authenticated_at"`
+	Token               string    `json:"-" graphql:"-"`
+	ApprovedAt          time.Time `json:"approved_at" graphql:"-"`
+	RejectedAt          time.Time `json:"rejected_at" graphql:"-"`
+	VerifiedAt          time.Time `json:"verified_at" graphql:"-"`
+	BlacklistedAt       time.Time `json:"blacklisted_at" graphql:"-"`
+	LastAuthenticatedAt time.Time `json:"last_authenticated_at" graphql:"-"`
 }
 
 // UserProfile contains the fields that make up the user profile
@@ -49,6 +49,19 @@ type UserPassword struct {
 	Current         string `json:"current"`
 	New             string `json:"new"`
 	NewConfirmation string `json:"new_confirmation"`
+}
+
+// UserByID selects a user either by ID
+func (c *Client) UserByID(ID int64) (*User, error) {
+	user := new(User)
+	err := c.Model(user).Where("id = ?", ID).First()
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return user, err
+	}
+	return user, nil
 }
 
 // UserByEmailOrUsername selects a user either by email or username

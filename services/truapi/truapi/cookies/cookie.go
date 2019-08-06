@@ -33,9 +33,6 @@ type AuthenticatedUser struct {
 	ID              int64
 	Address         string
 	AuthenticatedAt int64
-
-	// deprecated
-	TwitterProfileID int64
 }
 
 // GetEmailLoginCookie returns the http cookie that authenticates and identifies the given user

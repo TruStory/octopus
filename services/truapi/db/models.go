@@ -52,7 +52,6 @@ type Mutations interface {
 type Queries interface {
 	GenericQueries
 	UsernamesByPrefix(prefix string) ([]string, error)
-	KeyPairByTwitterProfileID(id int64) (KeyPair, error)
 	KeyPairByUserID(userID int64) (*KeyPair, error)
 	DeviceTokensByAddress(addr string) ([]DeviceToken, error)
 	NotificationEventsByAddress(addr string) ([]NotificationEvent, error)
@@ -74,6 +73,7 @@ type Queries interface {
 	ClaimImageURL(claimID uint64) (string, error)
 	VerifiedUserByID(id int64) (*User, error)
 	GetAuthenticatedUser(identifier, password string) (*User, error)
+	UserByID(ID int64) (*User, error)
 	UserByEmailOrUsername(identifier string) (*User, error)
 	UserByEmail(email string) (*User, error)
 	UserByUsername(username string) (*User, error)

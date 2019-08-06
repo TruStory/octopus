@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"strconv"
 	"time"
@@ -26,14 +27,14 @@ type User struct {
 	Bio                 string    `json:"bio"`
 	AvatarURL           string    `json:"avatar_url"`
 	Address             string    `json:"address"`
-	Password            string    `json:"-"`
+	Password            string    `json:"-" graphql:"-"`
 	ReferredBy          int64     `json:"referred_by"`
-	Token               string    `json:"-"`
-	ApprovedAt          time.Time `json:"approved_at"`
-	RejectedAt          time.Time `json:"rejected_at"`
-	VerifiedAt          time.Time `json:"verified_at"`
-	BlacklistedAt       time.Time `json:"blacklisted_at"`
-	LastAuthenticatedAt time.Time `json:"last_authenticated_at"`
+	Token               string    `json:"-" graphql:"-"`
+	ApprovedAt          time.Time `json:"approved_at" graphql:"-"`
+	RejectedAt          time.Time `json:"rejected_at" graphql:"-"`
+	VerifiedAt          time.Time `json:"verified_at" graphql:"-"`
+	BlacklistedAt       time.Time `json:"blacklisted_at" graphql:"-"`
+	LastAuthenticatedAt time.Time `json:"last_authenticated_at" graphql:"-"`
 }
 
 // UserProfile contains the fields that make up the user profile
@@ -48,6 +49,19 @@ type UserPassword struct {
 	Current         string `json:"current"`
 	New             string `json:"new"`
 	NewConfirmation string `json:"new_confirmation"`
+}
+
+// UserByID selects a user either by ID
+func (c *Client) UserByID(ID int64) (*User, error) {
+	user := new(User)
+	err := c.Model(user).Where("id = ?", ID).First()
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return user, err
+	}
+	return user, nil
 }
 
 // UserByEmailOrUsername selects a user either by email or username
@@ -547,4 +561,64 @@ func getUniqueUsername(c *Client, username string, suffix string) (string, error
 	}
 
 	return candidate, nil
+}
+
+// UsernamesByPrefix returns the first five usernames for the provided prefix string
+func (c *Client) UsernamesByPrefix(prefix string) (usernames []string, err error) {
+	var users []User
+	sqlFragment := fmt.Sprintf("username ILIKE '%s", prefix)
+	err = c.Model(&users).Where(sqlFragment + "%'").Limit(5).Select()
+	if err == pg.ErrNoRows {
+		return usernames, nil
+	}
+	if err != nil {
+		return usernames, err
+	}
+	for _, user := range users {
+		usernames = append(usernames, user.Username)
+	}
+
+	return usernames, nil
+}
+
+// UserProfileByAddress fetches user profile details by address
+func (c *Client) UserProfileByAddress(addr string) (*UserProfile, error) {
+	userProfile := new(UserProfile)
+	user := new(User)
+	err := c.Model(user).Where("address = ?", addr).Select()
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return userProfile, err
+	}
+
+	userProfile = &UserProfile{
+		FullName:  user.FullName,
+		Bio:       user.Bio,
+		AvatarURL: user.AvatarURL,
+	}
+
+	return userProfile, nil
+}
+
+// UserProfileByUsername fetches user profile by username
+func (c *Client) UserProfileByUsername(username string) (*UserProfile, error) {
+	userProfile := new(UserProfile)
+	user := new(User)
+	err := c.Model(user).Where("username = ?", username).First()
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return userProfile, err
+	}
+
+	userProfile = &UserProfile{
+		FullName:  user.FullName,
+		Bio:       user.Bio,
+		AvatarURL: user.AvatarURL,
+	}
+
+	return userProfile, nil
 }

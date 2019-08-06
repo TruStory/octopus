@@ -133,6 +133,7 @@ func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *App
 	}
 }
 
+// deprecated, use userProfileResolver instead
 func (ta *TruAPI) twitterProfileResolver(ctx context.Context, addr string) db.TwitterProfile {
 	twitterProfile, err := ta.DBClient.TwitterProfileByAddress(addr)
 	if twitterProfile == nil {
@@ -145,6 +146,18 @@ func (ta *TruAPI) twitterProfileResolver(ctx context.Context, addr string) db.Tw
 	}
 
 	return *twitterProfile
+}
+
+func (ta *TruAPI) userProfileResolver(ctx context.Context, addr string) db.UserProfile {
+	userProfile, err := ta.DBClient.UserProfileByAddress(addr)
+	if userProfile == nil {
+		return db.UserProfile{}
+	}
+	if err != nil {
+		return db.UserProfile{}
+	}
+
+	return *userProfile
 }
 
 func (ta *TruAPI) earnedBalanceResolver(ctx context.Context, q queryByAddress) sdk.Coin {
@@ -1348,7 +1361,7 @@ func (ta *TruAPI) invitesResolver(ctx context.Context) []db.Invite {
 		return make([]db.Invite, 0)
 	}
 
-	twitterProfile, err := ta.DBClient.TwitterProfileByID(user.TwitterProfileID)
+	twitterProfile, err := ta.DBClient.TwitterProfileByAddress(user.Address)
 	if err != nil {
 		panic(err)
 	}

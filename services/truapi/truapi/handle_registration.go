@@ -28,8 +28,6 @@ type RegistrationRequest struct {
 // RegistrationResponse is a JSON response body representing the result of registering a key
 type RegistrationResponse struct {
 	UserID               string                             `json:"userId"`
-	Username             string                             `json:"username"` // deprecated. Use RegistrationTwitterProfileResponse.Username
-	Fullname             string                             `json:"fullname"` // deprecated. Use RegistrationTwitterProfileResponse.Fullname
 	Address              string                             `json:"address"`
 	AuthenticationCookie string                             `json:"authenticationCookie"`
 	TwitterProfile       RegistrationTwitterProfileResponse `json:"twitterProfile"`
@@ -84,8 +82,6 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
 
 	responseBytes, _ := json.Marshal(RegistrationResponse{
 		UserID:               twitterUser.IDStr,
-		Username:             twitterUser.ScreenName,
-		Fullname:             twitterUser.Name,
 		Address:              user.Address,
 		AuthenticationCookie: cookieValue,
 		TwitterProfile: RegistrationTwitterProfileResponse{

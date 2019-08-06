@@ -17,7 +17,6 @@ type Datastore interface {
 // Mutations write to the database
 type Mutations interface {
 	GenericMutations
-	UpsertTwitterProfile(profile *TwitterProfile) error
 	UpsertDeviceToken(token *DeviceToken) error
 	RemoveDeviceToken(address, token, platform string) error
 	UpsertFlaggedStory(flaggedStory *FlaggedStory) error
@@ -52,11 +51,7 @@ type Mutations interface {
 // Queries read from the database
 type Queries interface {
 	GenericQueries
-	TwitterProfileByID(id int64) (TwitterProfile, error)
-	TwitterProfileByAddress(addr string) (*TwitterProfile, error)
-	TwitterProfileByUsername(username string) (*TwitterProfile, error)
 	UsernamesByPrefix(prefix string) ([]string, error)
-	KeyPairByTwitterProfileID(id int64) (KeyPair, error)
 	KeyPairByUserID(userID int64) (*KeyPair, error)
 	DeviceTokensByAddress(addr string) ([]DeviceToken, error)
 	NotificationEventsByAddress(addr string) ([]NotificationEvent, error)
@@ -78,6 +73,7 @@ type Queries interface {
 	ClaimImageURL(claimID uint64) (string, error)
 	VerifiedUserByID(id int64) (*User, error)
 	GetAuthenticatedUser(identifier, password string) (*User, error)
+	UserByID(ID int64) (*User, error)
 	UserByEmailOrUsername(identifier string) (*User, error)
 	UserByEmail(email string) (*User, error)
 	UserByUsername(username string) (*User, error)
@@ -88,6 +84,12 @@ type Queries interface {
 	UnusedResetTokensByUser(userID int64) ([]PasswordResetToken, error)
 	UnusedResetTokenByUserAndToken(userID int64, token string) (*PasswordResetToken, error)
 	ConnectedAccountByTypeAndID(accountType, accountID string) (*ConnectedAccount, error)
+	UserProfileByAddress(addr string) (*UserProfile, error)
+	UserProfileByUsername(username string) (*UserProfile, error)
+
+	// deprecated, use UserProfileByAddress/UserProfileByUsername
+	TwitterProfileByAddress(addr string) (*TwitterProfile, error)
+	TwitterProfileByUsername(username string) (*TwitterProfile, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

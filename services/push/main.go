@@ -93,12 +93,12 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 		case notification := <-notifications:
 			msg := notification.Msg
 			title := notification.Type.String()
-			receiverProfile, err := s.db.TwitterProfileByAddress(notification.To)
+			receiver, err := s.db.UserByAddress(notification.To)
 			if err != nil {
-				s.log.WithError(err).Errorf("could not retrieve twitter profile for address %s", notification.To)
+				s.log.WithError(err).Errorf("could not retrieve user for address %s", notification.To)
 				continue
 			}
-			if receiverProfile == nil {
+			if receiver == nil {
 				s.log.Warnf("profile doesn't exist for  %s", notification.To)
 				continue
 			}
@@ -106,13 +106,13 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 				msg = fmt.Sprintf("%s...", msg[:BodyMaxLength-3])
 			}
 			notificationEvent := &db.NotificationEvent{
-				Address:          notification.To,
-				TwitterProfileID: receiverProfile.ID,
-				Read:             false,
-				Timestamp:        time.Now(),
-				Message:          msg,
-				Type:             notification.Type,
-				TypeID:           notification.TypeID,
+				Address:       notification.To,
+				UserProfileID: receiver.ID,
+				Read:          false,
+				Timestamp:     time.Now(),
+				Message:       msg,
+				Type:          notification.Type,
+				TypeID:        notification.TypeID,
 			}
 
 			notificationEvent.Meta = notification.Meta
@@ -124,15 +124,15 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 			}
 			var senderImage, senderAddress *string
 			if notification.From != nil {
-				profile, err := s.db.TwitterProfileByAddress(*notification.From)
+				sender, err := s.db.UserByAddress(*notification.From)
 				if err != nil {
-					s.log.WithError(err).Errorf("could not retrieve twitter profile for address %s", *notification.From)
+					s.log.WithError(err).Errorf("could not retrieve user for address %s", *notification.From)
 					continue
 				}
-				notificationEvent.SenderProfileID = profile.ID
-				title = profile.Username
-				senderImage = strPtr(profile.AvatarURI)
-				senderAddress = strPtr(profile.Address)
+				notificationEvent.SenderProfileID = sender.ID
+				title = sender.Username
+				senderImage = strPtr(sender.AvatarURL)
+				senderAddress = strPtr(sender.Address)
 			}
 			_, err = s.db.Model(notificationEvent).Returning("*").Insert()
 			if err != nil {

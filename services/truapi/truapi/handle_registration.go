@@ -27,17 +27,28 @@ type RegistrationRequest struct {
 
 // RegistrationResponse is a JSON response body representing the result of registering a key
 type RegistrationResponse struct {
-	UserID               string                             `json:"userId"`
-	Address              string                             `json:"address"`
-	AuthenticationCookie string                             `json:"authenticationCookie"`
-	TwitterProfile       RegistrationTwitterProfileResponse `json:"twitterProfile"`
+	UserID               string                          `json:"userId"`
+	Address              string                          `json:"address"`
+	AuthenticationCookie string                          `json:"authenticationCookie"`
+	UserProfile          RegistrationUserProfileResponse `json:"userProfile"`
+
+	// deprecated
+	TwitterProfile RegistrationTwitterProfileResponse `json:"twitterProfile"`
 }
 
 // RegistrationTwitterProfileResponse is a JSON response body representing the TwitterProfile of a user
+// deprecated: use RegistrationUserProfileResponse instead
 type RegistrationTwitterProfileResponse struct {
 	Username  string `json:"username"`
 	FullName  string `json:"fullName"`
 	AvatarURI string `json:"avatarURI"`
+}
+
+// RegistrationUserProfileResponse is a JSON body representing profile info of a user
+type RegistrationUserProfileResponse struct {
+	Username  string `json:"username"`
+	FullName  string `json:"full_name"`
+	AvatarURL string `json:"avatar_url"`
 }
 
 // HandleRegistration takes a `RegistrationRequest` and returns a `RegistrationResponse`
@@ -84,6 +95,11 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
 		UserID:               twitterUser.IDStr,
 		Address:              user.Address,
 		AuthenticationCookie: cookieValue,
+		UserProfile: RegistrationUserProfileResponse{
+			Username:  user.Username,
+			FullName:  user.FullName,
+			AvatarURL: user.AvatarURL,
+		},
 		TwitterProfile: RegistrationTwitterProfileResponse{
 			Username:  user.Username,
 			FullName:  user.FullName,

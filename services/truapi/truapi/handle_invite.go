@@ -13,8 +13,7 @@ import (
 
 // AddInviteRequest represents the JSON request for adding an invite
 type AddInviteRequest struct {
-	TwitterUsername string `json:"twitter_username,omitempty"`
-	Email           string `json:"email"`
+	Email string `json:"email"`
 }
 
 // HandleInvite handles requests for invites
@@ -42,14 +41,6 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 	user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
 	if !ok || user == nil {
 		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
-	}
-
-	twitterProfile, err := ta.DBClient.TwitterProfileByUsername(request.TwitterUsername)
-	if err != nil {
-		return chttp.SimpleErrorResponse(500, err)
-	}
-	if twitterProfile != nil {
-		return chttp.SimpleErrorResponse(422, errors.New("This user has already registered"))
 	}
 
 	token, err := generateRandomString(32)

@@ -10,7 +10,6 @@ require (
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.21.5
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32
-	github.com/corpix/uarand v0.1.0 // indirect
 	github.com/cosmos/cosmos-sdk v0.28.2-0.20190601143109-dcdabc7e6e20
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d // indirect
 	github.com/dghubble/go-twitter v0.0.0-20190711044719-dc9b50841e5b
@@ -28,7 +27,6 @@ require (
 	github.com/gorilla/securecookie v1.1.1
 	github.com/graphql-go/graphql v0.7.8 // indirect
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
-	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/itskingori/go-wkhtml v0.0.0-20180226001954-aa8c15cb0496
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/joho/godotenv v1.3.0

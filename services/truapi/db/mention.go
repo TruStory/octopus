@@ -27,15 +27,15 @@ func (c *Client) mapAddressesToProfileURLs(body string, profileURLPrefix string)
 	profileURLsByAddress := map[string]string{}
 	addresses := parseMentions(body)
 	for _, address := range addresses {
-		twitterProfile, err := c.TwitterProfileByAddress(address)
+		user, err := c.UserByAddress(address)
 		if err != nil {
 			return profileURLsByAddress, err
 		}
-		if twitterProfile == nil {
+		if user == nil {
 			profileURLsByAddress[address] = address
 			continue
 		}
-		profileURLString := path.Join(profileURLPrefix, twitterProfile.Address)
+		profileURLString := path.Join(profileURLPrefix, user.Address)
 		profileURL, err := url.Parse(profileURLString)
 		if err != nil {
 			return profileURLsByAddress, err
@@ -45,7 +45,7 @@ func (c *Client) mapAddressesToProfileURLs(body string, profileURLPrefix string)
 		if c.config.Host.HTTPSEnabled {
 			httpPrefix = "https://"
 		}
-		markdownProfileURL := fmt.Sprintf("[@%s](%s%s)", twitterProfile.Username, httpPrefix, profileURL)
+		markdownProfileURL := fmt.Sprintf("[@%s](%s%s)", user.Username, httpPrefix, profileURL)
 		profileURLsByAddress[address] = markdownProfileURL
 	}
 
@@ -63,14 +63,14 @@ func (c *Client) replaceUsernamesWithAddress(body string) (string, error) {
 	addressByUsername := map[string]string{}
 	usernames := parseMentions(body)
 	for _, username := range usernames {
-		twitterProfile, err := c.TwitterProfileByUsername(username)
+		user, err := c.UserByUsername(username)
 		if err != nil {
 			return body, err
 		}
-		if twitterProfile == nil {
+		if user == nil {
 			addressByUsername[username] = username
 		} else {
-			addressByUsername[username] = twitterProfile.Address
+			addressByUsername[username] = user.Address
 		}
 	}
 	for username, address := range addressByUsername {

@@ -25,7 +25,7 @@ build:
 
 build-linux:
 	make deps
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 packr2 build $(BUILD_FLAGS) -o ../../bin/spotlightd *.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 packr2 build $(BUILD_FLAGS) -o ../../bin/truapid *.go
 	packr2 clean
 
 run:

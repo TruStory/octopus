@@ -1,7 +1,11 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
+
+	truDB "github.com/TruStory/octopus/services/truapi/db"
 
 	"github.com/go-pg/migrations"
 )
@@ -63,7 +67,28 @@ func init() {
 			WHERE 
 				connected_accounts.account_type = 'twitter'
 				AND connected_accounts.account_id = key_pairs.twitter_profile_id::varchar(256)`)
-		return err
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("seeding unique tokens in all the users...")
+		var users []truDB.User
+		err = db.Model(&users).Order("id ASC").Select()
+		if err != nil {
+			return err
+		}
+		for _, user := range users {
+			token, err := generateCryptoSafeRandomBytes(32)
+			if err != nil {
+				return err
+			}
+			user.Token = base64.StdEncoding.EncodeToString(token)
+			err = db.Update(&user)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	}, func(db migrations.DB) error {
 		fmt.Println("truncating users table...")
 		_, err := db.Exec(`TRUNCATE TABLE users RESTART IDENTITY`)
@@ -81,4 +106,14 @@ func init() {
 		_, err = db.Exec(`UPDATE key_pairs SET user_id = NULL`)
 		return err
 	})
+}
+
+func generateCryptoSafeRandomBytes(strength int) ([]byte, error) {
+	random := make([]byte, strength)
+	_, err := rand.Read(random)
+	if err != nil {
+		return nil, err
+	}
+
+	return random, nil
 }

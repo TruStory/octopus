@@ -1,3 +1,4 @@
+GO_BIN ?= go
 PACKAGES=$(shell go list ./...)
 
 VERSION := $(shell echo $(shell git describe --tags) | sed 's/^v//')
@@ -9,11 +10,23 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=truapi \
 
 BUILD_FLAGS := -ldflags '$(ldflags)'
 
+tidy:
+	$(GO_BIN) mod tidy
+
+deps:
+	$(GO_BIN) get -u github.com/gobuffalo/packr/v2/packr2
+	packr2 clean
+	make tidy
+
 build:
-	go build $(BUILD_FLAGS) -o ../../bin/truapid *.go
+	make deps
+	packr2 build $(BUILD_FLAGS) -o ../../bin/truapid *.go
+	packr2 clean
 
 build-linux:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0  go build $(BUILD_FLAGS) -o ../../bin/truapid *.go
+	make deps
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 packr2 build $(BUILD_FLAGS) -o ../../bin/spotlightd *.go
+	packr2 clean
 
 run:
 	go run *.go

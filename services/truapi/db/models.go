@@ -31,6 +31,9 @@ type Mutations interface {
 	AddClaimOfTheDayID(claimOfTheDayID *ClaimOfTheDayID) error
 	DeleteClaimOfTheDayID(communityID string) error
 	AddClaimImage(claimImage *ClaimImage) error
+	FollowCommunities(address string, communities []string) error
+	FollowedCommunities(address string) ([]FollowedCommunity, error)
+	UnfollowCommunity(address, communityID string) error
 }
 
 // Queries read from the database

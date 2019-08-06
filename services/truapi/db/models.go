@@ -46,6 +46,9 @@ type Mutations interface {
 	UseResetToken(prt *PasswordResetToken) error
 	UpsertConnectedAccount(connectedAccount *ConnectedAccount) error
 	AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) (*User, error)
+	FollowCommunities(address string, communities []string) error
+	FollowedCommunities(address string) ([]FollowedCommunity, error)
+	UnfollowCommunity(address, communityID string) error
 }
 
 // Queries read from the database

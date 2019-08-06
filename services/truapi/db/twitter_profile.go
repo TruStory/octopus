@@ -56,6 +56,9 @@ func (c *Client) TwitterProfileByAddress(addr string) (*TwitterProfile, error) {
 	}
 
 	twitterProfile.ID, err = strconv.ParseInt(connectedAccount.AccountID, 10, 64)
+	if err != nil {
+		return twitterProfile, err
+	}
 
 	return twitterProfile, nil
 }
@@ -92,6 +95,9 @@ func (c *Client) TwitterProfileByUsername(username string) (*TwitterProfile, err
 	}
 
 	twitterProfile.ID, err = strconv.ParseInt(connectedAccount.AccountID, 10, 64)
+	if err != nil {
+		return twitterProfile, err
+	}
 
 	return twitterProfile, nil
 }

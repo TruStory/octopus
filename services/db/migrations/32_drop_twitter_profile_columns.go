@@ -23,6 +23,11 @@ func init() {
 		if err != nil {
 			return err
 		}
+		fmt.Println("indexing twitter_profile_id column on key_pairs table...")
+		_, err = db.Exec(`CREATE INDEX idx_twitter_profile_id_on_key_pairs ON key_pairs(twitter_profile_id)`)
+		if err != nil {
+			return err
+		}
 
 		fmt.Println("adding twitter_profile_id column to the track_events table...")
 		_, err = db.Exec(`ALTER TABLE track_events ADD COLUMN twitter_profile_id BIGINT`)

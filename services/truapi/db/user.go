@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/regex"
@@ -42,7 +43,7 @@ type UserProfile struct {
 	FullName  string `json:"full_name"`
 	Bio       string `json:"bio"`
 	AvatarURL string `json:"avatar_url"`
-	Username string `json:"username"`
+	Username  string `json:"username"`
 }
 
 // UserPassword contains the fields that allows users to update their passwords
@@ -406,7 +407,7 @@ func (c *Client) RejectUserByID(id int64) error {
 // AddUser upserts the user into the database
 func (c *Client) AddUser(user *User) error {
 	_, err := c.Model(user).
-		Where("email = ?", user.Email).
+		Where("email = ?", strings.ToLower(user.Email)).
 		WhereOr("username = ?", user.Username).
 		OnConflict("DO NOTHING").
 		SelectOrInsert()
@@ -598,7 +599,7 @@ func (c *Client) UserProfileByAddress(addr string) (*UserProfile, error) {
 		FullName:  user.FullName,
 		Bio:       user.Bio,
 		AvatarURL: user.AvatarURL,
-		Username: user.Username,
+		Username:  user.Username,
 	}
 
 	return userProfile, nil
@@ -620,7 +621,7 @@ func (c *Client) UserProfileByUsername(username string) (*UserProfile, error) {
 		FullName:  user.FullName,
 		Bio:       user.Bio,
 		AvatarURL: user.AvatarURL,
-		Username: user.Username,
+		Username:  user.Username,
 	}
 
 	return userProfile, nil

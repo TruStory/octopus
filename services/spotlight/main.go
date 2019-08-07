@@ -260,6 +260,7 @@ func wordWrap(body string) []string {
 	// convert string to slice
 	words := strings.Fields(body)
 	wordsPerLine := defaultWordsPerLine
+	maxCharsPerLine := 40
 
 	if len(words) < wordsPerLine {
 		wordsPerLine = len(words)
@@ -267,7 +268,12 @@ func wordWrap(body string) []string {
 
 	for len(words) >= 1 {
 		candidate := strings.Join(words[:wordsPerLine], " ")
-		for len(candidate) > 40 {
+		for len(candidate) > maxCharsPerLine {
+			if len(words[0]) >= maxCharsPerLine {
+				// if the first word (it'll always be the first word because it'd have been the last word that was omitted by the previous line)
+				// itself is more than what a line can accomodate, we'll shorten it by taking only a few characters out of it.
+				words[0] = words[0][:20] + "..." // take first few chars
+			}
 			wordsPerLine--
 			candidate = strings.Join(words[:wordsPerLine], " ")
 		}

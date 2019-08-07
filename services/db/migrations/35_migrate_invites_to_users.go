@@ -43,6 +43,9 @@ func init() {
 					ApprovedAt: time.Now(),
 				}
 				_, err = db.Model(&user).Insert()
+				if err != nil {
+					return err
+				}
 			} else if err != nil {
 				return err
 			}

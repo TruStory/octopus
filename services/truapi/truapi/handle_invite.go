@@ -43,23 +43,21 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
 	}
 
-	token, err := generateRandomString(32)
-	if err != nil {
-		return chttp.SimpleErrorResponse(500, err)
+	invite := &db.Invite{
+		Creator:     user.Address,
+		FriendEmail: request.Email,
 	}
-	friend := &db.User{
-		FullName:   "friend",
-		Email:      request.Email,
-		ReferredBy: user.ID,
-		Token:      token,
-	}
-	err = ta.DBClient.AddUser(friend)
+	err = ta.DBClient.AddInvite(invite)
 	// TODO: error on duplicate entry should return unique error code
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
 	}
-	if friend.ID == 0 {
+	if invite.ID == 0 {
 		return chttp.SimpleErrorResponse(422, errors.New("This user has already been invited"))
 	}
-	return chttp.SimpleResponse(200, nil)
+	respBytes, err := json.Marshal(invite)
+	if err != nil {
+		return chttp.SimpleErrorResponse(500, err)
+	}
+	return chttp.SimpleResponse(200, respBytes)
 }

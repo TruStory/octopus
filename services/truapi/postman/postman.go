@@ -1,7 +1,6 @@
 package postman
 
 import (
-	"fmt"
 	"html/template"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -72,7 +71,6 @@ func NewVanillaPostman(region, sender, key, secret string) (*Postman, error) {
 
 // NewPostman creates the client to deliver SES emails
 func NewPostman(config context.Config) (*Postman, error) {
-	fmt.Println(config)
 	return NewVanillaPostman(config.AWS.Region, config.AWS.Sender, config.AWS.AccessKey, config.AWS.AccessSecret)
 }
 

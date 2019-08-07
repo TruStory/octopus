@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
 	"os"
@@ -244,7 +245,7 @@ func compileCommentPreview(raw []byte, comment CommentObject) string {
 }
 
 func wordWrap(body string) []string {
-	body = stripmd.Strip(body)
+	body = stripmd.Strip(html.EscapeString(body))
 	defaultWordsPerLine := 7
 	lines := make([]string, 0)
 

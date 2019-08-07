@@ -16,6 +16,9 @@ import (
 	"github.com/go-pg/pg"
 )
 
+// InvitedUserDefaultName is the default name given to the invited user
+const InvitedUserDefaultName = "<invited user>"
+
 // User is the user on the TruStory platform
 type User struct {
 	Timestamps
@@ -42,7 +45,7 @@ type UserProfile struct {
 	FullName  string `json:"full_name"`
 	Bio       string `json:"bio"`
 	AvatarURL string `json:"avatar_url"`
-	Username string `json:"username"`
+	Username  string `json:"username"`
 }
 
 // UserPassword contains the fields that allows users to update their passwords
@@ -454,7 +457,7 @@ func (c *Client) UnblacklistUser(id int64) error {
 func (c *Client) InvitedUsers() ([]User, error) {
 	var invitedUsers = make([]User, 0)
 	err := c.Model(&invitedUsers).
-		Where("invited_by IS NOT NULL").
+		Where("referred_by IS NOT NULL").
 		Where("deleted_at IS NULL").
 		Select()
 	if err != nil {
@@ -464,13 +467,12 @@ func (c *Client) InvitedUsers() ([]User, error) {
 	return invitedUsers, nil
 }
 
-// InvitedUsersByAddress returns all the users who are invited by a particular address
-func (c *Client) InvitedUsersByAddress(address string) ([]User, error) {
+// InvitedUsersByID returns all the users who are invited by a particular address
+func (c *Client) InvitedUsersByID(referrerID int64) ([]User, error) {
 	var invitedUsers = make([]User, 0)
 	err := c.Model(&invitedUsers).
-		Where("invited_by IS NOT NULL").
 		Where("deleted_at IS NULL").
-		Where("invited_by = ?", address).
+		Where("referred_by = ?", referrerID).
 		Select()
 	if err != nil {
 		return invitedUsers, err
@@ -598,7 +600,7 @@ func (c *Client) UserProfileByAddress(addr string) (*UserProfile, error) {
 		FullName:  user.FullName,
 		Bio:       user.Bio,
 		AvatarURL: user.AvatarURL,
-		Username: user.Username,
+		Username:  user.Username,
 	}
 
 	return userProfile, nil
@@ -620,7 +622,7 @@ func (c *Client) UserProfileByUsername(username string) (*UserProfile, error) {
 		FullName:  user.FullName,
 		Bio:       user.Bio,
 		AvatarURL: user.AvatarURL,
-		Username: user.Username,
+		Username:  user.Username,
 	}
 
 	return userProfile, nil

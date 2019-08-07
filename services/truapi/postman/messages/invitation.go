@@ -12,13 +12,11 @@ import (
 )
 
 // MakeInvitationMessage makes a new invitation message
-func MakeInvitationMessage(client *postman.Postman, config context.Config, name, email string, referrer db.User) (*postman.Message, error) {
+func MakeInvitationMessage(client *postman.Postman, config context.Config, email string, referrer db.User) (*postman.Message, error) {
 	vars := struct {
-		FullName   string
 		Referrer   db.User
 		SignupLink string
 	}{
-		FullName:   name,
 		Referrer:   referrer,
 		SignupLink: makeReferralSignupLink(config, referrer),
 	}

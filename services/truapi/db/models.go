@@ -83,7 +83,7 @@ type Queries interface {
 	UserByAddress(address string) (*User, error)
 	UserByConnectedAccountTypeAndID(accountType, accountID string) (*User, error)
 	InvitedUsers() ([]User, error)
-	InvitedUsersByAddress(address string) ([]User, error)
+	InvitedUsersByID(referrerID int64) ([]User, error)
 	UnusedResetTokensByUser(userID int64) ([]PasswordResetToken, error)
 	UnusedResetTokenByUserAndToken(userID int64, token string) (*PasswordResetToken, error)
 	ConnectedAccountsByUserID(userID int64) ([]ConnectedAccount, error)

@@ -96,8 +96,8 @@ type AdminConfig struct {
 type AWSConfig struct {
 	Region       string `mapstructure:"aws-region"`
 	Sender       string `mapstructure:"aws-ses-sender"`
-	AccessKey    string `mapstructure:"aws-access-key-id"`
-	AccessSecret string `mapstructure:"aws-access-secret-key"`
+	AccessKey    string `mapstructure:"aws-access-key"`
+	AccessSecret string `mapstructure:"aws-access-secret"`
 }
 
 // Config contains all the config variables for the API server

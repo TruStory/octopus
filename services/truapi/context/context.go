@@ -94,8 +94,10 @@ type AdminConfig struct {
 
 // AWSConfig is the config for the AWS SDK
 type AWSConfig struct {
-	Region string `mapstructure:"aws-region"`
-	Sender string `mapstructure:"aws-ses-sender"`
+	Region       string `mapstructure:"aws-region"`
+	Sender       string `mapstructure:"aws-ses-sender"`
+	AccessKey    string `mapstructure:"aws-access-key-id"`
+	AccessSecret string `mapstructure:"aws-access-secret-key"`
 }
 
 // Config contains all the config variables for the API server

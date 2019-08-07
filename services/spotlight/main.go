@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -20,6 +21,8 @@ import (
 	"github.com/itskingori/go-wkhtml/wkhtmltox"
 	"github.com/machinebox/graphql"
 )
+
+var regexMention = regexp.MustCompile("(cosmos|tru)([a-z0-9]{4})[a-z0-9]{31}([a-z0-9]{4})")
 
 type service struct {
 	port          string
@@ -246,9 +249,9 @@ func compileCommentPreview(raw []byte, comment CommentObject) string {
 
 func wordWrap(body string) []string {
 	body = stripmd.Strip(html.EscapeString(body))
+	body = regexMention.ReplaceAllString(body, "$1$2...$3") // converts @cosmos1xqc5gsesg5m4jv252ce9g4jgfev52s68an2ss9 into @cosmos1xqc...2ss9
 	defaultWordsPerLine := 7
 	lines := make([]string, 0)
-
 	if strings.TrimSpace(body) == "" {
 		lines = append(lines, body)
 		return lines

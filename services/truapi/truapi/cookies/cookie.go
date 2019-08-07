@@ -88,7 +88,7 @@ func GetAuthenticatedUser(apiCtx truCtx.TruAPIContext, r *http.Request) (*Authen
 
 	// log out all users who are using a cookie with TwitterProfileID instead of user ID
 	if user.ID == 0 {
-		return nil, errors.New("Stake cookie found")
+		return nil, errors.New("Legacy twitter auth cookie found")
 	}
 
 	if isStale(user) {

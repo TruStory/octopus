@@ -24,7 +24,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	client, err := postman.NewVanillaPostman("us-west-2", args[1])
+	client, err := postman.NewVanillaPostman("us-west-2", args[1], mustEnv("AWS_ACCESS_KEY"), mustEnv("AWS_ACCESS_SECRET"))
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -51,4 +51,12 @@ func main() {
 		}
 		fmt.Printf(" ✅\n")
 	}
+}
+
+func mustEnv(env string) string {
+	val := os.Getenv(env)
+	if val == "" {
+		panic(fmt.Sprintf("must provide %s variable", env))
+	}
+	return val
 }

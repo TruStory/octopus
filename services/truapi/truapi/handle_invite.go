@@ -61,7 +61,6 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
 	}
-
 	respBytes, err := json.Marshal(invite)
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)

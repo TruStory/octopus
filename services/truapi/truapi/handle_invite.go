@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"regexp"
+	"strings"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/truapi/regex"
 )
 
 // AddInviteRequest represents the JSON request for adding an invite
@@ -32,9 +33,10 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 	if err != nil {
 		return chttp.SimpleErrorResponse(400, err)
 	}
+
+	email := strings.ToLower(request.Email)
 	// check if valid email address
-	re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-	if !re.MatchString(request.Email) {
+	if !regex.RegexValidEmail.MatchString(email) {
 		return chttp.SimpleErrorResponse(422, errors.New("Invalid email address"))
 	}
 
@@ -45,7 +47,7 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 
 	invite := &db.Invite{
 		Creator:     user.Address,
-		FriendEmail: request.Email,
+		FriendEmail: email,
 	}
 	err = ta.DBClient.AddInvite(invite)
 	// TODO: error on duplicate entry should return unique error code

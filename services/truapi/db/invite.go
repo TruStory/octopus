@@ -1,5 +1,9 @@
 package db
 
+import (
+	"strings"
+)
+
 // Invite represents an invite from a friend in the DB
 type Invite struct {
 	ID                    int64  `json:"id"`
@@ -34,9 +38,13 @@ func (c *Client) InvitesByAddress(addr string) ([]Invite, error) {
 
 // AddInvite inserts an invitation
 func (c *Client) AddInvite(invite *Invite) error {
-	_, err := c.Model(invite).
-		OnConflict("DO NOTHING").
-		Insert()
+	if invite != nil {
+		invite.FriendEmail = strings.ToLower((*invite).FriendEmail)
+		_, err := c.Model(invite).
+			OnConflict("DO NOTHING").
+			Insert()
 
-	return err
+		return err
+	}
+	return nil
 }

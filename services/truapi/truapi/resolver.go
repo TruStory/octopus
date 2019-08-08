@@ -1386,6 +1386,18 @@ func (ta *TruAPI) invitesResolver(ctx context.Context) []db.Invite {
 	return invites
 }
 
+func (ta *TruAPI) followsCommunity(ctx context.Context, q queryByCommunityID) bool {
+	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
+	if !ok || user == nil {
+		return false
+	}
+	follows, err := ta.DBClient.FollowsCommunity(user.Address, q.CommunityID)
+	if err != nil {
+		return false
+	}
+	return follows
+}
+
 func contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {

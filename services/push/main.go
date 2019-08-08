@@ -116,12 +116,6 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 			}
 
 			notificationEvent.Meta = notification.Meta
-			if notification.Type == db.NotificationCommentAction && notification.Meta.ClaimID != nil {
-				err := s.db.MarkThreadNotificationsAsRead(notification.To, *notification.Meta.ClaimID)
-				if err != nil {
-					s.log.WithError(err).Errorf("could not mark previous notifications as read")
-				}
-			}
 			var senderImage, senderAddress *string
 			if notification.From != nil {
 				sender, err := s.db.UserByAddress(*notification.From)

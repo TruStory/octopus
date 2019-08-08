@@ -61,7 +61,12 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
 	}
-	return chttp.SimpleResponse(200, nil)
+
+	respBytes, err := json.Marshal(invite)
+	if err != nil {
+		return chttp.SimpleErrorResponse(500, err)
+	}
+	return chttp.SimpleResponse(200, respBytes)
 }
 
 func sendInvitationToFriend(ta *TruAPI, friend string, referrerID int64) error {

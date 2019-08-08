@@ -35,24 +35,6 @@ type AuthenticatedUser struct {
 	AuthenticatedAt int64
 }
 
-// GetEmailLoginCookie returns the http cookie that authenticates and identifies the given user
-func GetEmailLoginCookie(apiCtx truCtx.TruAPIContext, user *db.User) (*http.Cookie, error) {
-	value, err := MakeEmailLoginCookieValue(apiCtx, user)
-	if err != nil {
-		return nil, err
-	}
-
-	cookie := http.Cookie{
-		Name:     UserCookieName,
-		HttpOnly: true,
-		Value:    value,
-		Expires:  time.Now().Add(time.Duration(AuthenticationExpiry) * time.Hour),
-		Domain:   apiCtx.Config.Host.Name,
-	}
-
-	return &cookie, nil
-}
-
 // GetLoginCookie returns the http cookie that authenticates and identifies the given user
 func GetLoginCookie(apiCtx truCtx.TruAPIContext, user *db.User) (*http.Cookie, error) {
 	value, err := MakeLoginCookieValue(apiCtx, user)
@@ -104,6 +86,11 @@ func GetAuthenticatedUser(apiCtx truCtx.TruAPIContext, r *http.Request) (*Authen
 		return nil, err
 	}
 
+	// log out all users who are using a cookie with TwitterProfileID instead of user ID
+	if user.ID == 0 {
+		return nil, errors.New("Legacy twitter auth cookie found")
+	}
+
 	if isStale(user) {
 		return nil, errors.New("Stale cookie found")
 	}
@@ -113,26 +100,6 @@ func GetAuthenticatedUser(apiCtx truCtx.TruAPIContext, r *http.Request) (*Authen
 
 // MakeLoginCookieValue takes a user and encodes it into a cookie value.
 func MakeLoginCookieValue(apiCtx truCtx.TruAPIContext, user *db.User) (string, error) {
-	s, err := getSecureCookieInstance(apiCtx)
-	if err != nil {
-		return "", err
-	}
-
-	cookieValue := &AuthenticatedUser{
-		ID:              user.ID,
-		Address:         user.Address,
-		AuthenticatedAt: time.Now().Unix(),
-	}
-	encodedValue, err := s.Encode(UserCookieName, cookieValue)
-	if err != nil {
-		return "", err
-	}
-
-	return encodedValue, nil
-}
-
-// MakeEmailLoginCookieValue takes a user and encodes it into a cookie value.
-func MakeEmailLoginCookieValue(apiCtx truCtx.TruAPIContext, user *db.User) (string, error) {
 	s, err := getSecureCookieInstance(apiCtx)
 	if err != nil {
 		return "", err

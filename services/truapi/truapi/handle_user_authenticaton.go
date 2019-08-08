@@ -35,7 +35,7 @@ func HandleUserAuthentication(ta *TruAPI) http.Handler {
 			return
 		}
 
-		cookie, err := cookies.GetEmailLoginCookie(ta.APIContext, user)
+		cookie, err := cookies.GetLoginCookie(ta.APIContext, user)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

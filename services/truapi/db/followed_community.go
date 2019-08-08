@@ -77,3 +77,18 @@ func (c *Client) UnfollowCommunity(address, communityID string) error {
 		Delete()
 	return err
 }
+
+func (c *Client) FollowsCommunity(address, communityID string) (bool, error) {
+	followedCommunity := &FollowedCommunity{}
+	count, err := c.Model(followedCommunity).
+		Where("address = ? ", address).
+		Where("community_id = ?", communityID).
+		Count()
+	if err != nil {
+		return false, err
+	}
+	if count == 0 {
+		return false, nil
+	}
+	return true, nil
+}

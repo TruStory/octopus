@@ -1,0 +1,4 @@
+- [ ] Linked to Github issues that this PR fixes (if any)
+- [ ] Wrote tests
+- [ ] Updated README if needed
+- [ ] Tested running truchain and truapp locally

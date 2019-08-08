@@ -49,6 +49,7 @@ type Mutations interface {
 	FollowCommunities(address string, communities []string) error
 	FollowedCommunities(address string) ([]FollowedCommunity, error)
 	UnfollowCommunity(address, communityID string) error
+	FollowsCommunity(address, communityID string) (bool, error)
 }
 
 // Queries read from the database

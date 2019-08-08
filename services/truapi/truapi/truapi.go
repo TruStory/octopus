@@ -363,6 +363,9 @@ func (ta *TruAPI) RegisterResolvers() {
 		"heroImage": func(_ context.Context, q community.Community) string {
 			return joinPath(ta.APIContext.Config.App.S3AssetsURL, fmt.Sprintf("communities/%s_hero.jpg", q.ID))
 		},
+		"following": func(ctx context.Context, q community.Community) bool {
+			return ta.followsCommunity(ctx, queryByCommunityID{CommunityID: q.ID})
+		},
 	})
 
 	ta.GraphQLClient.RegisterPaginatedQueryResolverWithFilter("claims", ta.claimsResolver, map[string]interface{}{

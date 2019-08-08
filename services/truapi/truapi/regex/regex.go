@@ -5,7 +5,8 @@ import (
 )
 
 // RegexValidEmail for valid email
-var RegexValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+// https://play.golang.org/p/63TNM7ZtiwT
+var RegexValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 // RegexValidUsername for valid username
 var RegexValidUsername = regexp.MustCompile("^[a-zA-Z0-9_]{1,28}$")

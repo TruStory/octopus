@@ -178,7 +178,6 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	err = ta.DBClient.VerifyUser(request.ID, request.Token)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
@@ -271,10 +270,17 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusUnauthorized)
 		return
 	}
-
-	user, err := ta.DBClient.UserByAddress(authenticatedUser.Address)
-	if user == nil || err != nil {
+	user, err := ta.DBClient.UserByID(authenticatedUser.ID)
+	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if user == nil {
+		render.Error(w, r, "no such user found", http.StatusUnauthorized)
+		return
+	}
+	if user.VerifiedAt.IsZero() {
+		render.Error(w, r, "the user is not verified yet", http.StatusUnauthorized)
 		return
 	}
 

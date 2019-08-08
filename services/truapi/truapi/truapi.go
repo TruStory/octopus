@@ -162,7 +162,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/users/password-reset", ta.HandleUserForgotPassword)
 	api.HandleFunc("/users/resend-email-verification", ta.HandleResendEmailVerification)
 	api.HandleFunc("/utilities/unique-username", ta.HandleUniqueUsernameUtility)
-	api.Handle("/users/authentication", HandleUserAuthentication(ta))
+	ta.Handle("/users-authentication", HandleUserAuthentication(ta))
 	api.Handle("/communities/follow",
 		WithUser(apiCtx, http.HandlerFunc(ta.handleFollowCommunities))).Methods(http.MethodPost)
 	api.Handle("/communities/unfollow/{communityID}",

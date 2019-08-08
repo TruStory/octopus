@@ -10,13 +10,12 @@ type TrackEventMeta struct {
 
 // TrackEvent represents analytics events track from the app.
 type TrackEvent struct {
-	ID               int64
-	Address          string
-	TwitterProfileID int64
-	Event            string
-	Meta             TrackEventMeta
-	SessionID        string
-	IsAnonymous      bool
+	ID          int64
+	Address     string
+	Event       string
+	Meta        TrackEventMeta
+	SessionID   string
+	IsAnonymous bool
 	Timestamps
 }
 

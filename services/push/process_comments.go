@@ -30,12 +30,12 @@ func (s *service) parseCosmosMentions(body string) (string, []string) {
 	terminators := []rune(" \n\r.,():!?")
 	addresses := mention.GetTagsAsUniqueStrings('@', body, terminators...)
 	for _, address := range addresses {
-		twitterProfile, err := s.db.TwitterProfileByAddress(address)
-		if err != nil || twitterProfile == nil {
+		user, err := s.db.UserByAddress(address)
+		if err != nil || user == nil {
 			s.log.WithError(err).Errorf("could not find profile for address %s", address)
 			continue
 		}
-		usernameByAddress[address] = twitterProfile.Username
+		usernameByAddress[address] = user.Username
 	}
 	for address, username := range usernameByAddress {
 		parsedBody = strings.ReplaceAll(parsedBody, address, username)

@@ -85,19 +85,19 @@ type NotificationMeta struct {
 // NotificationEvent represents a notification sent to an user.
 type NotificationEvent struct {
 	Timestamps
-	ID               int64            `json:"id"`
-	TypeID           int64            `json:"type_id"`
-	Address          string           `json:"address"`
-	TwitterProfileID int64            `json:"profile_id"`
-	TwitterProfile   *TwitterProfile  `json:"profile"`
-	Message          string           `json:"message"`
-	Timestamp        time.Time        `json:"timestamp"`
-	SenderProfileID  int64            `json:"sender_profile_id" `
-	SenderProfile    *TwitterProfile  `json:"sender_profile"`
-	Type             NotificationType `json:"type" sql:",notnull"`
-	Meta             NotificationMeta `json:"meta"`
-	Read             bool             `json:"read"`
-	Seen             bool             `json:"seen"`
+	ID              int64            `json:"id"`
+	TypeID          int64            `json:"type_id"`
+	Address         string           `json:"address"`
+	UserProfileID   int64            `json:"user_profile_id"`
+	UserProfile     *User            `json:"user_profile"`
+	Message         string           `json:"message"`
+	Timestamp       time.Time        `json:"timestamp"`
+	SenderProfileID int64            `json:"sender_profile_id" `
+	SenderProfile   *User            `json:"sender_profile"`
+	Type            NotificationType `json:"type" sql:",notnull"`
+	Meta            NotificationMeta `json:"meta"`
+	Read            bool             `json:"read"`
+	Seen            bool             `json:"seen"`
 }
 
 // NotificationEventsByAddress retrieves all notifications sent to an user.
@@ -106,7 +106,7 @@ func (c *Client) NotificationEventsByAddress(addr string) ([]NotificationEvent, 
 	evts := make([]NotificationEvent, 0)
 
 	err := c.Model(&evts).
-		Column("notification_event.*", "TwitterProfile", "SenderProfile").
+		Column("notification_event.*", "UserProfile", "SenderProfile").
 		Where("notification_event.address = ?", addr).Order("timestamp DESC").Select()
 	if err != nil {
 		return nil, err

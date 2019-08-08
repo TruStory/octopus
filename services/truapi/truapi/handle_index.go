@@ -185,8 +185,8 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 func makeClaimArgumentMetaTags(ta *TruAPI, route string, claimID uint64, argumentID uint64) (*Tags, error) {
 	ctx := context.Background()
 	argumentObj := ta.claimArgumentResolver(ctx, queryByArgumentID{ID: argumentID})
-	creatorObj, err := ta.DBClient.TwitterProfileByAddress(argumentObj.Creator.String())
-	if err != nil {
+	creatorObj, err := ta.DBClient.UserByAddress(argumentObj.Creator.String())
+	if creatorObj == nil || err != nil {
 		// if error, return default
 		return nil, err
 	}
@@ -207,8 +207,8 @@ func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentI
 			commentObj = comment
 		}
 	}
-	creatorObj, err := ta.DBClient.TwitterProfileByAddress(commentObj.Creator)
-	if err != nil {
+	creatorObj, err := ta.DBClient.UserByAddress(commentObj.Creator)
+	if creatorObj == nil || err != nil {
 		// if error, return default
 		return nil, err
 	}

@@ -17,7 +17,6 @@ type PingResponse struct {
 
 // HandlePing takes a `PingRequest` and returns a `PingResponse`
 func (ta *TruAPI) HandlePing(r *http.Request) chttp.Response {
-
 	responseBytes, _ := json.Marshal(PingResponse{
 		Pong: true,
 	})

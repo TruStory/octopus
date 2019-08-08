@@ -1,6 +1,7 @@
 package db
 
 import (
+	"crypto/rand"
 	"fmt"
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
@@ -71,4 +72,15 @@ func (c *Client) Find(model interface{}) error {
 // FindAll selects all models
 func (c *Client) FindAll(models interface{}) error {
 	return c.Model(models).Select()
+}
+
+// Misc functions
+func generateCryptoSafeRandomBytes(strength int) ([]byte, error) {
+	random := make([]byte, strength)
+	_, err := rand.Read(random)
+	if err != nil {
+		return nil, err
+	}
+
+	return random, nil
 }

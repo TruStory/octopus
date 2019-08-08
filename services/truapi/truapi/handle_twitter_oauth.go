@@ -2,10 +2,9 @@ package truapi
 
 import (
 	"net/http"
-	"strings"
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
-	"github.com/TruStory/octopus/services/truapi/db"
+
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	gotwitter "github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/gologin"
@@ -24,39 +23,19 @@ func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 			return
 		}
 
-		isWhitelisted, err := isWhitelistedUser(twitterUser)
+		user, err := CalibrateUser(ta, twitterUser)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if !isWhitelisted {
-			http.Redirect(w, req, ta.APIContext.Config.Web.AuthNotWhitelistedRedir, http.StatusFound)
-			return
-		}
-
-		addr, err := CalibrateUser(ta, twitterUser)
+		err = ta.DBClient.TouchLastAuthenticatedAt(user.ID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		twitterProfile := &db.TwitterProfile{
-			ID:          twitterUser.ID,
-			Address:     addr,
-			Username:    twitterUser.ScreenName,
-			FullName:    twitterUser.Name,
-			Email:       twitterUser.Email,
-			AvatarURI:   strings.Replace(twitterUser.ProfileImageURL, "_normal", "_bigger", 1),
-			Description: twitterUser.Description,
-		}
-		// upserting the twitter profile
-		err = ta.DBClient.UpsertTwitterProfile(twitterProfile)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-
-		cookie, err := cookies.GetLoginCookie(apiCtx, twitterProfile)
+		cookie, err := cookies.GetLoginCookie(apiCtx, user)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

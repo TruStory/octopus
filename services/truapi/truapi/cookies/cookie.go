@@ -30,14 +30,14 @@ const (
 
 // AuthenticatedUser denotes the data structure of the data inside the encrypted cookie
 type AuthenticatedUser struct {
-	TwitterProfileID int64
-	Address          string
-	AuthenticatedAt  int64
+	ID              int64
+	Address         string
+	AuthenticatedAt int64
 }
 
 // GetLoginCookie returns the http cookie that authenticates and identifies the given user
-func GetLoginCookie(apiCtx truCtx.TruAPIContext, twitterProfile *db.TwitterProfile) (*http.Cookie, error) {
-	value, err := MakeLoginCookieValue(apiCtx, twitterProfile)
+func GetLoginCookie(apiCtx truCtx.TruAPIContext, user *db.User) (*http.Cookie, error) {
+	value, err := MakeLoginCookieValue(apiCtx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +86,11 @@ func GetAuthenticatedUser(apiCtx truCtx.TruAPIContext, r *http.Request) (*Authen
 		return nil, err
 	}
 
+	// log out all users who are using a cookie with TwitterProfileID instead of user ID
+	if user.ID == 0 {
+		return nil, errors.New("Legacy twitter auth cookie found")
+	}
+
 	if isStale(user) {
 		return nil, errors.New("Stale cookie found")
 	}
@@ -94,16 +99,16 @@ func GetAuthenticatedUser(apiCtx truCtx.TruAPIContext, r *http.Request) (*Authen
 }
 
 // MakeLoginCookieValue takes a user and encodes it into a cookie value.
-func MakeLoginCookieValue(apiCtx truCtx.TruAPIContext, twitterProfile *db.TwitterProfile) (string, error) {
+func MakeLoginCookieValue(apiCtx truCtx.TruAPIContext, user *db.User) (string, error) {
 	s, err := getSecureCookieInstance(apiCtx)
 	if err != nil {
 		return "", err
 	}
 
 	cookieValue := &AuthenticatedUser{
-		TwitterProfileID: twitterProfile.ID,
-		Address:          twitterProfile.Address,
-		AuthenticatedAt:  time.Now().Unix(),
+		ID:              user.ID,
+		Address:         user.Address,
+		AuthenticatedAt: time.Now().Unix(),
 	}
 	encodedValue, err := s.Encode(UserCookieName, cookieValue)
 	if err != nil {

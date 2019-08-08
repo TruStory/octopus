@@ -70,7 +70,7 @@ Add queries to the `Queries` interface:
 
 ```go
 type Queries interface {
-	TwitterProfileByAddress(addr string) (TwitterProfile, error)
+	UserByAddress(addr string) (User, error)
 }
 ```
 
@@ -80,11 +80,11 @@ This interface can be mocked out for testing.
 
 The Postgres client has been added to `TruAPI`, which means it can be accessed in GraphQL resolvers.
 
-For example, the `TwitterProfile` type is resolved with:
+For example, the `User` type is resolved with:
 
 ```go
-	ta.GraphQLClient.RegisterObjectResolver("TwitterProfile", db.TwitterProfile{}, map[string]interface{}{
-		"id": func(_ context.Context, q db.TwitterProfile) string { return string(q.ID) },
+	ta.GraphQLClient.RegisterObjectResolver("User", db.User{}, map[string]interface{}{
+		"id": func(_ context.Context, q db.User) string { return string(q.ID) },
 	})
 ```
 

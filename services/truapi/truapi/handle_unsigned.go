@@ -34,16 +34,16 @@ func (ta *TruAPI) HandleUnsigned(r *http.Request) chttp.Response {
 	}
 
 	// Fetch keypair of the user
-	keyPair, err := ta.DBClient.KeyPairByTwitterProfileID(user.TwitterProfileID)
+	keyPair, err := ta.DBClient.KeyPairByUserID(user.ID)
 	if err != nil {
 		return chttp.SimpleErrorResponse(400, err)
 	}
-	if keyPair.ID == 0 {
+	if keyPair == nil {
 		// keypair doesn't exist
 		return chttp.SimpleErrorResponse(400, errors.New("keypair does not exist on the server"))
 	}
 
-	tx, err := ta.NewUnsignedStdTx(*txr, keyPair)
+	tx, err := ta.NewUnsignedStdTx(*txr, *keyPair)
 	if err != nil {
 		fmt.Println("Error decoding tx: ", err)
 		return chttp.SimpleErrorResponse(400, err)

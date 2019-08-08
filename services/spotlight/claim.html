@@ -125,7 +125,7 @@
                 <div id="creator" class="clearfix">
                     {{ range $participant := .Story.GetTopParticipants}}
                     <div class="avatar">
-                        <img src="{{$participant.TwitterProfile.AvatarURI}}">
+                        <img src="{{$participant.UserProfile.AvatarURL}}">
                     </div>
                     {{ end }}
                 </div>

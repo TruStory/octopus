@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -19,6 +21,8 @@ import (
 	"github.com/itskingori/go-wkhtml/wkhtmltox"
 	"github.com/machinebox/graphql"
 )
+
+var regexMention = regexp.MustCompile("(cosmos|tru)([a-z0-9]{4})[a-z0-9]{31}([a-z0-9]{4})")
 
 type service struct {
 	port          string
@@ -186,7 +190,7 @@ func compileClaimPreview(raw []byte, claim ClaimObject) string {
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__ARGUMENT_COUNT"), []byte(strconv.Itoa(claim.ArgumentCount)), -1)
 
 	// CREATED BY
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+claim.Creator.TwitterProfile.Username), -1)
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+claim.Creator.UserProfile.Username), -1)
 
 	// SOURCE
 	if claim.HasSource() {
@@ -217,7 +221,7 @@ func compileArgumentPreview(raw []byte, argument ArgumentObject) string {
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__AGREE_COUNT"), []byte(strconv.Itoa(argument.UpvotedCount)), -1)
 
 	// CREATED BY
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+argument.Creator.TwitterProfile.Username), -1)
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+argument.Creator.UserProfile.Username), -1)
 
 	return string(compiled)
 }
@@ -238,16 +242,16 @@ func compileCommentPreview(raw []byte, comment CommentObject) string {
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_3"), []byte(bodyLines[2]), -1)
 
 	// CREATED BY
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+comment.Creator.TwitterProfile.Username), -1)
+	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+comment.Creator.UserProfile.Username), -1)
 
 	return string(compiled)
 }
 
 func wordWrap(body string) []string {
-	body = stripmd.Strip(body)
+	body = stripmd.Strip(html.EscapeString(body))
+	body = regexMention.ReplaceAllString(body, "$1$2...$3") // converts @cosmos1xqc5gsesg5m4jv252ce9g4jgfev52s68an2ss9 into @cosmos1xqc...2ss9
 	defaultWordsPerLine := 7
 	lines := make([]string, 0)
-
 	if strings.TrimSpace(body) == "" {
 		lines = append(lines, body)
 		return lines
@@ -256,6 +260,7 @@ func wordWrap(body string) []string {
 	// convert string to slice
 	words := strings.Fields(body)
 	wordsPerLine := defaultWordsPerLine
+	maxCharsPerLine := 40
 
 	if len(words) < wordsPerLine {
 		wordsPerLine = len(words)
@@ -263,7 +268,12 @@ func wordWrap(body string) []string {
 
 	for len(words) >= 1 {
 		candidate := strings.Join(words[:wordsPerLine], " ")
-		for len(candidate) > 40 {
+		for len(candidate) > maxCharsPerLine {
+			if len(words[0]) >= maxCharsPerLine {
+				// if the first word (it'll always be the first word because it'd have been the last word that was omitted by the previous line)
+				// itself is more than what a line can accomodate, we'll shorten it by taking only a few characters out of it.
+				words[0] = words[0][:20] + "..." // take first few chars
+			}
 			wordsPerLine--
 			candidate = strings.Join(words[:wordsPerLine], " ")
 		}

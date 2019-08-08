@@ -5,24 +5,24 @@ import "github.com/go-pg/pg"
 // KeyPair is the private key associated with an account
 type KeyPair struct {
 	Timestamps
-	ID               int64  `json:"id"`
-	TwitterProfileID int64  `json:"twitter_profile_id"`
-	PrivateKey       string `json:"private_key"`
-	PublicKey        string `json:"public_key"`
+	ID         int64  `json:"id"`
+	UserID     int64  `json:"user_id"`
+	PrivateKey string `json:"private_key"`
+	PublicKey  string `json:"public_key"`
 }
 
-// KeyPairByTwitterProfileID returns the key-pair for the account
-func (c *Client) KeyPairByTwitterProfileID(id int64) (KeyPair, error) {
+// KeyPairByUserID returns the key-pair for the user
+func (c *Client) KeyPairByUserID(userID int64) (*KeyPair, error) {
 	keyPair := new(KeyPair)
-	err := c.Model(keyPair).Where("twitter_profile_id = ?", id).First()
+	err := c.Model(keyPair).Where("user_id = ?", userID).First()
 
 	if err == pg.ErrNoRows {
-		return *keyPair, nil
+		return nil, nil
 	}
 
 	if err != nil {
-		return *keyPair, err
+		return nil, err
 	}
 
-	return *keyPair, nil
+	return keyPair, nil
 }

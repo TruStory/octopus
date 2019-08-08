@@ -22,9 +22,9 @@ const (
 )
 
 var (
-	claimRegex         = regexp.MustCompile("/claim/([0-9]+)$")
-	claimArgumentRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)$")
-	claimCommentRegex  = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)$")
+	claimRegex         = regexp.MustCompile("/claim/([0-9]+)/?$")
+	claimArgumentRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
+	claimCommentRegex  = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/?$")
 	communityRegex     = regexp.MustCompile("/community/([^/]+)")
 )
 

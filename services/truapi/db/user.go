@@ -173,6 +173,10 @@ func (c *Client) GetAuthenticatedUser(identifier, password string) (*User, error
 		return nil, errors.New("the user is blacklisted and cannot be authenticated")
 	}
 
+	if user.VerifiedAt.IsZero() {
+		return nil, errors.New("the user has not verified their email address yet")
+	}
+
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
 		return nil, errors.New("no such user found")

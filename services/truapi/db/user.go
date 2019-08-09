@@ -24,21 +24,21 @@ const InvitedUserDefaultName = "<invited user>"
 type User struct {
 	Timestamps
 
-	ID                  int64     `json:"id"`
-	FullName            string    `json:"full_name"`
-	Username            string    `json:"username"`
-	Email               string    `json:"email"`
-	Bio                 string    `json:"bio"`
-	AvatarURL           string    `json:"avatar_url"`
-	Address             string    `json:"address"`
-	Password            string    `json:"-" graphql:"-"`
-	ReferredBy          int64     `json:"referred_by"`
-	Token               string    `json:"-" graphql:"-"`
-	ApprovedAt          time.Time `json:"approved_at" graphql:"-"`
-	RejectedAt          time.Time `json:"rejected_at" graphql:"-"`
-	VerifiedAt          time.Time `json:"verified_at" graphql:"-"`
-	BlacklistedAt       time.Time `json:"blacklisted_at" graphql:"-"`
-	LastAuthenticatedAt time.Time `json:"last_authenticated_at" graphql:"-"`
+	ID                  int64      `json:"id"`
+	FullName            string     `json:"full_name"`
+	Username            string     `json:"username"`
+	Email               string     `json:"email"`
+	Bio                 string     `json:"bio"`
+	AvatarURL           string     `json:"avatar_url"`
+	Address             string     `json:"address"`
+	Password            string     `json:"-" graphql:"-"`
+	ReferredBy          int64      `json:"referred_by"`
+	Token               string     `json:"-" graphql:"-"`
+	ApprovedAt          time.Time  `json:"approved_at" graphql:"-"`
+	RejectedAt          time.Time  `json:"rejected_at" graphql:"-"`
+	VerifiedAt          time.Time  `json:"verified_at" graphql:"-"`
+	BlacklistedAt       time.Time  `json:"blacklisted_at" graphql:"-"`
+	LastAuthenticatedAt *time.Time `json:"last_authenticated_at" graphql:"-"`
 }
 
 // UserProfile contains the fields that make up the user profile

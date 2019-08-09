@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/TruStory/octopus/services/truapi/truapi/render"
+
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 )
 
@@ -42,7 +44,7 @@ func HandleUserAuthentication(ta *TruAPI) http.Handler {
 		}
 
 		http.SetCookie(w, cookie)
-		w.WriteHeader(http.StatusNoContent)
+		render.Response(w, r, user, http.StatusOK)
 	}
 
 	return http.HandlerFunc(fn)

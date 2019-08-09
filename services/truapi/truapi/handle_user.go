@@ -4,20 +4,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"unicode"
 
-	"github.com/TruStory/octopus/services/truapi/postman/messages"
-
-	"github.com/TruStory/octopus/services/truapi/truapi/render"
-
-	"github.com/TruStory/octopus/services/truapi/truapi/regex"
-
 	"github.com/TruStory/octopus/services/truapi/db"
-
+	"github.com/TruStory/octopus/services/truapi/postman/messages"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/truapi/regex"
+	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
 // UserResponse is a JSON response body representing the result of User
@@ -75,6 +70,19 @@ type UpdateUserViaCookieRequest struct {
 	Credentials *db.UserCredentials `json:"credentials,omitempty"`
 }
 
+// TruErrors for handle user
+var (
+	ErrExistingAccountWithEmail = render.TruError{Code: 100, Message: "There's already an account with this email address."}
+	ErrExistingTwitterAccount   = render.TruError{Code: 101, Message: "This email is associated with a Twitter account. Please log in with Twitter."}
+	ErrEmailNotVerified         = render.TruError{Code: 102, Message: "The account associated with this email is not verified yet."}
+	ErrUsernameTaken            = render.TruError{Code: 103, Message: "This username is already taken."}
+	ErrCannotSendEmail          = render.TruError{Code: 104, Message: "Error sending email."}
+	ErrInvalidPasswords         = render.TruError{Code: 105, Message: "Passwords don't match."}
+	ErrInvalidPassword          = render.TruError{Code: 106, Message: "Invalid password."}
+	ErrUserNotFound             = render.TruError{Code: 107, Message: "User not found."}
+	ErrRegistration             = render.TruError{Code: 108, Message: "Registration error."}
+)
+
 // HandleUserDetails takes a `UserRequest` and returns a `UserResponse`
 func (ta *TruAPI) HandleUserDetails(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -101,7 +109,11 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 
 	err = validateRegisterRequest(request)
 	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		render.LoginError(
+			w, r,
+			render.TruError{Code: ErrRegistration.Code, Message: err.Error()},
+			http.StatusBadRequest)
+
 		return
 	}
 
@@ -113,7 +125,7 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 	if user != nil {
 		// if a valid and verified account is already existing for this email, we'll send back an error
 		if !user.VerifiedAt.IsZero() {
-			render.Error(w, r, "there's already an account with this email address", http.StatusBadRequest)
+			render.LoginError(w, r, ErrExistingAccountWithEmail, http.StatusBadRequest)
 			return
 		}
 
@@ -124,12 +136,12 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(connectedAccounts) > 0 {
-			render.Error(w, r, "this email is associated with a Twitter account. Please log in with Twitter", http.StatusBadRequest)
+			render.LoginError(w, r, ErrExistingTwitterAccount, http.StatusBadRequest)
 			return
 		}
 
 		// if the account with this email address is simply pending verification, we'll let them know
-		render.Error(w, r, "the account associated with this email is not verified yet", http.StatusBadRequest)
+		render.LoginError(w, r, ErrEmailNotVerified, http.StatusBadRequest)
 		return
 	}
 
@@ -139,7 +151,7 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user != nil {
-		render.Error(w, r, "this username is already taken", http.StatusBadRequest)
+		render.LoginError(w, r, ErrUsernameTaken, http.StatusBadRequest)
 		return
 	}
 
@@ -169,8 +181,7 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 
 	err = sendVerificationEmail(ta, *user)
 	if err != nil {
-		fmt.Println("could not send verification email: ", user, err)
-		render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
+		render.LoginError(w, r, ErrCannotSendEmail, http.StatusInternalServerError)
 		return
 	}
 
@@ -267,13 +278,13 @@ func (ta *TruAPI) updateUserDetailsViaCookie(w http.ResponseWriter, r *http.Requ
 	// if user wants to change their password
 	if request.Password != nil {
 		if request.Password.New != request.Password.NewConfirmation {
-			render.Error(w, r, "new passwords do not match", http.StatusBadRequest)
+			render.LoginError(w, r, ErrInvalidPasswords, http.StatusBadRequest)
 			return
 		}
 
 		err = validatePassword(request.Password.New)
 		if err != nil {
-			render.Error(w, r, err.Error(), http.StatusBadRequest)
+			render.LoginError(w, r, render.TruError{Code: ErrInvalidPassword.Code, Message: err.Error()}, http.StatusOK)
 			return
 		}
 		err = ta.DBClient.UpdatePassword(user.ID, request.Password)
@@ -347,7 +358,7 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user == nil {
-		render.Error(w, r, "no such user found", http.StatusUnauthorized)
+		render.LoginError(w, r, ErrUserNotFound, http.StatusUnauthorized)
 		return
 	}
 

@@ -333,7 +333,7 @@ func (ta *TruAPI) communityIconImageResolver(ctx context.Context, q community.Co
 	}
 }
 
-func (ta *TruAPI) followedCommunitiesIDs(ctx context.Context) ([]string, error) {
+func (ta *TruAPI) followedCommunityIDs(ctx context.Context) ([]string, error) {
 	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
 	if !ok {
 		return []string{}, errors.New("User not authenticated")
@@ -342,11 +342,11 @@ func (ta *TruAPI) followedCommunitiesIDs(ctx context.Context) ([]string, error) 
 	if err != nil {
 		return []string{}, err
 	}
-	followedCommunitiesIDs := make([]string, 0)
+	followedCommunityIDs := make([]string, 0)
 	for _, followedCommunity := range followedCommunities {
-		followedCommunitiesIDs = append(followedCommunitiesIDs, followedCommunity.CommunityID)
+		followedCommunityIDs = append(followedCommunityIDs, followedCommunity.CommunityID)
 	}
-	return followedCommunitiesIDs, nil
+	return followedCommunityIDs, nil
 }
 
 func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFeedFilter) []claim.Claim {
@@ -355,7 +355,8 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFee
 	if q.CommunityID == "all" {
 		queryRoute := path.Join(claim.QuerierRoute, claim.QueryClaims)
 		res, err = ta.Query(queryRoute, struct{}{}, claim.ModuleCodec)
-		communityIDs, err := ta.followedCommunitiesIDs(ctx)
+	} else if q.CommunityID == "home" {
+		communityIDs, err := ta.followedCommunityIDs(ctx)
 		if err != nil {
 			return []claim.Claim{}
 		}

@@ -355,7 +355,6 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFee
 	if q.CommunityID == "all" {
 		queryRoute := path.Join(claim.QuerierRoute, claim.QueryClaims)
 		res, err = ta.Query(queryRoute, struct{}{}, claim.ModuleCodec)
-	} else if q.CommunityID == "home" {
 		communityIDs, err := ta.followedCommunitiesIDs(ctx)
 		if err != nil {
 			return []claim.Claim{}
@@ -411,7 +410,12 @@ func (ta *TruAPI) claimResolver(ctx context.Context, q queryByClaimID) claim.Cla
 }
 
 func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunityID) *claim.Claim {
-	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunityID(q.CommunityID)
+	communityID := q.CommunityID
+	// personal home feed and all claims feed should return same Claim of the Day
+	if q.CommunityID == "home" {
+		communityID = "all"
+	}
+	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunityID(communityID)
 	if err != nil {
 		return nil
 	}

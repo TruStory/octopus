@@ -9,6 +9,7 @@ import (
 	"path"
 	"regexp"
 	"strconv"
+	"errors"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	app "github.com/TruStory/truchain/types"
@@ -22,9 +23,9 @@ const (
 )
 
 var (
-	claimRegex         = regexp.MustCompile("/claim/([0-9]+)$")
-	claimArgumentRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)$")
-	claimCommentRegex  = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)$")
+	claimRegex         = regexp.MustCompile("/claim/([0-9]+)/?$")
+	claimArgumentRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
+	claimCommentRegex  = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/?$")
 	communityRegex     = regexp.MustCompile("/community/([^/]+)")
 )
 
@@ -224,6 +225,9 @@ func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentI
 func makeCommunityMetaTags(ta *TruAPI, route string, communityID string) (*Tags, error) {
 	ctx := context.Background()
 	community := ta.communityResolver(ctx, queryByCommunityID{CommunityID: communityID})
+	if community == nil {
+		return nil, errors.New("Community not found")
+	}
 	previewsDirectory := joinPath(ta.APIContext.Config.App.S3AssetsURL, previewDirectory)
 
 	return &Tags{

@@ -52,7 +52,7 @@ func (ta *TruAPI) handleFollowCommunities(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	render.JSON(w, r, followCommunitiesRequest.Communities, http.StatusOK)
+	render.Response(w, r, followCommunitiesRequest.Communities, http.StatusOK)
 }
 
 type UnfollowCommunityResponse struct {
@@ -77,7 +77,7 @@ func (ta *TruAPI) handleUnfollowCommunity(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if err == db.ErrFollowAtLeastOneCommunity {
-		render.Error(w, r, "Must follow at least one community", http.StatusConflict)
+		render.Error(w, r, "Must follow at least one community", http.StatusBadRequest)
 		return
 	}
 
@@ -85,5 +85,5 @@ func (ta *TruAPI) handleUnfollowCommunity(w http.ResponseWriter, r *http.Request
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	render.JSON(w, r, &UnfollowCommunityResponse{CommunityID: communityID}, http.StatusOK)
+	render.Response(w, r, &UnfollowCommunityResponse{CommunityID: communityID}, http.StatusOK)
 }

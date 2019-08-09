@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/regex"
@@ -85,7 +86,7 @@ func (c *Client) UserByEmailOrUsername(identifier string) (*User, error) {
 func (c *Client) UserByEmail(email string) (*User, error) {
 	var user User
 	err := c.Model(&user).
-		Where("email = ?", email).
+		Where("LOWER(email) = ?", strings.ToLower(email)).
 		Where("deleted_at IS NULL").
 		First()
 
@@ -104,7 +105,7 @@ func (c *Client) UserByEmail(email string) (*User, error) {
 func (c *Client) UserByUsername(username string) (*User, error) {
 	var user User
 	err := c.Model(&user).
-		Where("username = ?", username).
+		Where("LOWER(username) = ?", strings.ToLower(username)).
 		Where("deleted_at IS NULL").
 		First()
 
@@ -412,9 +413,11 @@ func (c *Client) RejectUserByID(id int64) error {
 
 // AddUser upserts the user into the database
 func (c *Client) AddUser(user *User) error {
+	user.Email = strings.ToLower(user.Email)
+	user.Username = strings.ToLower(user.Username)
 	inserted, err := c.Model(user).
-		Where("email = ?", user.Email).
-		WhereOr("username = ?", user.Username).
+		Where("LOWER(email) = ?", user.Email).
+		WhereOr("LOWER(username) = ?", user.Username).
 		OnConflict("DO NOTHING").
 		SelectOrInsert()
 

@@ -27,7 +27,7 @@ func unique(values []string) []string {
 func (s *service) parseCosmosMentions(body string) (string, []string) {
 	parsedBody := body
 	usernameByAddress := map[string]string{}
-	terminators := []rune(" \n\r.,():!?")
+	terminators := []rune(" \n\r.,():!?'\"")
 	addresses := mention.GetTagsAsUniqueStrings('@', body, terminators...)
 	for _, address := range addresses {
 		user, err := s.db.UserByAddress(address)

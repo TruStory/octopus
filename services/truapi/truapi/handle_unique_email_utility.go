@@ -38,7 +38,14 @@ func (ta *TruAPI) HandleUniqueEmailUtility(w http.ResponseWriter, r *http.Reques
 		if err != nil {
 			render.Error(w, r, err.Error(), http.StatusBadRequest)
 		}
-		response.IsValidated = userVerified != nil
+
+		isTwitterUser := ta.DBClient.IsTwitterUser((*user).ID)
+
+		if isTwitterUser {
+			response.IsValidated = true
+		} else {
+			response.IsValidated = userVerified != nil
+		}
 	}
 
 	render.Response(w, r, response, http.StatusOK)

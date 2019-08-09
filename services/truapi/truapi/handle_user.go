@@ -273,9 +273,13 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := ta.DBClient.UserByAddress(authenticatedUser.Address)
-	if user == nil || err != nil {
+	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusUnauthorized)
 		return
+	}
+	if user == nil {
+			render.Error(w, r, "Unauthorised.", http.StatusUnauthorized)
+			return
 	}
 
 	response := UserResponse{

@@ -35,6 +35,11 @@ func HandleUserAuthentication(ta *TruAPI) http.Handler {
 			return
 		}
 
+		if (*user).VerifiedAt.IsZero() {
+			http.Error(w, "please verify your email", http.StatusBadRequest)
+			return
+		}
+
 		cookie, err := cookies.GetLoginCookie(ta.APIContext, user)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

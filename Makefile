@@ -41,4 +41,4 @@ db_reset:
 	@go run ./services/db/migrations/*.go reset
 
 start-truapi:
-    ./bin/truapid start --home ~/.octopus --chain-id betanet-1
+	./bin/truapid start --home ~/.octopus --chain-id betanet-1

@@ -117,7 +117,7 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(connectedAccounts) > 0 {
-			render.Error(w, r, "the account associated with this email is usually accessed via Twitter Login. After logging in via Twitter, set a password in your account settings to login using email/password next time", http.StatusBadRequest)
+			render.Error(w, r, "this email is associated with a Twitter account. Please log in with Twitter", http.StatusBadRequest)
 			return
 		}
 

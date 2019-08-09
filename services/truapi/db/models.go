@@ -66,6 +66,7 @@ type Queries interface {
 	CommentsByClaimID(claimID uint64) ([]Comment, error)
 	Invites() ([]Invite, error)
 	InvitesByAddress(addr string) ([]Invite, error)
+	InvitesByFriendEmail(email string) (*Invite, error)
 	ReactionsByReactionable(reactionable Reactionable) ([]Reaction, error)
 	ReactionsByAddress(addr string) ([]Reaction, error)
 	ReactionsCountByReactionable(reactionable Reactionable) ([]ReactionsCount, error)

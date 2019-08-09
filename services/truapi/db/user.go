@@ -412,11 +412,15 @@ func (c *Client) RejectUserByID(id int64) error {
 
 // AddUser upserts the user into the database
 func (c *Client) AddUser(user *User) error {
-	_, err := c.Model(user).
+	inserted, err := c.Model(user).
 		Where("email = ?", user.Email).
 		WhereOr("username = ?", user.Username).
 		OnConflict("DO NOTHING").
 		SelectOrInsert()
+
+	if !inserted {
+		return errors.New("a user already exists with same email/username")
+	}
 
 	return err
 }

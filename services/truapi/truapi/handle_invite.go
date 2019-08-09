@@ -76,14 +76,15 @@ func sendInvitationToFriend(ta *TruAPI, friend string, referrerID int64) error {
 	if err != nil {
 		return errors.New("error sending invitation to the friend")
 	}
-	message, err := messages.MakeInvitationMessage(ta.Postman, ta.APIContext.Config, friend, referrer)
+	_, err = messages.MakeInvitationMessage(ta.Postman, ta.APIContext.Config, friend, referrer)
 	if err != nil {
 		return errors.New("error sending invitation to the friend")
 	}
 
-	err = ta.Postman.Deliver(*message)
-	if err != nil {
-		return errors.New("error sending invitation to the friend")
-	}
+	// TO BE UNCOMMENTED WHEN EMAIL AUTH IS OPENED TO PUBLIC
+	// err = ta.Postman.Deliver(*message)
+	// if err != nil {
+	// 	return errors.New("error sending invitation to the friend")
+	// }
 	return nil
 }

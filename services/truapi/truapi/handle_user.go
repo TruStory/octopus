@@ -126,6 +126,16 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, err = ta.DBClient.UserByUsername(request.Username)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if user != nil {
+		render.Error(w, r, "this username is already taken", http.StatusBadRequest)
+		return
+	}
+
 	user = &db.User{
 		FullName: request.FullName,
 		Email:    request.Email,
@@ -278,8 +288,8 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user == nil {
-			render.Error(w, r, "Unauthorised.", http.StatusUnauthorized)
-			return
+		render.Error(w, r, "Unauthorised.", http.StatusUnauthorized)
+		return
 	}
 
 	response := UserResponse{

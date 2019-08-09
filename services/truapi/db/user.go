@@ -2,7 +2,7 @@ package db
 
 import (
 	"crypto/rand"
-	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -42,7 +42,7 @@ type UserProfile struct {
 	FullName  string `json:"full_name"`
 	Bio       string `json:"bio"`
 	AvatarURL string `json:"avatar_url"`
-	Username string `json:"username"`
+	Username  string `json:"username"`
 }
 
 // UserPassword contains the fields that allows users to update their passwords
@@ -213,7 +213,7 @@ func (c *Client) SignupUser(user *User, referrerCode string) error {
 	}
 
 	user.Password = string(hashedPassword)
-	user.Token = base64.StdEncoding.EncodeToString(token)
+	user.Token = hex.EncodeToString(token)
 	user.ApprovedAt = time.Now()
 
 	referrer, err := c.UserByAddress(referrerCode)
@@ -598,7 +598,7 @@ func (c *Client) UserProfileByAddress(addr string) (*UserProfile, error) {
 		FullName:  user.FullName,
 		Bio:       user.Bio,
 		AvatarURL: user.AvatarURL,
-		Username: user.Username,
+		Username:  user.Username,
 	}
 
 	return userProfile, nil
@@ -620,7 +620,7 @@ func (c *Client) UserProfileByUsername(username string) (*UserProfile, error) {
 		FullName:  user.FullName,
 		Bio:       user.Bio,
 		AvatarURL: user.AvatarURL,
-		Username: user.Username,
+		Username:  user.Username,
 	}
 
 	return userProfile, nil

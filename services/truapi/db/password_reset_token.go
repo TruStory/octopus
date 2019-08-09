@@ -1,7 +1,7 @@
 package db
 
 import (
-	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -83,7 +83,7 @@ func (c *Client) IssueResetToken(userID int64) (*PasswordResetToken, error) {
 
 	prt := &PasswordResetToken{
 		UserID: userID,
-		Token:  base64.StdEncoding.EncodeToString(token),
+		Token:  hex.EncodeToString(token),
 	}
 	_, err = c.Model(prt).Insert()
 	if err != nil {

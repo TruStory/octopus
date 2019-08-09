@@ -356,8 +356,8 @@ func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFee
 		queryRoute := path.Join(claim.QuerierRoute, claim.QueryClaims)
 		res, err = ta.Query(queryRoute, struct{}{}, claim.ModuleCodec)
 	} else if q.CommunityID == "home" {
-		communityIDs, err := ta.followedCommunityIDs(ctx)
-		if err != nil {
+		communityIDs, cErr := ta.followedCommunityIDs(ctx)
+		if cErr != nil {
 			return []claim.Claim{}
 		}
 		queryRoute := path.Join(claim.QuerierRoute, claim.QueryCommunitiesClaims)

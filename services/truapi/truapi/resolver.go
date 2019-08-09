@@ -335,7 +335,7 @@ func (ta *TruAPI) communityIconImageResolver(ctx context.Context, q community.Co
 
 func (ta *TruAPI) followedCommunityIDs(ctx context.Context) ([]string, error) {
 	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
-	if !ok {
+	if !ok || user == nil {
 		return []string{}, errors.New("User not authenticated")
 	}
 	followedCommunities, err := ta.DBClient.FollowedCommunities(user.Address)
@@ -352,20 +352,23 @@ func (ta *TruAPI) followedCommunityIDs(ctx context.Context) ([]string, error) {
 func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFeedFilter) []claim.Claim {
 	var res []byte
 	var err error
-	if q.CommunityID == "all" {
+
+	switch q.CommunityID {
+	case "all":
 		queryRoute := path.Join(claim.QuerierRoute, claim.QueryClaims)
 		res, err = ta.Query(queryRoute, struct{}{}, claim.ModuleCodec)
-	} else if q.CommunityID == "home" {
+	case "home":
 		communityIDs, cErr := ta.followedCommunityIDs(ctx)
 		if cErr != nil {
 			return []claim.Claim{}
 		}
 		queryRoute := path.Join(claim.QuerierRoute, claim.QueryCommunitiesClaims)
 		res, err = ta.Query(queryRoute, claim.QueryCommunitiesClaimsParams{CommunityIDs: communityIDs}, claim.ModuleCodec)
-	} else {
+	default:
 		queryRoute := path.Join(claim.QuerierRoute, claim.QueryCommunityClaims)
 		res, err = ta.Query(queryRoute, claim.QueryCommunityClaimsParams{CommunityID: q.CommunityID}, claim.ModuleCodec)
 	}
+
 	if err != nil {
 		fmt.Println("claimsResolver err: ", err)
 		return []claim.Claim{}

@@ -2,7 +2,7 @@ package db
 
 import (
 	"crypto/rand"
-	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -213,7 +213,7 @@ func (c *Client) SignupUser(user *User, referrerCode string) error {
 	}
 
 	user.Password = string(hashedPassword)
-	user.Token = base64.StdEncoding.EncodeToString(token)
+	user.Token = hex.EncodeToString(token)
 	user.ApprovedAt = time.Now()
 
 	referrer, err := c.UserByAddress(referrerCode)

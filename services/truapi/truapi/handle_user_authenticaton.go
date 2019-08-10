@@ -30,7 +30,7 @@ func HandleUserAuthentication(ta *TruAPI) http.Handler {
 		}
 
 		user, err := ta.DBClient.GetAuthenticatedUser(request.Identifier, request.Password)
-		if err != nil {
+		if err != nil || user == nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

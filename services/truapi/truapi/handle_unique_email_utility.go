@@ -8,8 +8,8 @@ import (
 
 // UniqueEmailResponse represents the http response to check uniqueness of a username
 type UniqueEmailResponse struct {
-	IsUnique    bool `json:"is_unique"`
-	IsValidated bool `json:"is_validated"`
+	IsUnique   bool `json:"is_unique"`
+	IsVerified bool `json:"is_verified"`
 }
 
 // HandleUniqueEmailUtility checks if the provided username is unique or not
@@ -42,9 +42,9 @@ func (ta *TruAPI) HandleUniqueEmailUtility(w http.ResponseWriter, r *http.Reques
 		isTwitterUser := ta.DBClient.IsTwitterUser((*user).ID)
 
 		if isTwitterUser {
-			response.IsValidated = true
+			response.IsVerified = true
 		} else {
-			response.IsValidated = userVerified != nil
+			response.IsVerified = userVerified != nil
 		}
 	}
 

@@ -2,6 +2,7 @@ package truapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/TruStory/octopus/services/truapi/postman/messages"
@@ -43,12 +44,14 @@ func (ta *TruAPI) HandleResendEmailVerification(w http.ResponseWriter, r *http.R
 
 	message, err := messages.MakeEmailConfirmationMessage(ta.Postman, ta.APIContext.Config, *user)
 	if err != nil {
+		fmt.Println("could not remake verification email: ", user, err)
 		render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
 		return
 	}
 
 	err = ta.Postman.Deliver(*message)
 	if err != nil {
+		fmt.Println("could not resend verification email: ", user, err)
 		render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
 		return
 	}

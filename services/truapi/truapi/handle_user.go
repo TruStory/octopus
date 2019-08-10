@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"unicode"
@@ -151,6 +152,7 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 
 	err = sendVerificationEmail(ta, *user)
 	if err != nil {
+		fmt.Println("could not send verification email: ", user, err)
 		render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
 		return
 	}

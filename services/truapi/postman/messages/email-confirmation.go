@@ -34,5 +34,5 @@ func MakeEmailConfirmationMessage(client *postman.Postman, config context.Config
 }
 
 func makeVerificationLink(config context.Config, user db.User) string {
-	return fmt.Sprintf("%s/verify?id=%d&token=%s", config.App.URL, user.ID, user.Token)
+	return fmt.Sprintf("%s/register/verify?id=%d&token=%s", config.App.URL, user.ID, user.Token)
 }

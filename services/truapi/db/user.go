@@ -544,6 +544,15 @@ func (c *Client) UserByConnectedAccountTypeAndID(accountType, accountID string) 
 	return user, nil
 }
 
+// IsTwitterUser returns a twitter user that has a given connected account
+func (c *Client) IsTwitterUser(userID int64) bool {
+	connectedAccount, err := c.ConnectedAccountByTypeAndUserID("twitter", userID)
+	if err != nil {
+		return false
+	}
+	return connectedAccount != nil
+}
+
 func getUniqueUsername(c *Client, username string, suffix string) (string, error) {
 	candidate := username + suffix
 	user, err := c.UserByUsername(username + suffix)

@@ -2,6 +2,7 @@ package truapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"sort"
@@ -332,16 +333,42 @@ func (ta *TruAPI) communityIconImageResolver(ctx context.Context, q community.Co
 	}
 }
 
+func (ta *TruAPI) followedCommunityIDs(ctx context.Context) ([]string, error) {
+	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
+	if !ok || user == nil {
+		return []string{}, errors.New("User not authenticated")
+	}
+	followedCommunities, err := ta.DBClient.FollowedCommunities(user.Address)
+	if err != nil {
+		return []string{}, err
+	}
+	followedCommunityIDs := make([]string, 0)
+	for _, followedCommunity := range followedCommunities {
+		followedCommunityIDs = append(followedCommunityIDs, followedCommunity.CommunityID)
+	}
+	return followedCommunityIDs, nil
+}
+
 func (ta *TruAPI) claimsResolver(ctx context.Context, q queryByCommunityIDAndFeedFilter) []claim.Claim {
 	var res []byte
 	var err error
-	if q.CommunityID == "all" {
+
+	switch q.CommunityID {
+	case "all":
 		queryRoute := path.Join(claim.QuerierRoute, claim.QueryClaims)
 		res, err = ta.Query(queryRoute, struct{}{}, claim.ModuleCodec)
-	} else {
+	case "home":
+		communityIDs, cErr := ta.followedCommunityIDs(ctx)
+		if cErr != nil {
+			return []claim.Claim{}
+		}
+		queryRoute := path.Join(claim.QuerierRoute, claim.QueryCommunitiesClaims)
+		res, err = ta.Query(queryRoute, claim.QueryCommunitiesClaimsParams{CommunityIDs: communityIDs}, claim.ModuleCodec)
+	default:
 		queryRoute := path.Join(claim.QuerierRoute, claim.QueryCommunityClaims)
 		res, err = ta.Query(queryRoute, claim.QueryCommunityClaimsParams{CommunityID: q.CommunityID}, claim.ModuleCodec)
 	}
+
 	if err != nil {
 		fmt.Println("claimsResolver err: ", err)
 		return []claim.Claim{}
@@ -387,7 +414,12 @@ func (ta *TruAPI) claimResolver(ctx context.Context, q queryByClaimID) claim.Cla
 }
 
 func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunityID) *claim.Claim {
-	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunityID(q.CommunityID)
+	communityID := q.CommunityID
+	// personal home feed and all claims feed should return same Claim of the Day
+	if q.CommunityID == "home" {
+		communityID = "all"
+	}
+	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunityID(communityID)
 	if err != nil {
 		return nil
 	}

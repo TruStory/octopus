@@ -1,7 +1,7 @@
 module github.com/TruStory/octopus
 
 require (
-	cloud.google.com/go v0.44.0
+	cloud.google.com/go v0.44.1
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect

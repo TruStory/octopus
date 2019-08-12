@@ -242,6 +242,8 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	keyPair.UserID = user.ID
+
 	// registering the keypair
 	pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
 	if err != nil {
@@ -253,6 +255,7 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	// adding the keypair in the database
 	err = ta.DBClient.Add(keyPair)
 	if err != nil {

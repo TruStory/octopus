@@ -2,7 +2,7 @@ package db
 
 import (
 	"crypto/rand"
-	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -221,7 +221,7 @@ func (c *Client) SignupUser(user *User, referrerCode string) error {
 	}
 
 	user.Password = string(hashedPassword)
-	user.Token = base64.StdEncoding.EncodeToString(token)
+	user.Token = hex.EncodeToString(token)
 	user.ApprovedAt = time.Now()
 
 	referrer, err := c.UserByAddress(referrerCode)
@@ -555,6 +555,15 @@ func (c *Client) UserByConnectedAccountTypeAndID(accountType, accountID string) 
 	}
 
 	return user, nil
+}
+
+// IsTwitterUser returns a twitter user that has a given connected account
+func (c *Client) IsTwitterUser(userID int64) bool {
+	connectedAccount, err := c.ConnectedAccountByTypeAndUserID("twitter", userID)
+	if err != nil {
+		return false
+	}
+	return connectedAccount != nil
 }
 
 func getUniqueUsername(c *Client, username string, suffix string) (string, error) {

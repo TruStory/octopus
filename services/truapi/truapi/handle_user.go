@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"unicode"
@@ -117,12 +118,22 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(connectedAccounts) > 0 {
-			render.Error(w, r, "the account associated with this email is usually accessed via Twitter Login. After logging in via Twitter, set a password in your account settings to login using email/password next time", http.StatusBadRequest)
+			render.Error(w, r, "this email is associated with a Twitter account. Please log in with Twitter", http.StatusBadRequest)
 			return
 		}
 
 		// if the account with this email address is simply pending verification, we'll let them know
 		render.Error(w, r, "the account associated with this email is not verified yet", http.StatusBadRequest)
+		return
+	}
+
+	user, err = ta.DBClient.UserByUsername(request.Username)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if user != nil {
+		render.Error(w, r, "this username is already taken", http.StatusBadRequest)
 		return
 	}
 
@@ -152,6 +163,7 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 
 	err = sendVerificationEmail(ta, *user)
 	if err != nil {
+		fmt.Println("could not send verification email: ", user, err)
 		render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
 		return
 	}

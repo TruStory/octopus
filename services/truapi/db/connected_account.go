@@ -40,6 +40,27 @@ func (c *Client) ConnectedAccountsByUserID(userID int64) ([]ConnectedAccount, er
 	return connectedAccounts, nil
 }
 
+// ConnectedAccountByTypeAndUserID returns the connected account by type and user_id
+func (c *Client) ConnectedAccountByTypeAndUserID(accountType string, userID int64) (*ConnectedAccount, error) {
+	var connectedAccount ConnectedAccount
+
+	err := c.Model(&connectedAccount).
+		Where("account_type = ?", accountType).
+		Where("user_id = ?", userID).
+		Where("deleted_at IS NULL").
+		First()
+
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &connectedAccount, nil
+}
+
 // ConnectedAccountByTypeAndID returns the connected account by type and id
 func (c *Client) ConnectedAccountByTypeAndID(accountType, accountID string) (*ConnectedAccount, error) {
 	var connectedAccount ConnectedAccount

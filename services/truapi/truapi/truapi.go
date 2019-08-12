@@ -161,7 +161,8 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/users/blacklist", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleUserBlacklisting)))
 	api.HandleFunc("/users/password-reset", ta.HandleUserForgotPassword)
 	api.HandleFunc("/users/resend-email-verification", ta.HandleResendEmailVerification)
-	api.HandleFunc("/utilities/unique-username", ta.HandleUniqueUsernameUtility)
+	api.HandleFunc("/users/validate/username", ta.HandleUniqueUsernameUtility)
+	api.HandleFunc("/users/validate/email", ta.HandleUniqueEmailUtility)
 	ta.Handle("/users-authentication", HandleUserAuthentication(ta))
 	api.Handle("/communities/follow",
 		WithUser(apiCtx, http.HandlerFunc(ta.handleFollowCommunities))).Methods(http.MethodPost)

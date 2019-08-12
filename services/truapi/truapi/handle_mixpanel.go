@@ -13,28 +13,6 @@ const MixpanelAPIEndpoint = "https://api.mixpanel.com"
 
 // HandleMixpanel proxies the request from the clients to Mixpanel
 func (ta *TruAPI) HandleMixpanel(w http.ResponseWriter, r *http.Request) {
-	// target, err := url.Parse(MixpanelAPIEndpoint)
-	// if err != nil {
-	// 	render.Error(w, r, err.Error(), http.StatusBadRequest)
-	// }
-	// proxy := httputil.NewSingleHostReverseProxy(target)
-	// proxy.Director = func(request *http.Request) {
-	// 	// request.Header.Add("X-Forwarded-Host", request.Host)
-	// 	// request.Header.Add("X-Origin-Host", target.Host)
-	// 	request.URL.Scheme = target.Scheme
-	// 	request.URL.Host = target.Host
-	// 	request.URL.Path = parsePath(request.URL.Path)
-	// 	q := request.URL.Query()
-	// 	q.Set("ip", "0")
-	// 	request.URL.RawQuery = q.Encode()
-
-	// 	fmt.Println(request)
-	// }
-	// proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-	// 	render.Error(w, r, err.Error(), http.StatusBadRequest)
-	// }
-	// proxy.ServeHTTP(w, r)
-
 	// firing up the http client
 	client := &http.Client{}
 

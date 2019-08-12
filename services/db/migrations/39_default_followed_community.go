@@ -18,7 +18,7 @@ func init() {
 					now(),
 					now()
 				FROM
-					users ON CONFLICT DO NOTHING;`)
+					users WHERE address IS NOT NULL ON CONFLICT DO NOTHING;`)
 		if err != nil {
 			return err
 		}

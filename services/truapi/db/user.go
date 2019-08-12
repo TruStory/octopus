@@ -56,7 +56,13 @@ type UserPassword struct {
 	NewConfirmation string `json:"new_confirmation"`
 }
 
-// UserByID selects a user either by ID
+// UserCredentials contains the fields that allows users to log into their accounts
+type UserCredentials struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// UserByID selects a user by ID
 func (c *Client) UserByID(ID int64) (*User, error) {
 	user := new(User)
 	err := c.Model(user).Where("id = ?", ID).First()
@@ -64,7 +70,7 @@ func (c *Client) UserByID(ID int64) (*User, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -377,6 +383,39 @@ func (c *Client) UpdateProfile(id int64, profile *UserProfile) error {
 	return nil
 }
 
+// SetUserCredentials adds an email + password combo to an existing user, who was previously authorized via some connected account
+func (c *Client) SetUserCredentials(id int64, credentials *UserCredentials) error {
+	user, err := c.UserByID(id)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("no such user found")
+	}
+	if !user.VerifiedAt.IsZero() {
+		return errors.New("this user already has credentials set and verified")
+	}
+
+	hashedPassword, err := getHashedPassword(credentials.Password)
+	if err != nil {
+		return nil
+	}
+
+	_, err = c.Model(user).
+		Where("id = ?", id).
+		Where("verified_at IS NULL").
+		Where("deleted_at IS NULL").
+		Set("email = ?", credentials.Email).
+		Set("password = ?", hashedPassword).
+		Update()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ApproveUserByID approves a user to signup (set their password + username)
 func (c *Client) ApproveUserByID(id int64) error {
 	user := new(User)
@@ -645,4 +684,17 @@ func (c *Client) UserProfileByUsername(username string) (*UserProfile, error) {
 	}
 
 	return userProfile, nil
+}
+
+func getHashedPassword(password string) (string, error) {
+	salt, err := generateCryptoSafeRandomBytes(16)
+	if err != nil {
+		return "", err
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword(salt, []byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(hashedPassword), nil
 }

@@ -42,6 +42,7 @@ type Mutations interface {
 	UpdatePassword(id int64, password *UserPassword) error
 	ResetPassword(id int64, password string) error
 	UpdateProfile(id int64, profile *UserProfile) error
+	SetUserCredentials(id int64, credentials *UserCredentials) error
 	IssueResetToken(userID int64) (*PasswordResetToken, error)
 	UseResetToken(prt *PasswordResetToken) error
 	UpsertConnectedAccount(connectedAccount *ConnectedAccount) error

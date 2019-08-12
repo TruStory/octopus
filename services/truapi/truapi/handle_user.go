@@ -258,6 +258,12 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	err = ta.DBClient.FollowCommunities(address.String(), ta.APIContext.Config.Community.DefaultFollowedCommunities)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	render.Response(w, r, true, http.StatusOK)
 }
 

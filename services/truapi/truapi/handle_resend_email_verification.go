@@ -16,8 +16,7 @@ type ResendEmailVerificationRequest struct {
 
 // TruErrors for resend email verification
 var (
-	ErrUserNotFound        = render.TruError{Code: 200, Message: "No such user found."}
-	ErrUserAlreadyVerified = render.TruError{Code: 201, Message: "User is already verified."}
+	ErrUserAlreadyVerified = render.TruError{Code: 200, Message: "User is already verified."}
 )
 
 // HandleResendEmailVerification resends the email verification email

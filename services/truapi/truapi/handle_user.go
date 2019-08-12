@@ -330,7 +330,6 @@ func (ta *TruAPI) updateUserDetailsViaCookie(w http.ResponseWriter, r *http.Requ
 		}
 		err = sendVerificationEmail(ta, *userToBeVerified)
 		if err != nil {
-			fmt.Println("could not send verification email: ", user, err)
 			render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
 			return
 		}

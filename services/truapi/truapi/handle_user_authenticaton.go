@@ -14,6 +14,10 @@ type AuthenticationRequest struct {
 	Password   string `json:"password"`
 }
 
+type UserResponseObject struct {
+	LastLogin bool `json:"last_login"`
+}
+
 // TruErrors for user auth
 var (
 	ErrServerError        = render.TruError{Code: 300, Message: "Server Error. Please try again later."}
@@ -22,42 +26,41 @@ var (
 )
 
 // HandleUserAuthentication handles the moderation of the users who have requested to signup
-func HandleUserAuthentication(ta *TruAPI) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		// only support POST requests
-		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
+func (ta *TruAPI) HandleUserAuthentication(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-		var request AuthenticationRequest
-		err := json.NewDecoder(r.Body).Decode(&request)
-		if err != nil {
-			render.LoginError(w, r, ErrServerError, http.StatusInternalServerError)
-			return
-		}
+	var request AuthenticationRequest
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		render.LoginError(w, r, ErrServerError, http.StatusInternalServerError)
+		return
+	}
 
-		user, err := ta.DBClient.GetAuthenticatedUser(request.Identifier, request.Password)
-		if err != nil {
-			render.LoginError(w, r, ErrInvalidCredentials, http.StatusBadRequest)
-			return
-		}
+	user, err := ta.DBClient.GetAuthenticatedUser(request.Identifier, request.Password)
+	if err != nil {
+		render.LoginError(w, r, ErrInvalidCredentials, http.StatusBadRequest)
+		return
+	}
 
-		if (*user).VerifiedAt.IsZero() {
-			render.LoginError(w, r, ErrUnverifiedEmail, http.StatusBadRequest)
-			return
-		}
+	if (*user).VerifiedAt.IsZero() {
+		render.LoginError(w, r, ErrUnverifiedEmail, http.StatusBadRequest)
+		return
+	}
 
-		cookie, err := cookies.GetLoginCookie(ta.APIContext, user)
-		if err != nil {
-			render.LoginError(w, r, ErrServerError, http.StatusInternalServerError)
-			return
-		}
-
-		http.SetCookie(w, cookie)
-		w.WriteHeader(http.StatusNoContent)
+	_, err = cookies.GetLoginCookie(ta.APIContext, user)
+	if err != nil {
+		render.LoginError(w, r, ErrServerError, http.StatusInternalServerError)
+		return
 	}
 
 	http.SetCookie(w, cookie)
-	render.Response(w, r, user, http.StatusOK)
+
+	response := &UserResponseObject{
+		LastLogin: (*user).LastAuthenticatedAt.IsZero(),
+	}
+
+	render.Response(w, r, response, http.StatusOK)
 }

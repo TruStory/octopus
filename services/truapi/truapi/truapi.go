@@ -169,6 +169,9 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/communities/unfollow/{communityID}",
 		WithUser(apiCtx, http.HandlerFunc(ta.handleUnfollowCommunity))).Methods(http.MethodDelete)
 
+	// Mixpanel proxy
+	api.PathPrefix("/mixpanel/").HandlerFunc(ta.HandleMixpanel)
+
 	if apiCtx.Config.App.MockRegistration {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))
 	}

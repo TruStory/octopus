@@ -253,6 +253,12 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// adding the keypair in the database
+	err = ta.DBClient.Add(keyPair)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	err = ta.DBClient.AddAddressToUser(request.ID, address.String())
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)

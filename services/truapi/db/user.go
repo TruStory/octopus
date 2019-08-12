@@ -414,10 +414,9 @@ func (c *Client) RejectUserByID(id int64) error {
 // AddUser upserts the user into the database
 func (c *Client) AddUser(user *User) error {
 	user.Email = strings.ToLower(user.Email)
-	user.Username = strings.ToLower(user.Username)
 	inserted, err := c.Model(user).
 		Where("LOWER(email) = ?", user.Email).
-		WhereOr("LOWER(username) = ?", user.Username).
+		WhereOr("LOWER(username) = ?", strings.ToLower(user.Username)).
 		OnConflict("DO NOTHING").
 		SelectOrInsert()
 

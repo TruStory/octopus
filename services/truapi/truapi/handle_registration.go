@@ -166,6 +166,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 			if err != nil {
 				return nil, err
 			}
+			err = ta.DBClient.FollowCommunities(address.String(), ta.APIContext.Config.Community.DefaultFollowedCommunities)
 		}
 	} else {
 		// this user is already our user, so, we'll just update their meta fields to stay updated

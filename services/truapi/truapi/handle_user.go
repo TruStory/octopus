@@ -70,6 +70,9 @@ type UpdateUserViaCookieRequest struct {
 
 	// Password fields
 	Password *db.UserPassword `json:"password,omitempty"`
+
+	// Credentials fields
+	Credentials *db.UserCredentials `json:"credentials,omitempty"`
 }
 
 // HandleUserDetails takes a `UserRequest` and returns a `UserResponse`
@@ -92,6 +95,9 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	// ensure email is lowercase
+	request.Email = strings.ToLower(request.Email)
 
 	err = validateRegisterRequest(request)
 	if err != nil {
@@ -144,7 +150,18 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		Username: request.Username,
 	}
 
-	err = ta.DBClient.SignupUser(user, request.ReferredBy)
+	// check if the signing user was invited by anyone before
+	referrer, err := ta.DBClient.InvitesByFriendEmail(request.Email)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if referrer != nil {
+		request.ReferredBy = referrer.Creator
+	}
+
+	err = ta.DBClient.RegisterUser(user, request.ReferredBy)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
@@ -157,7 +174,7 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.Response(w, r, true, http.StatusOK)
+	render.Response(w, r, user, http.StatusOK)
 }
 
 func (ta *TruAPI) updateUserDetails(w http.ResponseWriter, r *http.Request) {
@@ -190,14 +207,25 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	err = ta.DBClient.VerifyUser(request.ID, request.Token)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// MILESTONE -- successfully verified, let's give the user an address (registering user on the chain)
+	user, err := ta.DBClient.VerifiedUserByID(request.ID)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// user is already registered on the chain and has an address
+	if user.Address != "" {
+		render.Response(w, r, true, http.StatusOK)
+		return
+	}
+
+	// successfully verified; if user doesn't have adderss, let's give the user an address (registering user on the chain)
 	keyPair, err := makeNewKeyPair()
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
@@ -270,6 +298,36 @@ func (ta *TruAPI) updateUserDetailsViaCookie(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// if user (who was previously authorized via connected account) wants to add a password to their accounts
+	if request.Credentials != nil {
+		err = ta.DBClient.SetUserCredentials(user.ID, request.Credentials)
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		userToBeVerified, err := ta.DBClient.UserByID(user.ID)
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if userToBeVerified == nil {
+			//  this is a redundant check. it will never be trigger as invalid ID will be handled by SetUserCredentials method already.
+			// it is here in the rare case of something changing during refactoring sometime in the future.
+			render.Error(w, r, "the user cannot be verified right now", http.StatusInternalServerError)
+			return
+		}
+		err = sendVerificationEmail(ta, *userToBeVerified)
+		if err != nil {
+			fmt.Println("could not send verification email: ", user, err)
+			render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
+			return
+		}
+
+		render.Response(w, r, true, http.StatusOK)
+		return
+	}
+
 	render.Response(w, r, true, http.StatusOK)
 }
 
@@ -283,14 +341,13 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusUnauthorized)
 		return
 	}
-
-	user, err := ta.DBClient.UserByAddress(authenticatedUser.Address)
+	user, err := ta.DBClient.UserByID(authenticatedUser.ID)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	if user == nil {
-		render.Error(w, r, "Unauthorised.", http.StatusUnauthorized)
+		render.Error(w, r, "no such user found", http.StatusUnauthorized)
 		return
 	}
 

@@ -35,7 +35,7 @@ func NewVanillaPostman(region, sender, key, secret string) (*Postman, error) {
 	// setting up all message templates
 	box := packr.New("Email Templates", "./templates")
 	templates := []string{
-		"signup", "invitation", "password-reset", "email-confirmation",
+		"register", "invitation", "password-reset", "email-confirmation",
 	}
 	messages := make(map[string]*template.Template)
 	for _, templateName := range templates {

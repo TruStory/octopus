@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/regex"
@@ -16,25 +17,28 @@ import (
 	"github.com/go-pg/pg"
 )
 
+// InvitedUserDefaultName is the default name given to the invited user
+const InvitedUserDefaultName = "<invited user>"
+
 // User is the user on the TruStory platform
 type User struct {
 	Timestamps
 
-	ID                  int64     `json:"id"`
-	FullName            string    `json:"full_name"`
-	Username            string    `json:"username"`
-	Email               string    `json:"email"`
-	Bio                 string    `json:"bio"`
-	AvatarURL           string    `json:"avatar_url"`
-	Address             string    `json:"address"`
-	Password            string    `json:"-" graphql:"-"`
-	ReferredBy          int64     `json:"referred_by"`
-	Token               string    `json:"-" graphql:"-"`
-	ApprovedAt          time.Time `json:"approved_at" graphql:"-"`
-	RejectedAt          time.Time `json:"rejected_at" graphql:"-"`
-	VerifiedAt          time.Time `json:"verified_at" graphql:"-"`
-	BlacklistedAt       time.Time `json:"blacklisted_at" graphql:"-"`
-	LastAuthenticatedAt time.Time `json:"last_authenticated_at" graphql:"-"`
+	ID                  int64      `json:"id"`
+	FullName            string     `json:"full_name"`
+	Username            string     `json:"username"`
+	Email               string     `json:"email"`
+	Bio                 string     `json:"bio"`
+	AvatarURL           string     `json:"avatar_url"`
+	Address             string     `json:"address"`
+	Password            string     `json:"-" graphql:"-"`
+	ReferredBy          int64      `json:"referred_by"`
+	Token               string     `json:"-" graphql:"-"`
+	ApprovedAt          time.Time  `json:"approved_at" graphql:"-"`
+	RejectedAt          time.Time  `json:"rejected_at" graphql:"-"`
+	VerifiedAt          time.Time  `json:"verified_at" graphql:"-"`
+	BlacklistedAt       time.Time  `json:"blacklisted_at" graphql:"-"`
+	LastAuthenticatedAt *time.Time `json:"last_authenticated_at" graphql:"-"`
 }
 
 // UserProfile contains the fields that make up the user profile
@@ -52,7 +56,13 @@ type UserPassword struct {
 	NewConfirmation string `json:"new_confirmation"`
 }
 
-// UserByID selects a user either by ID
+// UserCredentials contains the fields that allows users to log into their accounts
+type UserCredentials struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// UserByID selects a user by ID
 func (c *Client) UserByID(ID int64) (*User, error) {
 	user := new(User)
 	err := c.Model(user).Where("id = ?", ID).First()
@@ -60,7 +70,7 @@ func (c *Client) UserByID(ID int64) (*User, error) {
 		return nil, nil
 	}
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 	return user, nil
 }
@@ -82,7 +92,7 @@ func (c *Client) UserByEmailOrUsername(identifier string) (*User, error) {
 func (c *Client) UserByEmail(email string) (*User, error) {
 	var user User
 	err := c.Model(&user).
-		Where("email = ?", email).
+		Where("LOWER(email) = ?", strings.ToLower(email)).
 		Where("deleted_at IS NULL").
 		First()
 
@@ -101,7 +111,7 @@ func (c *Client) UserByEmail(email string) (*User, error) {
 func (c *Client) UserByUsername(username string) (*User, error) {
 	var user User
 	err := c.Model(&user).
-		Where("username = ?", username).
+		Where("LOWER(username) = ?", strings.ToLower(username)).
 		Where("deleted_at IS NULL").
 		First()
 
@@ -170,6 +180,10 @@ func (c *Client) GetAuthenticatedUser(identifier, password string) (*User, error
 		return nil, errors.New("the user is blacklisted and cannot be authenticated")
 	}
 
+	if user.VerifiedAt.IsZero() {
+		return nil, errors.New("the user has not verified their email address yet")
+	}
+
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
 		return nil, errors.New("no such user found")
@@ -197,8 +211,8 @@ func (c *Client) TouchLastAuthenticatedAt(id int64) error {
 	return nil
 }
 
-// SignupUser signs up a new user
-func (c *Client) SignupUser(user *User, referrerCode string) error {
+// RegisterUser signs up a new user
+func (c *Client) RegisterUser(user *User, referrerCode string) error {
 	salt, err := generateCryptoSafeRandomBytes(16)
 	if err != nil {
 		return err
@@ -369,7 +383,40 @@ func (c *Client) UpdateProfile(id int64, profile *UserProfile) error {
 	return nil
 }
 
-// ApproveUserByID approves a user to signup (set their password + username)
+// SetUserCredentials adds an email + password combo to an existing user, who was previously authorized via some connected account
+func (c *Client) SetUserCredentials(id int64, credentials *UserCredentials) error {
+	user, err := c.UserByID(id)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("no such user found")
+	}
+	if !user.VerifiedAt.IsZero() {
+		return errors.New("this user already has credentials set and verified")
+	}
+
+	hashedPassword, err := getHashedPassword(credentials.Password)
+	if err != nil {
+		return nil
+	}
+
+	_, err = c.Model(user).
+		Where("id = ?", id).
+		Where("verified_at IS NULL").
+		Where("deleted_at IS NULL").
+		Set("email = ?", credentials.Email).
+		Set("password = ?", hashedPassword).
+		Update()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ApproveUserByID approves a user to register (set their password + username)
 func (c *Client) ApproveUserByID(id int64) error {
 	user := new(User)
 	_, err := c.Model(user).
@@ -405,11 +452,16 @@ func (c *Client) RejectUserByID(id int64) error {
 
 // AddUser upserts the user into the database
 func (c *Client) AddUser(user *User) error {
-	_, err := c.Model(user).
-		Where("email = ?", user.Email).
-		WhereOr("username = ?", user.Username).
+	user.Email = strings.ToLower(user.Email)
+	inserted, err := c.Model(user).
+		Where("LOWER(email) = ?", user.Email).
+		WhereOr("LOWER(username) = ?", strings.ToLower(user.Username)).
 		OnConflict("DO NOTHING").
 		SelectOrInsert()
+
+	if !inserted {
+		return errors.New("a user already exists with same email/username")
+	}
 
 	return err
 }
@@ -454,7 +506,7 @@ func (c *Client) UnblacklistUser(id int64) error {
 func (c *Client) InvitedUsers() ([]User, error) {
 	var invitedUsers = make([]User, 0)
 	err := c.Model(&invitedUsers).
-		Where("invited_by IS NOT NULL").
+		Where("referred_by IS NOT NULL").
 		Where("deleted_at IS NULL").
 		Select()
 	if err != nil {
@@ -464,13 +516,12 @@ func (c *Client) InvitedUsers() ([]User, error) {
 	return invitedUsers, nil
 }
 
-// InvitedUsersByAddress returns all the users who are invited by a particular address
-func (c *Client) InvitedUsersByAddress(address string) ([]User, error) {
+// InvitedUsersByID returns all the users who are invited by a particular address
+func (c *Client) InvitedUsersByID(referrerID int64) ([]User, error) {
 	var invitedUsers = make([]User, 0)
 	err := c.Model(&invitedUsers).
-		Where("invited_by IS NOT NULL").
 		Where("deleted_at IS NULL").
-		Where("invited_by = ?", address).
+		Where("referred_by = ?", referrerID).
 		Select()
 	if err != nil {
 		return invitedUsers, err
@@ -509,7 +560,7 @@ func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) 
 	user := &User{
 		FullName:   connectedAccount.Meta.FullName,
 		Username:   username,
-		Email:      connectedAccount.Meta.Email,
+		Email:      strings.ToLower(connectedAccount.Meta.Email),
 		Bio:        connectedAccount.Meta.Bio,
 		AvatarURL:  connectedAccount.Meta.AvatarURL,
 		ApprovedAt: time.Now(),
@@ -633,4 +684,17 @@ func (c *Client) UserProfileByUsername(username string) (*UserProfile, error) {
 	}
 
 	return userProfile, nil
+}
+
+func getHashedPassword(password string) (string, error) {
+	salt, err := generateCryptoSafeRandomBytes(16)
+	if err != nil {
+		return "", err
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword(salt, []byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(hashedPassword), nil
 }

@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/TruStory/octopus/services/truapi/postman/messages"
+
 	"github.com/TruStory/octopus/services/truapi/chttp"
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
@@ -45,21 +47,51 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
 	}
 
+	invitedUser, err := ta.DBClient.UserByEmail(email)
+	if err != nil {
+		return chttp.SimpleErrorResponse(500, err)
+	}
+	if invitedUser != nil {
+		return chttp.SimpleErrorResponse(422, errors.New("This user has already registered"))
+	}
+
 	invite := &db.Invite{
 		Creator:     user.Address,
 		FriendEmail: email,
 	}
 	err = ta.DBClient.AddInvite(invite)
-	// TODO: error on duplicate entry should return unique error code
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
 	}
 	if invite.ID == 0 {
 		return chttp.SimpleErrorResponse(422, errors.New("This user has already been invited"))
 	}
+	// send invitation via email
+	err = sendInvitationToFriend(ta, invite.FriendEmail, user.ID)
+	if err != nil {
+		return chttp.SimpleErrorResponse(500, err)
+	}
 	respBytes, err := json.Marshal(invite)
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
 	}
 	return chttp.SimpleResponse(200, respBytes)
+}
+
+func sendInvitationToFriend(ta *TruAPI, friend string, referrerID int64) error {
+	referrer := db.User{ID: referrerID}
+	err := ta.DBClient.Find(&referrer)
+	if err != nil {
+		return errors.New("error sending invitation to the friend")
+	}
+	message, err := messages.MakeInvitationMessage(ta.Postman, ta.APIContext.Config, friend, referrer)
+	if err != nil {
+		return errors.New("error sending invitation to the friend")
+	}
+
+	err = ta.Postman.Deliver(*message)
+	if err != nil {
+		return errors.New("error sending invitation to the friend")
+	}
+	return nil
 }

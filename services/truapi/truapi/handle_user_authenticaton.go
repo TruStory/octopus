@@ -15,7 +15,7 @@ type AuthenticationRequest struct {
 	Password   string `json:"password"`
 }
 
-// HandleUserAuthentication handles the moderation of the users who have requested to signup
+// HandleUserAuthentication authenticates users using email/username and password combination
 func HandleUserAuthentication(ta *TruAPI) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		// only support POST requests

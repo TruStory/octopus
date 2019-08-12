@@ -211,8 +211,8 @@ func (c *Client) TouchLastAuthenticatedAt(id int64) error {
 	return nil
 }
 
-// SignupUser signs up a new user
-func (c *Client) SignupUser(user *User, referrerCode string) error {
+// RegisterUser signs up a new user
+func (c *Client) RegisterUser(user *User, referrerCode string) error {
 	salt, err := generateCryptoSafeRandomBytes(16)
 	if err != nil {
 		return err
@@ -416,7 +416,7 @@ func (c *Client) SetUserCredentials(id int64, credentials *UserCredentials) erro
 	return nil
 }
 
-// ApproveUserByID approves a user to signup (set their password + username)
+// ApproveUserByID approves a user to register (set their password + username)
 func (c *Client) ApproveUserByID(id int64) error {
 	user := new(User)
 	_, err := c.Model(user).

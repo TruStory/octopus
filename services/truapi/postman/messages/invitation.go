@@ -14,11 +14,11 @@ import (
 // MakeInvitationMessage makes a new invitation message
 func MakeInvitationMessage(client *postman.Postman, config context.Config, email string, referrer db.User) (*postman.Message, error) {
 	vars := struct {
-		Referrer   db.User
-		SignupLink string
+		Referrer     db.User
+		RegisterLink string
 	}{
-		Referrer:   referrer,
-		SignupLink: makeReferralSignupLink(config, referrer),
+		Referrer:     referrer,
+		RegisterLink: makeReferralRegisterLink(config, referrer),
 	}
 
 	var body bytes.Buffer
@@ -34,6 +34,6 @@ func MakeInvitationMessage(client *postman.Postman, config context.Config, email
 	}, nil
 }
 
-func makeReferralSignupLink(config context.Config, referrer db.User) string {
-	return fmt.Sprintf("%s/signup?referrer=%s", config.App.URL, referrer.Address)
+func makeReferralRegisterLink(config context.Config, referrer db.User) string {
+	return fmt.Sprintf("%s/register?referrer=%s", config.App.URL, referrer.Address)
 }

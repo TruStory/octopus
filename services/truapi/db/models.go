@@ -33,7 +33,7 @@ type Mutations interface {
 	AddUser(user *User) error
 	ApproveUserByID(id int64) error
 	RejectUserByID(id int64) error
-	SignupUser(user *User, referrerCode string) error
+	RegisterUser(user *User, referrerCode string) error
 	BlacklistUser(id int64) error
 	UnblacklistUser(id int64) error
 	VerifyUser(id int64, token string) error

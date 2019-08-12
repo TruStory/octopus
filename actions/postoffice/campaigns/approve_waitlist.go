@@ -25,13 +25,13 @@ func (campaign *WaitlistApprovalCampaign) GetRecipients() Recipients {
 // GetMessage returns a message that is to be sent to a particular recipient
 func (campaign *WaitlistApprovalCampaign) GetMessage(client *postman.Postman, recipient Recipient) (*postman.Message, error) {
 	vars := struct {
-		SignupLink string
+		RegisterLink string
 	}{
-		SignupLink: "https://beta.trustory.io/signup",
+		RegisterLink: "https://beta.trustory.io/register",
 	}
 
 	var body bytes.Buffer
-	if err := client.Messages["signup"].Execute(&body, vars); err != nil {
+	if err := client.Messages["register"].Execute(&body, vars); err != nil {
 		return nil, err
 	}
 

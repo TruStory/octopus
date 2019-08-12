@@ -161,7 +161,7 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		request.ReferredBy = referrer.Creator
 	}
 
-	err = ta.DBClient.SignupUser(user, request.ReferredBy)
+	err = ta.DBClient.RegisterUser(user, request.ReferredBy)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
@@ -348,10 +348,6 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 	}
 	if user == nil {
 		render.Error(w, r, "no such user found", http.StatusUnauthorized)
-		return
-	}
-	if user.VerifiedAt.IsZero() {
-		render.Error(w, r, "the user is not verified yet", http.StatusUnauthorized)
 		return
 	}
 

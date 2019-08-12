@@ -96,6 +96,9 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ensure email is lowercase
+	request.Email = strings.ToLower(request.Email)
+
 	err = validateRegisterRequest(request)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)

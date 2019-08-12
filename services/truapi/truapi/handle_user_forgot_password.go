@@ -5,9 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/TruStory/octopus/services/truapi/postman/messages"
-
 	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/postman/messages"
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
@@ -22,6 +21,12 @@ type PasswordResetRequest struct {
 	Token    string `json:"token"`
 	Password string `json:"password"`
 }
+
+// TruErrors for handle user
+var (
+	ErrNoSuchUser  = render.TruError{Code: 400, Message: "No such user."}
+	ErrNoSuchToken = render.TruError{Code: 401, Message: "No such token."}
+)
 
 // HandleUserForgotPassword handles the resetting of user's password if they forget
 func (ta *TruAPI) HandleUserForgotPassword(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +54,7 @@ func (ta *TruAPI) forgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user == nil {
-		render.Error(w, r, "no such user", http.StatusNotFound)
+		render.LoginError(w, r, ErrNoSuchUser, http.StatusNotFound)
 		return
 	}
 
@@ -88,7 +93,7 @@ func (ta *TruAPI) resetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if prt == nil {
-		render.Error(w, r, "no such token", http.StatusNotFound)
+		render.LoginError(w, r, ErrNoSuchToken, http.StatusNotFound)
 		return
 	}
 

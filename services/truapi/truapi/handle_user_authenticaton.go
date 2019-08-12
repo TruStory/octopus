@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/TruStory/octopus/services/truapi/truapi/render"
-
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
 // AuthenticationRequest represents the http request to authenticate a user's account
@@ -14,6 +13,11 @@ type AuthenticationRequest struct {
 	Identifier string `json:"identifier"`
 	Password   string `json:"password"`
 }
+
+// TruErrors for user auth
+var (
+	ErrUnverifiedEmail = render.TruError{Code: 300, Message: "Please verify your email."}
+)
 
 // HandleUserAuthentication authenticates users using email/username and password combination
 func (ta *TruAPI) HandleUserAuthentication(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +41,7 @@ func (ta *TruAPI) HandleUserAuthentication(w http.ResponseWriter, r *http.Reques
 	}
 
 	if (*user).VerifiedAt.IsZero() {
-		http.Error(w, "please verify your email", http.StatusBadRequest)
+		render.LoginError(w, r, ErrUnverifiedEmail, http.StatusBadRequest)
 		return
 	}
 

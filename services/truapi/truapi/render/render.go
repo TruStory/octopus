@@ -1,7 +1,10 @@
 package render
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -24,12 +27,16 @@ type jsonResponse struct {
 
 // JSON renders json payloads
 func JSON(w http.ResponseWriter, r *http.Request, v interface{}, code int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	err := json.NewEncoder(w).Encode(v)
+	buf := &bytes.Buffer{}
+	err := json.NewEncoder(buf).Encode(v)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	w.WriteHeader(code)
+	_, err = io.Copy(w, buf)
+	if err != nil {
+		fmt.Println("error sending response to underlying writer", err)
 	}
 }
 

@@ -560,7 +560,7 @@ func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) 
 	user := &User{
 		FullName:   connectedAccount.Meta.FullName,
 		Username:   username,
-		Email:      connectedAccount.Meta.Email,
+		Email:      strings.ToLower(connectedAccount.Meta.Email),
 		Bio:        connectedAccount.Meta.Bio,
 		AvatarURL:  connectedAccount.Meta.AvatarURL,
 		ApprovedAt: time.Now(),

@@ -50,13 +50,13 @@ func Error(w http.ResponseWriter, r *http.Request, msg string, code int) {
 }
 
 // LoginError renders a json login error
-func LoginError(w http.ResponseWriter, r *http.Request, err error, code int) {
+func LoginError(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
 	response := &jsonResponse{
 		Data:   err,
 		Error:  err.Error(),
-		Status: code,
+		Status: statusCode,
 	}
-	JSON(w, r, response, code)
+	JSON(w, r, response, statusCode)
 }
 
 // Response renders a json response.

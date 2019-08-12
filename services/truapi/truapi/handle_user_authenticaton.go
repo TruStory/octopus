@@ -23,6 +23,7 @@ var (
 
 // HandleUserAuthentication handles the moderation of the users who have requested to signup
 func (ta *TruAPI) HandleUserAuthentication(w http.ResponseWriter, r *http.Request) {
+	// only support POST requests
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return

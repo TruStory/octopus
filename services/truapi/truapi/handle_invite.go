@@ -47,6 +47,14 @@ func (ta *TruAPI) handleCreateInvite(r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
 	}
 
+	invitedUser, err := ta.DBClient.UserByEmail(email)
+	if err != nil {
+		return chttp.SimpleErrorResponse(500, err)
+	}
+	if invitedUser != nil {
+		return chttp.SimpleErrorResponse(422, errors.New("This user has already registered"))
+	}
+
 	invite := &db.Invite{
 		Creator:     user.Address,
 		FriendEmail: email,
@@ -76,15 +84,14 @@ func sendInvitationToFriend(ta *TruAPI, friend string, referrerID int64) error {
 	if err != nil {
 		return errors.New("error sending invitation to the friend")
 	}
-	_, err = messages.MakeInvitationMessage(ta.Postman, ta.APIContext.Config, friend, referrer)
+	message, err := messages.MakeInvitationMessage(ta.Postman, ta.APIContext.Config, friend, referrer)
 	if err != nil {
 		return errors.New("error sending invitation to the friend")
 	}
 
-	// TO BE UNCOMMENTED WHEN EMAIL AUTH IS OPENED TO PUBLIC
-	// err = ta.Postman.Deliver(*message)
-	// if err != nil {
-	// 	return errors.New("error sending invitation to the friend")
-	// }
+	err = ta.Postman.Deliver(*message)
+	if err != nil {
+		return errors.New("error sending invitation to the friend")
+	}
 	return nil
 }

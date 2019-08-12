@@ -14,10 +14,6 @@ type AuthenticationRequest struct {
 	Password   string `json:"password"`
 }
 
-type UserResponseObject struct {
-	LastLogin bool `json:"last_login"`
-}
-
 // TruErrors for user auth
 var (
 	ErrServerError        = render.TruError{Code: 300, Message: "Server Error. Please try again later."}
@@ -50,17 +46,12 @@ func (ta *TruAPI) HandleUserAuthentication(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	_, err = cookies.GetLoginCookie(ta.APIContext, user)
+	cookie, err = cookies.GetLoginCookie(ta.APIContext, user)
 	if err != nil {
 		render.LoginError(w, r, ErrServerError, http.StatusInternalServerError)
 		return
 	}
 
 	http.SetCookie(w, cookie)
-
-	response := &UserResponseObject{
-		LastLogin: (*user).LastAuthenticatedAt.IsZero(),
-	}
-
-	render.Response(w, r, response, http.StatusOK)
+	render.Response(w, r, user, http.StatusOK)
 }

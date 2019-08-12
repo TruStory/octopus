@@ -46,7 +46,7 @@ func (ta *TruAPI) HandleUserAuthentication(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	cookie, err = cookies.GetLoginCookie(ta.APIContext, user)
+	cookie, err := cookies.GetLoginCookie(ta.APIContext, user)
 	if err != nil {
 		render.LoginError(w, r, ErrServerError, http.StatusInternalServerError)
 		return

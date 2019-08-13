@@ -26,6 +26,7 @@ type PasswordResetRequest struct {
 var (
 	ErrNoSuchUser  = render.TruError{Code: 400, Message: "No such user."}
 	ErrNoSuchToken = render.TruError{Code: 401, Message: "No such token."}
+	ErrTwitterUser = render.TruError{Code: 402, Message: "Please use Twitter to reset this password."}
 )
 
 // HandleUserForgotPassword handles the resetting of user's password if they forget
@@ -55,6 +56,12 @@ func (ta *TruAPI) forgotPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	if user == nil {
 		render.LoginError(w, r, ErrNoSuchUser, http.StatusNotFound)
+		return
+	}
+
+	isTwitterUser := ta.DBClient.IsTwitterUser((*user).ID)
+	if isTwitterUser {
+		render.LoginError(w, r, ErrTwitterUser, http.StatusBadRequest)
 		return
 	}
 

@@ -181,6 +181,8 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 	image := fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v", ta.APIContext.Config.App.URL, claimID)
 	if claimID == 824 {
 		image = "https://s3-us-west-1.amazonaws.com/trustory/images/22405a4351507698.jpg"
+	} else if claimID == 893 {
+		image = "https://s3-us-west-1.amazonaws.com/trustory/images/407a1236454a9a59.jpg"
 	}
 
 	return &Tags{

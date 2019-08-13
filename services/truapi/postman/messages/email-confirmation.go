@@ -34,5 +34,6 @@ func MakeEmailConfirmationMessage(client *postman.Postman, config context.Config
 }
 
 func makeVerificationLink(config context.Config, user db.User) string {
-	return fmt.Sprintf("%s/register/verify?id=%d&token=%s", config.App.URL, user.ID, user.Token)
+	url := joinPath(config.App.URL, "/register/verify")
+	return fmt.Sprintf("%s?id=%d&token=%s", url, user.ID, user.Token)
 }

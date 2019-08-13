@@ -153,7 +153,6 @@ func joinPath(baseURL, route string) string {
 	}
 	u.Path = path.Join(u.Path, route)
 	return u.String()
-
 }
 
 // meta tags for a claim

@@ -34,5 +34,6 @@ func MakePasswordResetMessage(client *postman.Postman, config context.Config, us
 }
 
 func makeResetLink(config context.Config, user db.User, prt db.PasswordResetToken) string {
-	return fmt.Sprintf("%s/recovery/reset?id=%d&token=%s", config.App.URL, user.ID, prt.Token)
+	url := joinPath(config.App.URL, "/recovery/reset")
+	return fmt.Sprintf("%s?id=%d&token=%s", url, user.ID, prt.Token)
 }

@@ -87,6 +87,10 @@ func (ta *TruAPI) resetPassword(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
+	user, err := ta.DBClient.VerifiedUserByID(request.UserID)
+	if err != nil || user == nil {
+		render.LoginError(w, r, ErrEmailNotVerified, http.StatusBadRequest)
+	}
 
 	err = validatePassword(request.Password)
 	if err != nil {

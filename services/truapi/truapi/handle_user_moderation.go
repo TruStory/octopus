@@ -21,13 +21,13 @@ const (
 	ModerationRejected Moderation = "rejected"
 )
 
-// ModerationRequest represents the http request to moderate a user's request to signup
+// ModerationRequest represents the http request to moderate a user's request to register
 type ModerationRequest struct {
 	UserID     int64      `json:"user_id"`
 	Moderation Moderation `json:"moderation"`
 }
 
-// HandleUserModeration handles the moderation of the users who have requested to signup
+// HandleUserModeration handles the moderation of the users who have requested to register
 func (ta *TruAPI) HandleUserModeration(w http.ResponseWriter, r *http.Request) {
 	var request ModerationRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
@@ -38,9 +38,9 @@ func (ta *TruAPI) HandleUserModeration(w http.ResponseWriter, r *http.Request) {
 
 	if request.Moderation == ModerationApproved {
 		err = ta.DBClient.ApproveUserByID(request.UserID)
-		// if approved, send them a signup email
+		// if approved, send them a register email
 		if err == nil {
-			err = sendSignupEmail(ta, request.UserID)
+			err = sendRegisterEmail(ta, request.UserID)
 		}
 	} else if request.Moderation == ModerationRejected {
 		err = ta.DBClient.RejectUserByID(request.UserID)
@@ -56,14 +56,14 @@ func (ta *TruAPI) HandleUserModeration(w http.ResponseWriter, r *http.Request) {
 	render.Response(w, r, true, http.StatusOK)
 }
 
-func sendSignupEmail(ta *TruAPI, userID int64) error {
+func sendRegisterEmail(ta *TruAPI, userID int64) error {
 	user := db.User{ID: userID}
 	err := ta.DBClient.Find(&user)
 	if err != nil {
 		return err
 	}
 
-	message, err := messages.MakeSignupMessage(ta.Postman, ta.APIContext.Config, user)
+	message, err := messages.MakeRegisterMessage(ta.Postman, ta.APIContext.Config, user)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,8 @@ package postman
 import (
 	"html/template"
 
+	"github.com/aws/aws-sdk-go/aws/credentials"
+
 	"github.com/TruStory/octopus/services/truapi/context"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -29,11 +31,11 @@ type Message struct {
 }
 
 // NewVanillaPostman creates the client without the truapi dependency
-func NewVanillaPostman(region, sender string) (*Postman, error) {
+func NewVanillaPostman(region, sender, key, secret string) (*Postman, error) {
 	// setting up all message templates
 	box := packr.New("Email Templates", "./templates")
 	templates := []string{
-		"signup", "invitation", "password-reset", "email-confirmation",
+		"register", "invitation", "password-reset", "email-confirmation",
 	}
 	messages := make(map[string]*template.Template)
 	for _, templateName := range templates {
@@ -50,8 +52,9 @@ func NewVanillaPostman(region, sender string) (*Postman, error) {
 		messages[templateName] = parsedTemplate
 	}
 	session, err := session.NewSession(&aws.Config{
-		Region: aws.String(region)},
-	)
+		Region:      aws.String(region),
+		Credentials: credentials.NewStaticCredentials(key, secret, ""),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +71,7 @@ func NewVanillaPostman(region, sender string) (*Postman, error) {
 
 // NewPostman creates the client to deliver SES emails
 func NewPostman(config context.Config) (*Postman, error) {
-	return NewVanillaPostman(config.AWS.Region, config.AWS.Sender)
+	return NewVanillaPostman(config.AWS.Region, config.AWS.Sender, config.AWS.AccessKey, config.AWS.AccessSecret)
 }
 
 // Deliver sends the email to the designated recipient

@@ -153,7 +153,7 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// For each user, get the available stake calculated.
-	users := make([]db.TwitterProfile, 0)
+	users := make([]db.User, 0)
 	err = ta.DBClient.FindAll(&users)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)

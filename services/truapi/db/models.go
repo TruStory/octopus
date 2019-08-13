@@ -33,7 +33,7 @@ type Mutations interface {
 	AddUser(user *User) error
 	ApproveUserByID(id int64) error
 	RejectUserByID(id int64) error
-	SignupUser(user *User, referrerCode string) error
+	RegisterUser(user *User, referrerCode string) error
 	BlacklistUser(id int64) error
 	UnblacklistUser(id int64) error
 	VerifyUser(id int64, token string) error
@@ -42,6 +42,7 @@ type Mutations interface {
 	UpdatePassword(id int64, password *UserPassword) error
 	ResetPassword(id int64, password string) error
 	UpdateProfile(id int64, profile *UserProfile) error
+	SetUserCredentials(id int64, credentials *UserCredentials) error
 	IssueResetToken(userID int64) (*PasswordResetToken, error)
 	UseResetToken(prt *PasswordResetToken) error
 	UpsertConnectedAccount(connectedAccount *ConnectedAccount) error
@@ -66,6 +67,7 @@ type Queries interface {
 	CommentsByClaimID(claimID uint64) ([]Comment, error)
 	Invites() ([]Invite, error)
 	InvitesByAddress(addr string) ([]Invite, error)
+	InvitesByFriendEmail(email string) (*Invite, error)
 	ReactionsByReactionable(reactionable Reactionable) ([]Reaction, error)
 	ReactionsByAddress(addr string) ([]Reaction, error)
 	ReactionsCountByReactionable(reactionable Reactionable) ([]ReactionsCount, error)
@@ -83,8 +85,9 @@ type Queries interface {
 	UserByUsername(username string) (*User, error)
 	UserByAddress(address string) (*User, error)
 	UserByConnectedAccountTypeAndID(accountType, accountID string) (*User, error)
+	IsTwitterUser(userID int64) bool
 	InvitedUsers() ([]User, error)
-	InvitedUsersByAddress(address string) ([]User, error)
+	InvitedUsersByID(referrerID int64) ([]User, error)
 	UnusedResetTokensByUser(userID int64) ([]PasswordResetToken, error)
 	UnusedResetTokenByUserAndToken(userID int64, token string) (*PasswordResetToken, error)
 	ConnectedAccountsByUserID(userID int64) ([]ConnectedAccount, error)

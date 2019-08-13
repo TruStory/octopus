@@ -5,9 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/TruStory/octopus/services/truapi/postman/messages"
-
 	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/postman/messages"
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
@@ -22,6 +21,13 @@ type PasswordResetRequest struct {
 	Token    string `json:"token"`
 	Password string `json:"password"`
 }
+
+// TruErrors for handle user
+var (
+	ErrNoSuchUser  = render.TruError{Code: 400, Message: "No such user."}
+	ErrNoSuchToken = render.TruError{Code: 401, Message: "No such token."}
+	ErrTwitterUser = render.TruError{Code: 402, Message: "Please use Twitter to reset this password."}
+)
 
 // HandleUserForgotPassword handles the resetting of user's password if they forget
 func (ta *TruAPI) HandleUserForgotPassword(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +55,13 @@ func (ta *TruAPI) forgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user == nil {
-		render.Error(w, r, "no such user", http.StatusNotFound)
+		render.LoginError(w, r, ErrNoSuchUser, http.StatusNotFound)
+		return
+	}
+
+	isTwitterUser := ta.DBClient.IsTwitterUser((*user).ID)
+	if isTwitterUser {
+		render.LoginError(w, r, ErrTwitterUser, http.StatusBadRequest)
 		return
 	}
 
@@ -75,6 +87,11 @@ func (ta *TruAPI) resetPassword(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
+	user, err := ta.DBClient.VerifiedUserByID(request.UserID)
+	if err != nil || user == nil {
+		render.LoginError(w, r, ErrEmailNotVerified, http.StatusBadRequest)
+		return
+	}
 
 	err = validatePassword(request.Password)
 	if err != nil {
@@ -88,7 +105,7 @@ func (ta *TruAPI) resetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if prt == nil {
-		render.Error(w, r, "no such token", http.StatusNotFound)
+		render.LoginError(w, r, ErrNoSuchToken, http.StatusNotFound)
 		return
 	}
 

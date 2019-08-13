@@ -11,6 +11,7 @@ type AppConfig struct {
 	MockRegistration bool   `mapstructure:"mock-registration"`
 	UploadURL        string `mapstructure:"upload-url"`
 	S3AssetsURL      string `mapstructure:"s3-assets-url"`
+	MixpanelToken    string `mapstructure:"mixpanel-token"`
 }
 
 // CookieConfig is the config for the cookie
@@ -74,8 +75,9 @@ type WebConfig struct {
 
 // CommunityConfig is the config for the community
 type CommunityConfig struct {
-	InactiveCommunities []string `mapstructure:"inactive-communities"`
-	BetaCommunities     []string `mapstructure:"beta-communities"`
+	InactiveCommunities        []string `mapstructure:"inactive-communities"`
+	BetaCommunities            []string `mapstructure:"beta-communities"`
+	DefaultFollowedCommunities []string `mapstructure:"default-followed-communities"`
 }
 
 // ParamsConfig is the config for off-chain params
@@ -94,8 +96,10 @@ type AdminConfig struct {
 
 // AWSConfig is the config for the AWS SDK
 type AWSConfig struct {
-	Region string `mapstructure:"aws-region"`
-	Sender string `mapstructure:"aws-ses-sender"`
+	Region       string `mapstructure:"aws-region"`
+	Sender       string `mapstructure:"aws-ses-sender"`
+	AccessKey    string `mapstructure:"aws-access-key"`
+	AccessSecret string `mapstructure:"aws-access-secret"`
 }
 
 // Config contains all the config variables for the API server

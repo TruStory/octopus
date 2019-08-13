@@ -52,12 +52,12 @@ func (c *Client) TwitterProfileByAddress(addr string) (*TwitterProfile, error) {
 	connectedAccount := new(ConnectedAccount)
 	err = c.Model(connectedAccount).Where("user_id = ?", user.ID).Select()
 	if err != nil {
-		return twitterProfile, err
+		return twitterProfile, nil
 	}
 
 	twitterProfile.ID, err = strconv.ParseInt(connectedAccount.AccountID, 10, 64)
 	if err != nil {
-		return twitterProfile, err
+		return twitterProfile, nil
 	}
 
 	return twitterProfile, nil
@@ -91,12 +91,12 @@ func (c *Client) TwitterProfileByUsername(username string) (*TwitterProfile, err
 	connectedAccount := new(ConnectedAccount)
 	err = c.Model(connectedAccount).Where("user_id = ?", user.ID).Select()
 	if err != nil {
-		return twitterProfile, err
+		return twitterProfile, nil
 	}
 
 	twitterProfile.ID, err = strconv.ParseInt(connectedAccount.AccountID, 10, 64)
 	if err != nil {
-		return twitterProfile, err
+		return twitterProfile, nil
 	}
 
 	return twitterProfile, nil

@@ -8,6 +8,17 @@ import (
 	"net/http"
 )
 
+// TruError holds data for a TruStory API error
+type TruError struct {
+	Code    int    `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+// Error implements error
+func (e TruError) Error() string {
+	return e.Message
+}
+
 type jsonResponse struct {
 	Status int         `json:"status"`
 	Data   interface{} `json:"data,omitempty"`
@@ -36,6 +47,16 @@ func Error(w http.ResponseWriter, r *http.Request, msg string, code int) {
 		Status: code,
 	}
 	JSON(w, r, response, code)
+}
+
+// LoginError renders a json login error
+func LoginError(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
+	response := &jsonResponse{
+		Data:   err,
+		Error:  err.Error(),
+		Status: statusCode,
+	}
+	JSON(w, r, response, statusCode)
 }
 
 // Response renders a json response.

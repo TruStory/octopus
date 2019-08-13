@@ -2,6 +2,8 @@ package db
 
 import (
 	"strings"
+
+	"github.com/go-pg/pg"
 )
 
 // Invite represents an invite from a friend in the DB
@@ -34,6 +36,21 @@ func (c *Client) InvitesByAddress(addr string) ([]Invite, error) {
 	}
 
 	return invites, nil
+}
+
+// InvitesByFriendEmail returns the invite for a specific friend's email
+func (c *Client) InvitesByFriendEmail(email string) (*Invite, error) {
+	var invite Invite
+	err := c.Model(&invite).Where("friend_email = ?", email).First()
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &invite, nil
 }
 
 // AddInvite inserts an invitation

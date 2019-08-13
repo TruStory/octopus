@@ -8,15 +8,11 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/TruStory/octopus/services/truapi/postman/messages"
-
-	"github.com/TruStory/octopus/services/truapi/truapi/render"
-
-	"github.com/TruStory/octopus/services/truapi/truapi/regex"
-
 	"github.com/TruStory/octopus/services/truapi/db"
-
+	"github.com/TruStory/octopus/services/truapi/postman/messages"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/truapi/regex"
+	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
 // UserResponse is a JSON response body representing the result of User
@@ -69,7 +65,23 @@ type UpdateUserViaCookieRequest struct {
 
 	// Password fields
 	Password *db.UserPassword `json:"password,omitempty"`
+
+	// Credentials fields
+	Credentials *db.UserCredentials `json:"credentials,omitempty"`
 }
+
+// TruErrors for handle user
+var (
+	ErrExistingAccountWithEmail = render.TruError{Code: 100, Message: "There's already an account with this email address."}
+	ErrExistingTwitterAccount   = render.TruError{Code: 101, Message: "This email is associated with a Twitter account. Please log in with Twitter."}
+	ErrEmailNotVerified         = render.TruError{Code: 102, Message: "The account associated with this email is not verified yet."}
+	ErrUsernameTaken            = render.TruError{Code: 103, Message: "This username is already taken."}
+	ErrCannotSendEmail          = render.TruError{Code: 104, Message: "Error sending email."}
+	ErrInvalidPasswords         = render.TruError{Code: 105, Message: "Passwords don't match."}
+	ErrInvalidPassword          = render.TruError{Code: 106, Message: "Invalid password."}
+	ErrUserNotFound             = render.TruError{Code: 107, Message: "User not found."}
+	ErrRegistration             = render.TruError{Code: 108, Message: "Registration error."}
+)
 
 // HandleUserDetails takes a `UserRequest` and returns a `UserResponse`
 func (ta *TruAPI) HandleUserDetails(w http.ResponseWriter, r *http.Request) {
@@ -92,9 +104,16 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ensure email is lowercase
+	request.Email = strings.ToLower(request.Email)
+
 	err = validateRegisterRequest(request)
 	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		render.LoginError(
+			w, r,
+			render.TruError{Code: ErrRegistration.Code, Message: err.Error()},
+			http.StatusBadRequest)
+
 		return
 	}
 
@@ -106,7 +125,7 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 	if user != nil {
 		// if a valid and verified account is already existing for this email, we'll send back an error
 		if !user.VerifiedAt.IsZero() {
-			render.Error(w, r, "there's already an account with this email address", http.StatusBadRequest)
+			render.LoginError(w, r, ErrExistingAccountWithEmail, http.StatusBadRequest)
 			return
 		}
 
@@ -117,12 +136,22 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if len(connectedAccounts) > 0 {
-			render.Error(w, r, "the account associated with this email is usually accessed via Twitter Login. After logging in via Twitter, set a password in your account settings to login using email/password next time", http.StatusBadRequest)
+			render.LoginError(w, r, ErrExistingTwitterAccount, http.StatusBadRequest)
 			return
 		}
 
 		// if the account with this email address is simply pending verification, we'll let them know
-		render.Error(w, r, "the account associated with this email is not verified yet", http.StatusBadRequest)
+		render.LoginError(w, r, ErrEmailNotVerified, http.StatusBadRequest)
+		return
+	}
+
+	user, err = ta.DBClient.UserByUsername(request.Username)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if user != nil {
+		render.LoginError(w, r, ErrUsernameTaken, http.StatusBadRequest)
 		return
 	}
 
@@ -133,7 +162,18 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		Username: request.Username,
 	}
 
-	err = ta.DBClient.SignupUser(user, request.ReferredBy)
+	// check if the signing user was invited by anyone before
+	referrer, err := ta.DBClient.InvitesByFriendEmail(request.Email)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if referrer != nil {
+		request.ReferredBy = referrer.Creator
+	}
+
+	err = ta.DBClient.RegisterUser(user, request.ReferredBy)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
@@ -141,11 +181,11 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 
 	err = sendVerificationEmail(ta, *user)
 	if err != nil {
-		render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
+		render.LoginError(w, r, ErrCannotSendEmail, http.StatusInternalServerError)
 		return
 	}
 
-	render.Response(w, r, true, http.StatusOK)
+	render.Response(w, r, user, http.StatusOK)
 }
 
 func (ta *TruAPI) updateUserDetails(w http.ResponseWriter, r *http.Request) {
@@ -178,19 +218,32 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	err = ta.DBClient.VerifyUser(request.ID, request.Token)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// MILESTONE -- successfully verified, let's give the user an address (registering user on the chain)
+	user, err := ta.DBClient.VerifiedUserByID(request.ID)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// user is already registered on the chain and has an address
+	if user.Address != "" {
+		render.Response(w, r, true, http.StatusOK)
+		return
+	}
+
+	// successfully verified; if user doesn't have adderss, let's give the user an address (registering user on the chain)
 	keyPair, err := makeNewKeyPair()
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	keyPair.UserID = user.ID
+
 	// registering the keypair
 	pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
 	if err != nil {
@@ -202,11 +255,24 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// adding the keypair in the database
+	err = ta.DBClient.Add(keyPair)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	err = ta.DBClient.AddAddressToUser(request.ID, address.String())
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	err = ta.DBClient.FollowCommunities(address.String(), ta.APIContext.Config.Community.DefaultFollowedCommunities)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	render.Response(w, r, true, http.StatusOK)
 }
 
@@ -227,13 +293,13 @@ func (ta *TruAPI) updateUserDetailsViaCookie(w http.ResponseWriter, r *http.Requ
 	// if user wants to change their password
 	if request.Password != nil {
 		if request.Password.New != request.Password.NewConfirmation {
-			render.Error(w, r, "new passwords do not match", http.StatusBadRequest)
+			render.LoginError(w, r, ErrInvalidPasswords, http.StatusBadRequest)
 			return
 		}
 
 		err = validatePassword(request.Password.New)
 		if err != nil {
-			render.Error(w, r, err.Error(), http.StatusBadRequest)
+			render.LoginError(w, r, render.TruError{Code: ErrInvalidPassword.Code, Message: err.Error()}, http.StatusOK)
 			return
 		}
 		err = ta.DBClient.UpdatePassword(user.ID, request.Password)
@@ -258,6 +324,35 @@ func (ta *TruAPI) updateUserDetailsViaCookie(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// if user (who was previously authorized via connected account) wants to add a password to their accounts
+	if request.Credentials != nil {
+		err = ta.DBClient.SetUserCredentials(user.ID, request.Credentials)
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		userToBeVerified, err := ta.DBClient.UserByID(user.ID)
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if userToBeVerified == nil {
+			//  this is a redundant check. it will never be trigger as invalid ID will be handled by SetUserCredentials method already.
+			// it is here in the rare case of something changing during refactoring sometime in the future.
+			render.Error(w, r, "the user cannot be verified right now", http.StatusInternalServerError)
+			return
+		}
+		err = sendVerificationEmail(ta, *userToBeVerified)
+		if err != nil {
+			render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
+			return
+		}
+
+		render.Response(w, r, true, http.StatusOK)
+		return
+	}
+
 	render.Response(w, r, true, http.StatusOK)
 }
 
@@ -271,10 +366,13 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusUnauthorized)
 		return
 	}
-
-	user, err := ta.DBClient.UserByAddress(authenticatedUser.Address)
-	if user == nil || err != nil {
+	user, err := ta.DBClient.UserByID(authenticatedUser.ID)
+	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	if user == nil {
+		render.LoginError(w, r, ErrUserNotFound, http.StatusUnauthorized)
 		return
 	}
 

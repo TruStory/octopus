@@ -1,11 +1,11 @@
 module github.com/TruStory/octopus
 
 require (
-	cloud.google.com/go v0.43.0
+	cloud.google.com/go v0.44.1
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
-	github.com/TruStory/truchain v0.1.26-0.20190802193552-a1827f89614d
+	github.com/TruStory/truchain v0.1.26-0.20190809171900-e94a87f01769
 	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.21.5
@@ -40,6 +40,7 @@ require (
 	github.com/oklog/ulid v1.3.1
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/prometheus/client_golang v1.1.0 // indirect
+	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/samsarahq/go v0.0.0-20190126203740-720caea591c9 // indirect
@@ -59,8 +60,7 @@ require (
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa // indirect
-	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
+	golang.org/x/sys v0.0.0-20190812172437-4e8604ab3aff // indirect
 	google.golang.org/grpc v1.22.1 // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )

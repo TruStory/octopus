@@ -2,10 +2,10 @@ package truapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/TruStory/octopus/services/truapi/postman/messages"
-
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
@@ -13,6 +13,11 @@ import (
 type ResendEmailVerificationRequest struct {
 	Identifier string `json:"identifier"`
 }
+
+// TruErrors for resend email verification
+var (
+	ErrUserAlreadyVerified = render.TruError{Code: 200, Message: "User is already verified."}
+)
 
 // HandleResendEmailVerification resends the email verification email
 func (ta *TruAPI) HandleResendEmailVerification(w http.ResponseWriter, r *http.Request) {
@@ -33,22 +38,24 @@ func (ta *TruAPI) HandleResendEmailVerification(w http.ResponseWriter, r *http.R
 		return
 	}
 	if user == nil {
-		render.Error(w, r, "no such user found", http.StatusBadRequest)
+		render.LoginError(w, r, ErrUserNotFound, http.StatusBadRequest)
 		return
 	}
 	if !user.VerifiedAt.IsZero() {
-		render.Error(w, r, "user is already verified", http.StatusBadRequest)
+		render.LoginError(w, r, ErrUserAlreadyVerified, http.StatusBadRequest)
 		return
 	}
 
 	message, err := messages.MakeEmailConfirmationMessage(ta.Postman, ta.APIContext.Config, *user)
 	if err != nil {
+		fmt.Println("could not remake verification email: ", user, err)
 		render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
 		return
 	}
 
 	err = ta.Postman.Deliver(*message)
 	if err != nil {
+		fmt.Println("could not resend verification email: ", user, err)
 		render.Error(w, r, "cannot send email confirmation right now", http.StatusInternalServerError)
 		return
 	}

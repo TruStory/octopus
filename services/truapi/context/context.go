@@ -11,6 +11,7 @@ type AppConfig struct {
 	MockRegistration bool   `mapstructure:"mock-registration"`
 	UploadURL        string `mapstructure:"upload-url"`
 	S3AssetsURL      string `mapstructure:"s3-assets-url"`
+	MixpanelToken    string `mapstructure:"mixpanel-token"`
 }
 
 // CookieConfig is the config for the cookie

@@ -21,7 +21,7 @@ const (
 	// AnonSessionCookieName to track anonymous users
 	AnonSessionCookieName string = "tru-session"
 	// SessionDuration defines expiration time so we can track users that come back
-	SessionDuration time.Duration = time.Hour * 24 * 7
+	SessionDuration time.Duration = time.Hour * 24 * 365
 
 	// AuthenticationExpiry is the period for which,
 	// the logged in user must be considered authenticated

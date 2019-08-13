@@ -1393,18 +1393,18 @@ func (ta *TruAPI) invitesResolver(ctx context.Context) []db.Invite {
 		return make([]db.Invite, 0)
 	}
 
-	twitterProfile, err := ta.DBClient.TwitterProfileByAddress(user.Address)
+	userProfile, err := ta.DBClient.UserProfileByAddress(user.Address)
 	if err != nil {
 		panic(err)
 	}
 
 	// TODO: pull this in from an ENV
-	if strings.EqualFold(twitterProfile.Username, "lilrushishah") ||
-		strings.EqualFold(twitterProfile.Username, "patel0phone") ||
-		strings.EqualFold(twitterProfile.Username, "iam_preethi") ||
-		strings.EqualFold(twitterProfile.Username, "truted2") ||
-		strings.EqualFold(twitterProfile.Username, "mohitmamoria") ||
-		strings.EqualFold(twitterProfile.Username, "shanev") {
+	if strings.EqualFold(userProfile.Username, "lilrushishah") ||
+		strings.EqualFold(userProfile.Username, "patel0phone") ||
+		strings.EqualFold(userProfile.Username, "iam_preethi") ||
+		strings.EqualFold(userProfile.Username, "truted2") ||
+		strings.EqualFold(userProfile.Username, "mohitmamoria") ||
+		strings.EqualFold(userProfile.Username, "shanev") {
 		invites, err := ta.DBClient.Invites()
 		if err != nil {
 			panic(err)

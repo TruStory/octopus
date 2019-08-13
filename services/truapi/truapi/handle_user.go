@@ -36,11 +36,12 @@ type UserTwitterProfileResponse struct {
 	AvatarURI string `json:"avatarURI"`
 }
 
-// UserProfileResponse is a JSON body representing profile info of a user
+// UserProfileResponse is a JSON response body representing the UserProfile
 type UserProfileResponse struct {
 	Username  string `json:"username"`
-	FullName  string `json:"full_name"`
-	AvatarURL string `json:"avatar_url"`
+	FullName  string `json:"fullName"`
+	AvatarURL string `json:"avatarURL"`
+	Bio       string `json:"bio"`
 }
 
 // RegisterUserRequest represents the schema of the http request to create a new user
@@ -381,6 +382,7 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		Address: user.Address,
 		Bio:     user.Bio,
 		UserProfile: &UserProfileResponse{
+			Bio:       user.Bio,
 			AvatarURL: user.AvatarURL,
 			FullName:  user.FullName,
 			Username:  user.Username,

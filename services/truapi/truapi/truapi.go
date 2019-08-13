@@ -270,11 +270,11 @@ func (ta *TruAPI) RegisterResolvers() {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
 		},
 		"friend": func(ctx context.Context, i db.Invite) *AppAccount {
-			twitterProfile, err := ta.DBClient.TwitterProfileByUsername(i.FriendTwitterUsername)
-			if err != nil || twitterProfile == nil {
+			friend, err := ta.DBClient.UserByEmail(i.FriendEmail)
+			if err != nil || friend == nil {
 				return nil
 			}
-			return ta.appAccountResolver(ctx, queryByAddress{ID: twitterProfile.Address})
+			return ta.appAccountResolver(ctx, queryByAddress{ID: friend.Address})
 		},
 		"createdAt": func(_ context.Context, q db.Invite) time.Time { return q.CreatedAt },
 	})

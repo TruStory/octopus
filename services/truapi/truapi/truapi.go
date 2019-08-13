@@ -176,16 +176,10 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	ta.RegisterOAuthRoutes(apiCtx)
 
 	// Register routes for Trustory React web app
-
 	fs := http.FileServer(http.Dir(apiCtx.Config.Web.Directory))
-	fsV2 := http.FileServer(http.Dir(apiCtx.Config.Web.DirectoryV2))
 
 	ta.PathPrefix("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		webVersionCookie, _ := r.Cookie("web_version")
 		webDirectory := apiCtx.Config.Web.Directory
-		if webVersionCookie != nil && webVersionCookie.Value == "2" {
-			webDirectory = apiCtx.Config.Web.DirectoryV2
-		}
 		// if it is not requesting a file with a valid extension serve the index
 		if filepath.Ext(path.Base(r.URL.Path)) == "" {
 			indexPath := filepath.Join(webDirectory, "index.html")
@@ -211,10 +205,6 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 				http.Error(w, "Error serving index.html", http.StatusInternalServerError)
 				return
 			}
-			return
-		}
-		if webVersionCookie != nil && webVersionCookie.Value == "2" {
-			fsV2.ServeHTTP(w, r)
 			return
 		}
 		fs.ServeHTTP(w, r)

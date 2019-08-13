@@ -17,10 +17,11 @@ import (
 
 // UserResponse is a JSON response body representing the result of User
 type UserResponse struct {
-	UserID      int64                `json:"user_id"`
-	Address     string               `json:"address"`
-	Bio         string               `json:"bio"`
-	UserProfile *UserProfileResponse `json:"userProfile"`
+	UserID       int64                `json:"user_id"`
+	Address      string               `json:"address"`
+	Bio          string               `json:"bio"`
+	IsFirstLogin bool                 `json:"is_first_login"`
+	UserProfile  *UserProfileResponse `json:"userProfile"`
 
 	// deprecated
 	TwitterProfile *UserTwitterProfileResponse `json:"twitterProfile"`
@@ -377,9 +378,10 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := UserResponse{
-		UserID:  user.ID,
-		Address: user.Address,
-		Bio:     user.Bio,
+		UserID:       user.ID,
+		Address:      user.Address,
+		Bio:          user.Bio,
+		IsFirstLogin: user.AuthenticatedCount == 1,
 		UserProfile: &UserProfileResponse{
 			AvatarURL: user.AvatarURL,
 			FullName:  user.FullName,

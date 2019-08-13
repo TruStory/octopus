@@ -39,6 +39,7 @@ type User struct {
 	VerifiedAt          time.Time  `json:"verified_at" graphql:"-"`
 	BlacklistedAt       time.Time  `json:"blacklisted_at" graphql:"-"`
 	LastAuthenticatedAt *time.Time `json:"last_authenticated_at" graphql:"-"`
+	AuthenticatedCount  int64      `json:"authenticated_count"`
 }
 
 // UserProfile contains the fields that make up the user profile
@@ -204,6 +205,7 @@ func (c *Client) TouchLastAuthenticatedAt(id int64) error {
 		Where("id = ?", id).
 		Where("deleted_at IS NULL").
 		Set("last_authenticated_at = ?", time.Now()).
+		Set("authenticated_count = authenticated_count + 1").
 		Update()
 	if err != nil {
 		return err

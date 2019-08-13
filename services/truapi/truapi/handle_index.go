@@ -3,13 +3,13 @@ package truapi
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html"
 	"net/url"
 	"path"
 	"regexp"
 	"strconv"
-	"errors"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	app "github.com/TruStory/truchain/types"
@@ -37,9 +37,17 @@ type Tags struct {
 	URL         string
 }
 
-// CompileIndexFile replaces the placeholders for the social sharing
+// CompileIndexFile replaces placeholders in index.html file with dynamic values
 func CompileIndexFile(ta *TruAPI, index []byte, route string) string {
+	indexWithMetaTags := renderMetaTags(ta, index, route)
 
+	mixpanelToken := ta.APIContext.Config.App.MixpanelToken
+	compiled := bytes.Replace(indexWithMetaTags, []byte("$PLACEHOLDER__MIXPANEL_TOKEN"), []byte(mixpanelToken), -1)
+	return string(compiled)
+}
+
+// renderMetaTags replaces <meta> placeholders in index.html file with dynamic values
+func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 	// /claim/xxx
 	matches := claimRegex.FindStringSubmatch(route)
 	if len(matches) == 2 {
@@ -118,13 +126,13 @@ func CompileIndexFile(ta *TruAPI, index []byte, route string) string {
 }
 
 // compiles the index file with the variables
-func compile(index []byte, tags Tags) string {
+func compile(index []byte, tags Tags) []byte {
 	compiled := bytes.Replace(index, []byte("$PLACEHOLDER__TITLE"), []byte(tags.Title), -1)
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__DESCRIPTION"), []byte(tags.Description), -1)
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__IMAGE"), []byte(tags.Image), -1)
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__URL"), []byte(tags.URL), -1)
 
-	return string(compiled)
+	return compiled
 }
 
 // makes the default meta tags

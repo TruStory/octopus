@@ -35,5 +35,6 @@ func MakeInvitationMessage(client *postman.Postman, config context.Config, email
 }
 
 func makeReferralRegisterLink(config context.Config, referrer db.User) string {
-	return fmt.Sprintf("%s/register?referrer=%s", config.App.URL, referrer.Address)
+	url := joinPath(config.App.URL, "/register")
+	return fmt.Sprintf("%s?referrer=%s", url, referrer.Address)
 }

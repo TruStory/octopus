@@ -47,8 +47,6 @@ func NewVanillaDripper(key string) (*Dripper, error) {
 		WorkflowRegistry: make(map[string]*Workflow),
 	}
 
-	// adding a dummy workflow
-
 	return dripper, nil
 }
 

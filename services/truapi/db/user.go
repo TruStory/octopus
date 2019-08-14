@@ -39,6 +39,14 @@ type User struct {
 	VerifiedAt          time.Time  `json:"verified_at" graphql:"-"`
 	BlacklistedAt       time.Time  `json:"blacklisted_at" graphql:"-"`
 	LastAuthenticatedAt *time.Time `json:"last_authenticated_at" graphql:"-"`
+	Meta                UserMeta   `json:"meta"`
+}
+
+// UserMeta holds user meta data
+type UserMeta struct {
+	OnboardFollowCommunities *bool `json:"onboardFollowCommunities,omitempty"`
+	OnboardCarousel          *bool `json:"onboardCarousel,omitempty"`
+	OnboardContextual        *bool `json:"onboardContextual,omitempty"`
 }
 
 // UserProfile contains the fields that make up the user profile
@@ -204,6 +212,20 @@ func (c *Client) TouchLastAuthenticatedAt(id int64) error {
 		Where("id = ?", id).
 		Where("deleted_at IS NULL").
 		Set("last_authenticated_at = ?", time.Now()).
+		Update()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// SetUserMeta updates the meta column
+func (c *Client) SetUserMeta(id int64, meta *UserMeta) error {
+	var user User
+	_, err := c.Model(&user).
+		Where("id = ?", id).
+		Where("deleted_at IS NULL").
+		Set("meta = meta || ?", meta).
 		Update()
 	if err != nil {
 		return err

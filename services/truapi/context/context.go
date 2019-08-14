@@ -102,6 +102,19 @@ type AWSConfig struct {
 	AccessSecret string `mapstructure:"aws-access-secret"`
 }
 
+// DripperConfig is the config to send the drip campaigns
+type DripperConfig struct {
+	Key       string                  `mapstructure:"dripper-api-key"`
+	Workflows []DripperWorkflowConfig `mapstructure:"dripper-workflows"`
+}
+
+// DripperWorkflowConfig represents a drip campaign's config
+type DripperWorkflowConfig struct {
+	Name       string `mapstructure:"name"`
+	WorkflowID string `mapstructure:"workflow-id"`
+	EmailID    string `mapstructure:"email-id"`
+}
+
 // Config contains all the config variables for the API server
 type Config struct {
 	ChainID   string `mapstructure:"chain-id"`
@@ -118,6 +131,7 @@ type Config struct {
 	Params    ParamsConfig
 	Admin     AdminConfig
 	AWS       AWSConfig
+	Dripper   DripperConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

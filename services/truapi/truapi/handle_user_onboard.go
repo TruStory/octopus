@@ -48,5 +48,5 @@ func (ta *TruAPI) HandleUserOnboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.Response(w, r, nil, http.StatusOK)
+	render.Response(w, r, true, http.StatusOK)
 }

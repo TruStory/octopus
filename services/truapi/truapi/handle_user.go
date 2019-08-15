@@ -20,7 +20,7 @@ type UserResponse struct {
 	UserID      int64                `json:"user_id"`
 	Address     string               `json:"address"`
 	Bio         string               `json:"bio"`
-	Meta        db.UserMeta          `json:"meta"`
+	UserMeta    db.UserMeta          `json:"userMeta"`
 	UserProfile *UserProfileResponse `json:"userProfile"`
 
 	// deprecated
@@ -375,10 +375,10 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := UserResponse{
-		UserID:  user.ID,
-		Address: user.Address,
-		Bio:     user.Bio,
-		Meta:    user.Meta,
+		UserID:   user.ID,
+		Address:  user.Address,
+		Bio:      user.Bio,
+		UserMeta: user.Meta,
 		UserProfile: &UserProfileResponse{
 			Bio:       user.Bio,
 			AvatarURL: user.AvatarURL,

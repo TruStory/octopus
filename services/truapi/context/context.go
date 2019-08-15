@@ -110,9 +110,10 @@ type DripperConfig struct {
 
 // DripperWorkflowConfig represents a drip campaign's config
 type DripperWorkflowConfig struct {
-	Name       string `mapstructure:"name"`
-	WorkflowID string `mapstructure:"workflow-id"`
-	EmailID    string `mapstructure:"email-id"`
+	Name       string   `mapstructure:"name"`
+	WorkflowID string   `mapstructure:"workflow-id"`
+	EmailID    string   `mapstructure:"email-id"`
+	Tags       []string `mapstructure:"tags"`
 }
 
 // Config contains all the config variables for the API server

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -19,6 +20,7 @@ const MailchimpAPIEndpoint = "https://REGION.api.mailchimp.com/3.0"
 type Workflow struct {
 	ID      string
 	EmailID string
+	Tags    []string
 	Dripper *Dripper
 }
 
@@ -31,8 +33,21 @@ type Dripper struct {
 
 // MailchimpError represents the error from the Mailchimp API
 type MailchimpError struct {
+	Status int    `json:"status"`
 	Title  string `json:"title"`
 	Detail string `json:"detail"`
+}
+
+// MailchimpWorkflow represents the mailchimp object for a workflow
+type MailchimpWorkflow struct {
+	ID         string             `json:"id"`
+	Recipients WorkflowRecipients `json:"recipients"`
+}
+
+// WorkflowRecipients represents the mailchimp object for recipients
+type WorkflowRecipients struct {
+	ListID   string `json:"list_id"`
+	ListName string `json:"list_name"`
 }
 
 // NewVanillaDripper creates a new instance of the Dripper
@@ -51,10 +66,11 @@ func NewVanillaDripper(key string) (*Dripper, error) {
 }
 
 // AddWorkflowToRegistry adds a workflow to the registry
-func (dripper *Dripper) AddWorkflowToRegistry(name, workflowID, emailID string) {
+func (dripper *Dripper) AddWorkflowToRegistry(name, workflowID, emailID string, tags []string) {
 	dripper.WorkflowRegistry[name] = &Workflow{
 		ID:      workflowID,
 		EmailID: emailID,
+		Tags:    tags,
 	}
 }
 
@@ -65,7 +81,7 @@ func NewDripper(config context.Config) (*Dripper, error) {
 		return nil, err
 	}
 	for _, workflow := range config.Dripper.Workflows {
-		dripper.AddWorkflowToRegistry(workflow.Name, workflow.WorkflowID, workflow.EmailID)
+		dripper.AddWorkflowToRegistry(workflow.Name, workflow.WorkflowID, workflow.EmailID, workflow.Tags)
 	}
 
 	return dripper, nil
@@ -89,7 +105,25 @@ func (workflow *Workflow) Subscribe(email string) error {
 		return errors.New("invalid workflow provided")
 	}
 
-	request, err := workflow.makeHTTPRequest(email)
+	err := workflow.addToAudience(email)
+	if err != nil {
+		return err
+	}
+
+	body := struct {
+		EmailAddress string `json:"email_address"`
+	}{
+		EmailAddress: email,
+	}
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	request, err := workflow.Dripper.makeMailchimpRequest(
+		"POST",
+		fmt.Sprintf("%s/automations/%s/emails/%s/queue", workflow.Dripper.Endpoint, workflow.ID, workflow.EmailID),
+		bytes.NewBuffer(bodyBytes),
+	)
 	if err != nil {
 		return err
 	}
@@ -112,29 +146,85 @@ func (workflow *Workflow) Subscribe(email string) error {
 	return errors.New(errorBody.Detail)
 }
 
-func getHTTPClient() *http.Client {
-	return &http.Client{
-		Timeout: time.Second * 10,
+func (workflow *Workflow) addToAudience(email string) error {
+	recipients, err := workflow.getRecipients()
+	if err != nil {
+		return err
 	}
-}
 
-func (workflow *Workflow) makeHTTPRequest(email string) (*http.Request, error) {
 	body := struct {
-		EmailAddress string `json:"email_address"`
+		EmailAddress string   `json:"email_address"`
+		Status       string   `json:"status"`
+		Tags         []string `json:"tags"`
 	}{
 		EmailAddress: email,
+		Status:       "subscribed",
+		Tags:         workflow.Tags,
 	}
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	request, err := http.NewRequest("POST", fmt.Sprintf("%s/automations/%s/emails/%s/queue", workflow.Dripper.Endpoint, workflow.ID, workflow.EmailID), bytes.NewBuffer(bodyBytes))
+	request, err := workflow.Dripper.makeMailchimpRequest(
+		"POST",
+		fmt.Sprintf("%s/lists/%s/members", workflow.Dripper.Endpoint, recipients.ListID),
+		bytes.NewBuffer(bodyBytes),
+	)
+	if err != nil {
+		return err
+	}
+	response, err := getHTTPClient().Do(request)
+	if response.StatusCode == 200 {
+		return nil
+	}
+
+	var errorBody MailchimpError
+	err = json.NewDecoder(response.Body).Decode(&errorBody)
+	if err != nil {
+		return err
+	}
+	if errorBody.Title == "Member Exists" {
+		// this error should fail the entire flow
+		return nil
+	}
+
+	return errors.New(errorBody.Detail)
+}
+
+func (workflow *Workflow) getRecipients() (*WorkflowRecipients, error) {
+	request, err := workflow.Dripper.makeMailchimpRequest(
+		"GET",
+		fmt.Sprintf("%s/automations/%s", workflow.Dripper.Endpoint, workflow.ID),
+		nil,
+	)
 	if err != nil {
 		return nil, err
 	}
-	request.SetBasicAuth("mohitisawesome", workflow.Dripper.APIKey)
+	response, err := getHTTPClient().Do(request)
+
+	var responseBody MailchimpWorkflow
+	err = json.NewDecoder(response.Body).Decode(&responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return &responseBody.Recipients, nil
+}
+
+func (dripper *Dripper) makeMailchimpRequest(method, url string, body io.Reader) (*http.Request, error) {
+	request, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+	request.SetBasicAuth("mohitisawesome", dripper.APIKey)
 	request.Header.Add("Accept", "application/json")
 	request.Header.Add("Content-Type", "application/json")
 
 	return request, nil
+}
+
+func getHTTPClient() *http.Client {
+	return &http.Client{
+		Timeout: time.Second * 10,
+	}
 }

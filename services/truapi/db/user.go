@@ -576,14 +576,35 @@ func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) 
 	if err != nil {
 		return nil, err
 	}
+	token, err := generateCryptoSafeRandomBytes(32)
+	if err != nil {
+		return nil, err
+	}
 	user := &User{
 		FullName:   connectedAccount.Meta.FullName,
 		Username:   username,
 		Email:      strings.ToLower(connectedAccount.Meta.Email),
 		Bio:        connectedAccount.Meta.Bio,
 		AvatarURL:  connectedAccount.Meta.AvatarURL,
+		Token:      hex.EncodeToString(token),
 		ApprovedAt: time.Now(),
 	}
+
+	// setting referrer, if any
+	invite, err := c.InvitesByFriendEmail(user.Email)
+	if err != nil {
+		return nil, err
+	}
+	if invite != nil {
+		referrer, err := c.UserByAddress(invite.Creator)
+		if err != nil {
+			return nil, err
+		}
+		if referrer != nil {
+			user.ReferredBy = referrer.ID
+		}
+	}
+
 	err = c.AddUser(user)
 	if err != nil {
 		return nil, err

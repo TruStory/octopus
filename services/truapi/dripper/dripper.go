@@ -174,6 +174,9 @@ func (workflow *Workflow) addToAudience(email string) error {
 		return err
 	}
 	response, err := getHTTPClient().Do(request)
+	if err != nil {
+		return err
+	}
 	if response.StatusCode == 200 {
 		return nil
 	}
@@ -201,7 +204,9 @@ func (workflow *Workflow) getRecipients() (*WorkflowRecipients, error) {
 		return nil, err
 	}
 	response, err := getHTTPClient().Do(request)
-
+	if err != nil {
+		return nil, err
+	}
 	var responseBody MailchimpWorkflow
 	err = json.NewDecoder(response.Body).Decode(&responseBody)
 	if err != nil {

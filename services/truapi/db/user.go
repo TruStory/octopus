@@ -378,6 +378,10 @@ func (c *Client) UpdateProfile(id int64, profile *UserProfile) error {
 		return errors.New("name cannot be left blank")
 	}
 
+	if profile.Username == "" {
+		return errors.New("username cannot be left blank")
+	}
+
 	if len(profile.Bio) > 140 {
 		return errors.New("the bio is too long")
 	}

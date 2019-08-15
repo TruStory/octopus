@@ -357,7 +357,7 @@ func (c *Client) UpdatePassword(id int64, password *UserPassword) error {
 
 // UpdateProfile changes a profile fields for a user
 func (c *Client) UpdateProfile(id int64, profile *UserProfile) error {
-	user, err := c.VerifiedUserByID(id)
+	user, err := c.UserByID(id)
 	if err != nil {
 		return err
 	}
@@ -365,15 +365,30 @@ func (c *Client) UpdateProfile(id int64, profile *UserProfile) error {
 		return errors.New("no such user found")
 	}
 
+	user, err = c.UserByUsername(profile.Username)
+	if err != nil {
+		return errors.New("no such user found")
+	}
+
+	if user != nil && user.ID != id {
+		return errors.New("this username has already been taken, please choose another")
+	}
+
 	if profile.FullName == "" {
 		return errors.New("name cannot be left blank")
 	}
 
+	if len(profile.Bio) > 140 {
+		return errors.New("the bio is too long")
+	}
+
 	_, err = c.Model(user).
 		Where("id = ?", id).
-		Where("verified_at IS NOT NULL").
 		Where("deleted_at IS NULL").
 		Set("full_name = ?", profile.FullName).
+		Set("username = ?", profile.Username).
+		Set("bio = ?", profile.Bio).
+		Set("avatar_url = ?", profile.AvatarURL).
 		Update()
 
 	if err != nil {

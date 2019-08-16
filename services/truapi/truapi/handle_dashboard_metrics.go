@@ -386,8 +386,10 @@ func (ta *TruAPI) HandleClaimMetrics(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Add("Content-Type", "text/csv")
 	csvw := csv.NewWriter(w)
-	header := []string{"job_date_time", "date", "id", "community_id", "claim_name",
+	header := []string{
+		"job_date_time", "date", "created_date", "flagged", "id", "community_id", "claim_name",
 		"arguments_created", "agrees_given",
 		//staked
 		"staked",
@@ -401,6 +403,8 @@ func (ta *TruAPI) HandleClaimMetrics(w http.ResponseWriter, r *http.Request) {
 		"user_arguments_views", "unique_user_arguments_views", "anon_arguments_views", "unique_anon_arguments_views",
 		// comments
 		"replies",
+		"last_activiy_argument",
+		"last_activity_agree",
 	}
 	err = csvw.Write(header)
 	if err != nil {
@@ -429,6 +433,14 @@ func (ta *TruAPI) HandleClaimMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 		return claimRepliesStats[index]
 	}
+	flaggedClaimsIDs, err := ta.DBClient.FlaggedStoriesIDs(ta.APIContext.Config.Flag.Admin, ta.APIContext.Config.Flag.Limit)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+	}
+	flaggedClaimsMappings := make(map[uint64]int)
+	for _, c := range flaggedClaimsIDs {
+		flaggedClaimsMappings[uint64(c)] = 1
+	}
 	for _, claim := range claims {
 		if !claim.CreatedTime.Before(beforeDate) {
 			continue
@@ -441,6 +453,8 @@ func (ta *TruAPI) HandleClaimMetrics(w http.ResponseWriter, r *http.Request) {
 		totalChallenged := sdk.NewInt(0)
 		totalChallengedAgree := sdk.NewInt(0)
 		totalChallengedArgument := sdk.NewInt(0)
+		var lastActivityArgument time.Time
+		var lastActivityAgree time.Time
 		mapArguments := make(map[uint64]int)
 		arguments, err := ta.getClaimArguments(claim.ID)
 
@@ -449,6 +463,9 @@ func (ta *TruAPI) HandleClaimMetrics(w http.ResponseWriter, r *http.Request) {
 			if !argument.CreatedTime.Before(beforeDate) {
 				continue
 			}
+			if lastActivityArgument.Before(argument.CreatedTime) {
+				lastActivityArgument = argument.CreatedTime
+			}
 			totalArguments++
 		}
 		if err != nil {
@@ -456,11 +473,17 @@ func (ta *TruAPI) HandleClaimMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 		stakes := ta.claimStakesResolver(r.Context(), claim)
 		for _, stake := range stakes {
+			if !stake.CreatedTime.Before(beforeDate) {
+				continue
+			}
 			i, ok := mapArguments[stake.ArgumentID]
 			if !ok {
 				render.Error(w, r, fmt.Sprintf("unable to find argument with id %d", stake.ArgumentID), http.StatusInternalServerError)
 			}
 			a := arguments[i]
+			if stake.Type == staking.StakeUpvote && lastActivityAgree.Before(stake.CreatedTime) {
+				lastActivityAgree = stake.CreatedTime
+			}
 			if a.StakeType == staking.StakeBacking && stake.Type == staking.StakeUpvote {
 				totalBacked = totalBacked.Add(stake.Amount.Amount)
 				totalBackedAgree = totalBackedAgree.Add(stake.Amount.Amount)
@@ -487,8 +510,18 @@ func (ta *TruAPI) HandleClaimMetrics(w http.ResponseWriter, r *http.Request) {
 		body := strings.ReplaceAll(claim.Body, "\n", " ")
 		viewsStats := getClaimViewsStats(claim.ID)
 		repliesStats := getClaimRepliesStats(claim.ID)
-		rowStart := []string{jobTime,
+		lastActivityArgumentDateString := ""
+		if !lastActivityArgument.IsZero() {
+			lastActivityArgumentDateString = lastActivityArgument.Format(time.RFC3339Nano)
+		}
+		lastActivityAgreeDateString := ""
+		if !lastActivityAgree.IsZero() {
+			lastActivityAgreeDateString = lastActivityAgree.Format(time.RFC3339Nano)
+		}
+		row := []string{jobTime,
 			beforeDate.Format(time.RFC3339Nano),
+			claim.CreatedTime.Format(time.RFC3339Nano),
+			fmt.Sprintf("%d", flaggedClaimsMappings[claim.ID]),
 			fmt.Sprintf("%d", claim.ID),
 			claim.CommunityID,
 			strings.TrimSpace(body),
@@ -510,8 +543,14 @@ func (ta *TruAPI) HandleClaimMetrics(w http.ResponseWriter, r *http.Request) {
 			fmt.Sprintf("%d", viewsStats.AnonArgumentsViews),
 			fmt.Sprintf("%d", viewsStats.UniqueAnonArgumentsViews),
 			fmt.Sprintf("%d", repliesStats.Replies),
+			lastActivityArgumentDateString,
+			lastActivityAgreeDateString,
 		}
-		err = csvw.Write(rowStart)
+		if len(header) != len(row) {
+			render.Error(w, r, "header and row content mismatch", http.StatusInternalServerError)
+			return
+		}
+		err = csvw.Write(row)
 		if err != nil {
 			render.Error(w, r, err.Error(), http.StatusInternalServerError)
 			return

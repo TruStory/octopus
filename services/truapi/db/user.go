@@ -39,6 +39,14 @@ type User struct {
 	VerifiedAt          time.Time  `json:"verified_at" graphql:"-"`
 	BlacklistedAt       time.Time  `json:"blacklisted_at" graphql:"-"`
 	LastAuthenticatedAt *time.Time `json:"last_authenticated_at" graphql:"-"`
+	Meta                UserMeta   `json:"meta"`
+}
+
+// UserMeta holds user meta data
+type UserMeta struct {
+	OnboardFollowCommunities *bool `json:"onboardFollowCommunities,omitempty"`
+	OnboardCarousel          *bool `json:"onboardCarousel,omitempty"`
+	OnboardContextual        *bool `json:"onboardContextual,omitempty"`
 }
 
 // UserProfile contains the fields that make up the user profile
@@ -180,18 +188,9 @@ func (c *Client) GetAuthenticatedUser(identifier, password string) (*User, error
 		return nil, errors.New("the user is blacklisted and cannot be authenticated")
 	}
 
-	if user.VerifiedAt.IsZero() {
-		return nil, errors.New("the user has not verified their email address yet")
-	}
-
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
 		return nil, errors.New("no such user found")
-	}
-
-	err = c.TouchLastAuthenticatedAt(user.ID)
-	if err != nil {
-		return nil, err
 	}
 
 	return user, nil
@@ -204,6 +203,20 @@ func (c *Client) TouchLastAuthenticatedAt(id int64) error {
 		Where("id = ?", id).
 		Where("deleted_at IS NULL").
 		Set("last_authenticated_at = ?", time.Now()).
+		Update()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// SetUserMeta updates the meta column
+func (c *Client) SetUserMeta(id int64, meta *UserMeta) error {
+	var user User
+	_, err := c.Model(&user).
+		Where("id = ?", id).
+		Where("deleted_at IS NULL").
+		Set("meta = meta || ?", meta).
 		Update()
 	if err != nil {
 		return err
@@ -357,7 +370,7 @@ func (c *Client) UpdatePassword(id int64, password *UserPassword) error {
 
 // UpdateProfile changes a profile fields for a user
 func (c *Client) UpdateProfile(id int64, profile *UserProfile) error {
-	user, err := c.VerifiedUserByID(id)
+	user, err := c.UserByID(id)
 	if err != nil {
 		return err
 	}
@@ -365,15 +378,34 @@ func (c *Client) UpdateProfile(id int64, profile *UserProfile) error {
 		return errors.New("no such user found")
 	}
 
+	user, err = c.UserByUsername(profile.Username)
+	if err != nil {
+		return errors.New("no such user found")
+	}
+
+	if user != nil && user.ID != id {
+		return errors.New("this username has already been taken, please choose another")
+	}
+
 	if profile.FullName == "" {
 		return errors.New("name cannot be left blank")
 	}
 
+	if profile.Username == "" {
+		return errors.New("username cannot be left blank")
+	}
+
+	if len(profile.Bio) > 140 {
+		return errors.New("the bio is too long")
+	}
+
 	_, err = c.Model(user).
 		Where("id = ?", id).
-		Where("verified_at IS NOT NULL").
 		Where("deleted_at IS NULL").
 		Set("full_name = ?", profile.FullName).
+		Set("username = ?", profile.Username).
+		Set("bio = ?", profile.Bio).
+		Set("avatar_url = ?", profile.AvatarURL).
 		Update()
 
 	if err != nil {
@@ -557,14 +589,35 @@ func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) 
 	if err != nil {
 		return nil, err
 	}
+	token, err := generateCryptoSafeRandomBytes(32)
+	if err != nil {
+		return nil, err
+	}
 	user := &User{
 		FullName:   connectedAccount.Meta.FullName,
 		Username:   username,
 		Email:      strings.ToLower(connectedAccount.Meta.Email),
 		Bio:        connectedAccount.Meta.Bio,
 		AvatarURL:  connectedAccount.Meta.AvatarURL,
+		Token:      hex.EncodeToString(token),
 		ApprovedAt: time.Now(),
 	}
+
+	// setting referrer, if any
+	invite, err := c.InvitesByFriendEmail(user.Email)
+	if err != nil {
+		return nil, err
+	}
+	if invite != nil {
+		referrer, err := c.UserByAddress(invite.Creator)
+		if err != nil {
+			return nil, err
+		}
+		if referrer != nil {
+			user.ReferredBy = referrer.ID
+		}
+	}
+
 	err = c.AddUser(user)
 	if err != nil {
 		return nil, err

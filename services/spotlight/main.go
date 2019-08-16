@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -16,6 +17,9 @@ import (
 	stripmd "github.com/writeas/go-strip-markdown"
 
 	"github.com/gobuffalo/packr/v2"
+
+	"image/jpeg"
+	"image/png"
 
 	"github.com/gorilla/mux"
 	"github.com/itskingori/go-wkhtml/wkhtmltox"
@@ -32,6 +36,7 @@ type service struct {
 }
 
 func (s *service) run() {
+	s.router.Handle("/claim/{id:[0-9]+}/v2/spotlight", renderClaimSpotlightPNG(s))
 	s.router.Handle("/claim/{id:[0-9]+}/render-spotlight", renderClaimSpotlight(s))
 	s.router.Handle("/argument/{id:[0-9]+}/render-spotlight", renderArgumentSpotlight(s))
 	s.router.Handle("/claim/{claimID:[0-9]+}/comment/{id:[0-9]+}/render-spotlight", renderCommentSpotlight(s))
@@ -57,6 +62,57 @@ func main() {
 	spotlight.run()
 }
 
+func renderClaimSpotlightPNG(s *service) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		claimID, err := strconv.ParseInt(vars["id"], 10, 64)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Invalid claim ID passed.", http.StatusBadRequest)
+			return
+		}
+		data, err := getClaim(s, claimID)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+		box := packr.New("Templates", "./templates")
+		rawPreview, err := box.Find("claim-v2.svg")
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "URL Preview error", http.StatusInternalServerError)
+			return
+		}
+		compiledPreview := compileClaimPreview(rawPreview, data.Claim)
+		cmd := exec.Command("rsvg-convert", "-f", "png", "--width", "1920", "--height", "1080")
+		w.Header().Add("Content-Type", "image/jpg")
+		cmd.Stdin = strings.NewReader(compiledPreview)
+		buf := new(bytes.Buffer)
+		cmd.Stdout = buf
+
+		err = cmd.Run()
+		if err != nil {
+			http.Error(w, "URL Preview cannot be generated", http.StatusInternalServerError)
+			return
+		}
+
+		pngImage, err := png.Decode(buf)
+		if err != nil {
+			http.Error(w, "URL Preview cannot be generated", http.StatusInternalServerError)
+			return
+		}
+
+		if err := jpeg.Encode(w, pngImage, nil); err != nil {
+			http.Error(w, "URL Preview cannot be generated", http.StatusInternalServerError)
+			return
+		}
+		fmt.Println("successfuly compiled")
+	}
+
+	return http.HandlerFunc(fn)
+}
 func renderClaimSpotlight(s *service) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)

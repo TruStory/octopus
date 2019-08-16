@@ -37,7 +37,7 @@ func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
 		spotlightURL = strings.Replace("http://localhost:54448/claim/CLAIM_ID/comment/COMMENT_ID/spotlight", "CLAIM_ID", claimID, -1)
 		spotlightURL = strings.Replace(spotlightURL, "COMMENT_ID", commentID, -1)
 	} else if claimID != "" {
-		spotlightURL = strings.Replace("http://localhost:54448/claim/CLAIM_ID/spotlight", "CLAIM_ID", claimID, -1)
+		spotlightURL = strings.Replace("http://localhost:54448/claim/CLAIM_ID/v2/spotlight", "CLAIM_ID", claimID, -1)
 	} else if argumentID != "" {
 		spotlightURL = strings.Replace("http://localhost:54448/argument/ARGUMENT_ID/spotlight", "ARGUMENT_ID", argumentID, -1)
 	}

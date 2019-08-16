@@ -31,6 +31,7 @@ type RegistrationResponse struct {
 	UserID               string                          `json:"userId"`
 	Address              string                          `json:"address"`
 	AuthenticationCookie string                          `json:"authenticationCookie"`
+	UserMeta             db.UserMeta                     `json:"userMeta"`
 	UserProfile          RegistrationUserProfileResponse `json:"userProfile"`
 
 	// deprecated
@@ -96,6 +97,7 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
 		UserID:               twitterUser.IDStr,
 		Address:              user.Address,
 		AuthenticationCookie: cookieValue,
+		UserMeta:             user.Meta,
 		UserProfile: RegistrationUserProfileResponse{
 			Username:  user.Username,
 			FullName:  user.FullName,

@@ -20,6 +20,7 @@ type UserResponse struct {
 	UserID      int64                `json:"user_id"`
 	Address     string               `json:"address"`
 	Bio         string               `json:"bio"`
+	UserMeta    db.UserMeta          `json:"userMeta"`
 	UserProfile *UserProfileResponse `json:"userProfile"`
 
 	// deprecated
@@ -36,11 +37,12 @@ type UserTwitterProfileResponse struct {
 	AvatarURI string `json:"avatarURI"`
 }
 
-// UserProfileResponse is a JSON body representing profile info of a user
+// UserProfileResponse is a JSON response body representing the UserProfile
 type UserProfileResponse struct {
 	Username  string `json:"username"`
-	FullName  string `json:"full_name"`
-	AvatarURL string `json:"avatar_url"`
+	FullName  string `json:"fullName"`
+	AvatarURL string `json:"avatarURL"`
+	Bio       string `json:"bio"`
 }
 
 // RegisterUserRequest represents the schema of the http request to create a new user
@@ -358,10 +360,6 @@ func (ta *TruAPI) updateUserDetailsViaCookie(w http.ResponseWriter, r *http.Requ
 
 func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 	authenticatedUser, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
-	if err == http.ErrNoCookie {
-		render.Error(w, r, err.Error(), http.StatusUnauthorized)
-		return
-	}
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusUnauthorized)
 		return
@@ -376,19 +374,24 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	largeURI := strings.Replace(user.AvatarURL, "_bigger", "_200x200", 1)
+	largeURI = strings.Replace(largeURI, "http://", "//", 1)
+
 	response := UserResponse{
-		UserID:  user.ID,
-		Address: user.Address,
-		Bio:     user.Bio,
+		UserID:   user.ID,
+		Address:  user.Address,
+		Bio:      user.Bio,
+		UserMeta: user.Meta,
 		UserProfile: &UserProfileResponse{
-			AvatarURL: user.AvatarURL,
+			Bio:       user.Bio,
+			AvatarURL: largeURI,
 			FullName:  user.FullName,
 			Username:  user.Username,
 		},
 
 		// deprecated
 		TwitterProfile: &UserTwitterProfileResponse{
-			AvatarURI: user.AvatarURL,
+			AvatarURI: largeURI,
 			FullName:  user.FullName,
 			Username:  user.Username,
 		},

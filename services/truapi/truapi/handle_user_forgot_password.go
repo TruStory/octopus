@@ -59,9 +59,16 @@ func (ta *TruAPI) forgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+
 	isTwitterUser := ta.DBClient.IsTwitterUser((*user).ID)
 	if isTwitterUser {
 		render.LoginError(w, r, ErrTwitterUser, http.StatusBadRequest)
+		return
+	}
+
+	user, err = ta.DBClient.VerifiedUserByID((*user).ID)
+	if err != nil || user == nil {
+		render.LoginError(w, r, ErrEmailNotVerified, http.StatusBadRequest)
 		return
 	}
 
@@ -85,11 +92,6 @@ func (ta *TruAPI) resetPassword(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
-		return
-	}
-	user, err := ta.DBClient.VerifiedUserByID(request.UserID)
-	if err != nil || user == nil {
-		render.LoginError(w, r, ErrEmailNotVerified, http.StatusBadRequest)
 		return
 	}
 

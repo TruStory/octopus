@@ -165,6 +165,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/users/validate/username", ta.HandleUniqueUsernameUtility)
 	api.HandleFunc("/users/validate/email", ta.HandleUniqueEmailUtility)
 	api.HandleFunc("/users/authentication", ta.HandleUserAuthentication)
+	api.HandleFunc("/users/onboard", ta.HandleUserOnboard)
 	api.Handle("/communities/follow",
 		WithUser(apiCtx, http.HandlerFunc(ta.handleFollowCommunities))).Methods(http.MethodPost)
 	api.Handle("/communities/unfollow/{communityID}",
@@ -177,16 +178,10 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	ta.RegisterOAuthRoutes(apiCtx)
 
 	// Register routes for Trustory React web app
-
 	fs := http.FileServer(http.Dir(apiCtx.Config.Web.Directory))
-	fsV2 := http.FileServer(http.Dir(apiCtx.Config.Web.DirectoryV2))
 
 	ta.PathPrefix("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		webVersionCookie, _ := r.Cookie("web_version")
 		webDirectory := apiCtx.Config.Web.Directory
-		if webVersionCookie != nil && webVersionCookie.Value == "2" {
-			webDirectory = apiCtx.Config.Web.DirectoryV2
-		}
 		// if it is not requesting a file with a valid extension serve the index
 		if filepath.Ext(path.Base(r.URL.Path)) == "" {
 			indexPath := filepath.Join(webDirectory, "index.html")
@@ -212,10 +207,6 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 				http.Error(w, "Error serving index.html", http.StatusInternalServerError)
 				return
 			}
-			return
-		}
-		if webVersionCookie != nil && webVersionCookie.Value == "2" {
-			fsV2.ServeHTTP(w, r)
 			return
 		}
 		fs.ServeHTTP(w, r)
@@ -271,11 +262,11 @@ func (ta *TruAPI) RegisterResolvers() {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
 		},
 		"friend": func(ctx context.Context, i db.Invite) *AppAccount {
-			twitterProfile, err := ta.DBClient.TwitterProfileByUsername(i.FriendTwitterUsername)
-			if err != nil || twitterProfile == nil {
+			friend, err := ta.DBClient.UserByEmail(i.FriendEmail)
+			if err != nil || friend == nil {
 				return nil
 			}
-			return ta.appAccountResolver(ctx, queryByAddress{ID: twitterProfile.Address})
+			return ta.appAccountResolver(ctx, queryByAddress{ID: friend.Address})
 		},
 		"createdAt": func(_ context.Context, q db.Invite) time.Time { return q.CreatedAt },
 	})

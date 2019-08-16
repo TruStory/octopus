@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 
 	app "github.com/TruStory/truchain/types"
@@ -17,6 +18,8 @@ import (
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
+
+const metricsVersion = "20190813-01"
 
 type UserCommunityMetrics struct {
 	Claims                  int
@@ -117,6 +120,7 @@ func notExpiredAt(date, created, end time.Time) bool {
 }
 
 func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("x-metrics-version", metricsVersion)
 	jobTime := time.Now().UTC().Format("200601021504")
 	err := r.ParseForm()
 	if err != nil {
@@ -334,4 +338,184 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 		csvw.Flush()
 	}
 
+}
+
+// HandleClaimMetrics returns metrics for claims
+func (ta *TruAPI) HandleClaimMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("x-metrics-version", metricsVersion)
+	jobTime := time.Now().UTC().Format("200601021504")
+	err := r.ParseForm()
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	date := r.FormValue("date")
+	if date == "" {
+		render.Error(w, r, "provide a valid date", http.StatusBadRequest)
+		return
+	}
+
+	beforeDate, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Get all claims
+	claims := make([]claim.Claim, 0)
+	result, err := ta.Query(
+		path.Join(claim.QuerierRoute, claim.QueryClaimsBeforeTime),
+		claim.QueryClaimsTimeParams{CreatedTime: beforeDate},
+		claim.ModuleCodec,
+	)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = claim.ModuleCodec.UnmarshalJSON(result, &claims)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	claimViewsStats, err := ta.DBClient.ClaimViewsStats(beforeDate)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	claimRepliesStats, err := ta.DBClient.ClaimRepliesStats(beforeDate)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	csvw := csv.NewWriter(w)
+	header := []string{"job_date_time", "date", "id", "community_id", "claim_name",
+		"arguments_created", "agrees_given",
+		//staked
+		"staked",
+		// staked backed
+		"staked_backed", "staked_argument_backed", "staked_agree_backed",
+		// staked challenge
+		"staked_challenged", "staked_argument_challenged", "staked_agree_challenged",
+		// claim views
+		"user_views", "unique_user_views", "anon_views", "unique_anon_views",
+		// argument views
+		"user_arguments_views", "unique_user_arguments_views", "anon_arguments_views", "unique_anon_arguments_views",
+		// comments
+		"replies",
+	}
+	err = csvw.Write(header)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+	}
+	// claim stats
+	claimViewsStatsMappings := make(map[uint64]int)
+	for idx, c := range claimViewsStats {
+		claimViewsStatsMappings[uint64(c.ClaimID)] = idx
+	}
+	getClaimViewsStats := func(claimID uint64) db.ClaimViewsStats {
+		index, ok := claimViewsStatsMappings[claimID]
+		if !ok {
+			return db.ClaimViewsStats{}
+		}
+		return claimViewsStats[index]
+	}
+	claimRepliesStatsMappings := make(map[uint64]int)
+	for idx, c := range claimRepliesStats {
+		claimRepliesStatsMappings[uint64(c.ClaimID)] = idx
+	}
+	getClaimRepliesStats := func(claimID uint64) db.ClaimRepliesStats {
+		index, ok := claimRepliesStatsMappings[claimID]
+		if !ok {
+			return db.ClaimRepliesStats{}
+		}
+		return claimRepliesStats[index]
+	}
+	for _, claim := range claims {
+		if !claim.CreatedTime.Before(beforeDate) {
+			continue
+		}
+		totalArguments := 0
+		agreesGiven := 0
+		totalBacked := sdk.NewInt(0)
+		totalBackedAgree := sdk.NewInt(0)
+		totalBackedArgument := sdk.NewInt(0)
+		totalChallenged := sdk.NewInt(0)
+		totalChallengedAgree := sdk.NewInt(0)
+		totalChallengedArgument := sdk.NewInt(0)
+		mapArguments := make(map[uint64]int)
+		arguments, err := ta.getClaimArguments(claim.ID)
+
+		for idx, argument := range arguments {
+			mapArguments[argument.ID] = idx
+			if !argument.CreatedTime.Before(beforeDate) {
+				continue
+			}
+			totalArguments++
+		}
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		}
+		stakes := ta.claimStakesResolver(r.Context(), claim)
+		for _, stake := range stakes {
+			i, ok := mapArguments[stake.ArgumentID]
+			if !ok {
+				render.Error(w, r, fmt.Sprintf("unable to find argument with id %d", stake.ArgumentID), http.StatusInternalServerError)
+			}
+			a := arguments[i]
+			if a.StakeType == staking.StakeBacking && stake.Type == staking.StakeUpvote {
+				totalBacked = totalBacked.Add(stake.Amount.Amount)
+				totalBackedAgree = totalBackedAgree.Add(stake.Amount.Amount)
+				agreesGiven++
+				continue
+			}
+			if a.StakeType == staking.StakeChallenge && stake.Type == staking.StakeUpvote {
+				totalChallenged = totalChallenged.Add(stake.Amount.Amount)
+				totalChallengedAgree = totalChallengedAgree.Add(stake.Amount.Amount)
+				agreesGiven++
+				continue
+			}
+
+			if a.StakeType == staking.StakeBacking {
+				totalBacked = totalBacked.Add(stake.Amount.Amount)
+				totalBackedArgument = totalBackedArgument.Add(stake.Amount.Amount)
+			}
+			if a.StakeType == staking.StakeChallenge {
+				totalChallenged = totalChallenged.Add(stake.Amount.Amount)
+				totalChallengedArgument = totalChallengedArgument.Add(stake.Amount.Amount)
+			}
+
+		}
+		body := strings.ReplaceAll(claim.Body, "\n", " ")
+		viewsStats := getClaimViewsStats(claim.ID)
+		repliesStats := getClaimRepliesStats(claim.ID)
+		rowStart := []string{jobTime,
+			beforeDate.Format(time.RFC3339Nano),
+			fmt.Sprintf("%d", claim.ID),
+			claim.CommunityID,
+			strings.TrimSpace(body),
+			fmt.Sprintf("%d", totalArguments),
+			fmt.Sprintf("%d", agreesGiven),
+			totalBacked.Add(totalChallenged).String(),
+			totalBacked.String(),
+			totalBackedArgument.String(),
+			totalBackedAgree.String(),
+			totalChallenged.String(),
+			totalChallengedArgument.String(),
+			totalChallengedAgree.String(),
+			fmt.Sprintf("%d", viewsStats.UserViews),
+			fmt.Sprintf("%d", viewsStats.UniqueUserViews),
+			fmt.Sprintf("%d", viewsStats.AnonViews),
+			fmt.Sprintf("%d", viewsStats.UniqueAnonViews),
+			fmt.Sprintf("%d", viewsStats.UserArgumentsViews),
+			fmt.Sprintf("%d", viewsStats.UniqueUserArgumentsViews),
+			fmt.Sprintf("%d", viewsStats.AnonArgumentsViews),
+			fmt.Sprintf("%d", viewsStats.UniqueAnonArgumentsViews),
+			fmt.Sprintf("%d", repliesStats.Replies),
+		}
+		err = csvw.Write(rowStart)
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		csvw.Flush()
+	}
 }

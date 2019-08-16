@@ -374,6 +374,9 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	largeURI := strings.Replace(user.AvatarURL, "_bigger", "_200x200", 1)
+	largeURI = strings.Replace(largeURI, "http://", "//", 1)
+
 	response := UserResponse{
 		UserID:   user.ID,
 		Address:  user.Address,
@@ -381,14 +384,14 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		UserMeta: user.Meta,
 		UserProfile: &UserProfileResponse{
 			Bio:       user.Bio,
-			AvatarURL: user.AvatarURL,
+			AvatarURL: largeURI,
 			FullName:  user.FullName,
 			Username:  user.Username,
 		},
 
 		// deprecated
 		TwitterProfile: &UserTwitterProfileResponse{
-			AvatarURI: user.AvatarURL,
+			AvatarURI: largeURI,
 			FullName:  user.FullName,
 			Username:  user.Username,
 		},

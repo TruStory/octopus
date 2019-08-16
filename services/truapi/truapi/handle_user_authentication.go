@@ -38,7 +38,7 @@ func (ta *TruAPI) HandleUserAuthentication(w http.ResponseWriter, r *http.Reques
 
 	user, err := ta.DBClient.GetAuthenticatedUser(request.Identifier, request.Password)
 	if err != nil {
-		render.LoginError(w, r, ErrInvalidCredentials, http.StatusBadRequest)
+		render.LoginError(w, r, err, http.StatusBadRequest)
 		return
 	}
 
@@ -50,6 +50,12 @@ func (ta *TruAPI) HandleUserAuthentication(w http.ResponseWriter, r *http.Reques
 	cookie, err := cookies.GetLoginCookie(ta.APIContext, user)
 	if err != nil {
 		render.LoginError(w, r, ErrServerError, http.StatusInternalServerError)
+		return
+	}
+
+	err = ta.DBClient.TouchLastAuthenticatedAt((*user).ID)
+	if err != nil {
+		render.LoginError(w, r, ErrServerError, http.StatusBadRequest)
 		return
 	}
 

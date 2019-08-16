@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TruStory/octopus/services/truapi/dripper"
 	"github.com/TruStory/octopus/services/truapi/postman"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
@@ -48,6 +49,7 @@ type TruAPI struct {
 	GraphQLClient *graphql.Client
 	DBClient      db.Datastore
 	Postman       *postman.Postman
+	Dripper       *dripper.Dripper
 
 	// notifications
 	notificationsInitialized bool
@@ -62,12 +64,18 @@ func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 		log.Fatal(err)
 		os.Exit(1)
 	}
+	dripper, err := dripper.NewDripper(apiCtx.Config)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
 	ta := TruAPI{
 		API:                     chttp.NewAPI(apiCtx, supported),
 		APIContext:              apiCtx,
 		GraphQLClient:           graphql.NewGraphQLClient(),
 		DBClient:                db.NewDBClient(apiCtx.Config),
 		Postman:                 postman,
+		Dripper:                 dripper,
 		commentsNotificationsCh: make(chan CommentNotificationRequest),
 		httpClient: &http.Client{
 			Timeout: time.Second * 5,

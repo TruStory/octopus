@@ -11,18 +11,19 @@ import (
 func init() {
 	migrations.MustRegisterTx(func(db migrations.DB) error {
 		fmt.Println("setting new hex tokens in the users table...")
-		var users []truDB.User
-		err := db.Model(&users).Order("id ASC").Select()
+		var ids []int
+		err := db.Model((*truDB.User)(nil)).Column("id").Select(&ids)
 		if err != nil {
 			return err
 		}
-		for _, user := range users {
+		for _, id := range ids {
 			token, err := generateCryptoSafeRandomBytes(32)
 			if err != nil {
 				return err
 			}
-			user.Token = hex.EncodeToString(token)
-			err = db.Update(&user)
+			_, err = db.Exec(`UPDATE users 
+				SET token = ?
+				WHERE id = ?`, hex.EncodeToString(token), id)
 			if err != nil {
 				return err
 			}

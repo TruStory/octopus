@@ -187,7 +187,7 @@ func (workflow *Workflow) addToAudience(email string) error {
 		return err
 	}
 	if errorBody.Title == "Member Exists" {
-		// this error should fail the entire flow
+		// this error should NOT fail the entire flow
 		return nil
 	}
 
@@ -221,7 +221,7 @@ func (dripper *Dripper) makeMailchimpRequest(method, url string, body io.Reader)
 	if err != nil {
 		return nil, err
 	}
-	request.SetBasicAuth("mohitisawesome", dripper.APIKey)
+	request.SetBasicAuth("winteriscoming", dripper.APIKey)
 	request.Header.Add("Accept", "application/json")
 	request.Header.Add("Content-Type", "application/json")
 

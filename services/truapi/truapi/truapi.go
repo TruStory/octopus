@@ -14,13 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TruStory/octopus/services/truapi/postman"
-
-	"github.com/TruStory/octopus/services/truapi/chttp"
-	truCtx "github.com/TruStory/octopus/services/truapi/context"
-	"github.com/TruStory/octopus/services/truapi/db"
-	"github.com/TruStory/octopus/services/truapi/graphql"
-	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/bank"
 	"github.com/TruStory/truchain/x/claim"
@@ -32,14 +25,27 @@ import (
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
 	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+
+	"github.com/TruStory/octopus/services/truapi/chttp"
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
+	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/octopus/services/truapi/graphql"
+	"github.com/TruStory/octopus/services/truapi/postman"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 )
 
 // ContextKey represents a string key for request context.
 type ContextKey string
 
 const (
-	userContextKey = ContextKey("user")
+	userContextKey        = ContextKey("user")
+	dataLoadersContextKey = ContextKey("dataLoaders")
 )
+
+type dataLoaders struct {
+	appAccount *AppAccountLoader
+}
 
 // TruAPI implements an HTTP server for TruStory functionality using `chttp.API`
 type TruAPI struct {
@@ -90,16 +96,38 @@ func WrapHandler(h chttp.Handler) http.Handler {
 }
 
 // WithUser sets the user in the context that will be passed down to handlers.
-func WithUser(apiCtx truCtx.TruAPIContext, h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		auth, err := cookies.GetAuthenticatedUser(apiCtx, r)
-		if err != nil {
-			h.ServeHTTP(w, r)
-			return
-		}
-		ctx := context.WithValue(r.Context(), userContextKey, auth)
-		h.ServeHTTP(w, r.WithContext(ctx))
-	})
+func WithUser(apiCtx truCtx.TruAPIContext) mux.MiddlewareFunc {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			auth, err := cookies.GetAuthenticatedUser(apiCtx, r)
+			if err != nil {
+				h.ServeHTTP(w, r)
+				return
+			}
+			ctx := context.WithValue(r.Context(), userContextKey, auth)
+			h.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func (ta *TruAPI) WithDataLoaders() mux.MiddlewareFunc {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			loaders := &dataLoaders{
+				appAccount: ta.AppAccountLoader(),
+			}
+			ctx := context.WithValue(r.Context(), dataLoadersContextKey, loaders)
+			h.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func getDataLoaders(ctx context.Context) (*dataLoaders, bool) {
+	l, ok := ctx.Value(dataLoadersContextKey).(*dataLoaders)
+	if !ok || l == nil {
+		return nil, false
+	}
+	return l, true
 }
 
 // BasicAuth wraps a handler requiring HTTP basic auth for it using the given
@@ -135,28 +163,31 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	// Enable gzip compression
 	api.Use(handlers.CompressHandler)
 	api.Use(chttp.JSONResponseMiddleware)
+	api.Use(WithUser(ta.APIContext))
+	api.Use(ta.WithDataLoaders())
 	api.Handle("/ping", WrapHandler(ta.HandlePing))
-	api.Handle("/graphql", WithUser(apiCtx, WrapHandler(ta.HandleGraphQL)))
+
+	api.Handle("/graphql", ta.GraphQLClient.Handler())
 	api.Handle("/presigned", WrapHandler(ta.HandlePresigned))
 	api.Handle("/unsigned", WrapHandler(ta.HandleUnsigned))
 	api.Handle("/register", WrapHandler(ta.HandleRegistration))
 	api.HandleFunc("/user", ta.HandleUserDetails)
 	api.Handle("/user/search", WrapHandler(ta.HandleUsernameSearch))
-	api.Handle("/notification", WithUser(apiCtx, WrapHandler(ta.HandleNotificationEvent)))
+	api.Handle("/notification", WrapHandler(ta.HandleNotificationEvent))
 	api.HandleFunc("/deviceToken", ta.HandleDeviceTokenRegistration)
 	api.HandleFunc("/deviceToken/unregister", ta.HandleUnregisterDeviceToken)
 	api.HandleFunc("/upload", ta.HandleUpload)
-	api.Handle("/flagStory", WithUser(apiCtx, WrapHandler(ta.HandleFlagStory)))
-	api.Handle("/comments", WithUser(apiCtx, WrapHandler(ta.HandleComment)))
+	api.Handle("/flagStory", WrapHandler(ta.HandleFlagStory))
+	api.Handle("/comments", WrapHandler(ta.HandleComment))
 	api.HandleFunc("/comments/open/{claimID:[0-9]+}", ta.handleThreadOpened)
-	api.Handle("/invite", WithUser(apiCtx, WrapHandler(ta.HandleInvite)))
-	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
+	api.Handle("/invite", WrapHandler(ta.HandleInvite))
+	api.Handle("/reactions", WrapHandler(ta.HandleReaction))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
 	api.HandleFunc("/metrics/users", ta.HandleUsersMetrics)
 	api.HandleFunc("/metrics/auth", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleAuthMetrics)))
-	api.Handle("/track/", WithUser(apiCtx, http.HandlerFunc(ta.HandleTrackEvent)))
-	api.Handle("/claim_of_the_day", WithUser(apiCtx, WrapHandler(ta.HandleClaimOfTheDayID)))
-	api.Handle("/claim/image", WithUser(apiCtx, WrapHandler(ta.HandleClaimImage)))
+	api.Handle("/track/", http.HandlerFunc(ta.HandleTrackEvent))
+	api.Handle("/claim_of_the_day", WrapHandler(ta.HandleClaimOfTheDayID))
+	api.Handle("/claim/image", WrapHandler(ta.HandleClaimImage))
 	api.HandleFunc("/spotlight", ta.HandleSpotlight)
 	api.HandleFunc("/users/blacklist", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleUserBlacklisting)))
 	api.HandleFunc("/users/password-reset", ta.HandleUserForgotPassword)
@@ -164,10 +195,9 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/users/validate/username", ta.HandleUniqueUsernameUtility)
 	api.HandleFunc("/users/validate/email", ta.HandleUniqueEmailUtility)
 	api.HandleFunc("/users/authentication", ta.HandleUserAuthentication)
-	api.Handle("/communities/follow",
-		WithUser(apiCtx, http.HandlerFunc(ta.handleFollowCommunities))).Methods(http.MethodPost)
+	api.Handle("/communities/follow", http.HandlerFunc(ta.handleFollowCommunities)).Methods(http.MethodPost)
 	api.Handle("/communities/unfollow/{communityID}",
-		WithUser(apiCtx, http.HandlerFunc(ta.handleUnfollowCommunity))).Methods(http.MethodDelete)
+		http.HandlerFunc(ta.handleUnfollowCommunity)).Methods(http.MethodDelete)
 
 	if apiCtx.Config.App.MockRegistration {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))
@@ -238,7 +268,6 @@ func (ta *TruAPI) RegisterMutations() {
 
 // RegisterResolvers builds the app's GraphQL schema from resolvers (declared in `resolver.go`)
 func (ta *TruAPI) RegisterResolvers() {
-
 	ta.GraphQLClient.RegisterObjectResolver("Reaction", db.Reaction{}, map[string]interface{}{
 		"id":   func(_ context.Context, q db.Reaction) int64 { return q.ID },
 		"type": func(_ context.Context, q db.Reaction) db.ReactionType { return q.ReactionType },
@@ -436,7 +465,12 @@ func (ta *TruAPI) RegisterResolvers() {
 		"argumentId": func(_ context.Context, q db.Comment) int64 { return q.ArgumentID },
 		"body":       func(_ context.Context, q db.Comment) string { return q.Body },
 		"creator": func(ctx context.Context, q db.Comment) *AppAccount {
-			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
+			l, ok := getDataLoaders(ctx)
+			if !ok {
+				panic("loaders not present")
+			}
+			a, _ := l.appAccount.Load(q.Creator)
+			return a
 		},
 		"createdAt": func(_ context.Context, q db.Comment) time.Time { return q.CreatedAt },
 	})
@@ -444,7 +478,14 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterObjectResolver("Stake", staking.Stake{}, map[string]interface{}{
 		"id": func(_ context.Context, q staking.Stake) uint64 { return q.ID },
 		"creator": func(ctx context.Context, q staking.Stake) *AppAccount {
-			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
+			l, ok := getDataLoaders(ctx)
+			if !ok {
+				panic("loaders not present")
+			}
+			a, err := l.appAccount.Load(q.Creator.String())
+			fmt.Println("account", q.Creator, a, err)
+			return a
+			// return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
 		"stake": func(ctx context.Context, q staking.Stake) sdk.Coin { return q.Amount },
 	})
@@ -458,7 +499,15 @@ func (ta *TruAPI) RegisterResolvers() {
 			return ta.claimArgumentResolver(ctx, queryByArgumentID{ID: q.ArgumentID})
 		},
 		"creator": func(ctx context.Context, q slashing.Slash) *AppAccount {
-			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
+			l, ok := getDataLoaders(ctx)
+			if !ok {
+				panic("loaders not present")
+			}
+			a, err := l.appAccount.Load(q.Creator.String())
+			if err != nil {
+				return nil
+			}
+			return a
 		},
 	})
 

@@ -72,18 +72,19 @@ func init() {
 		}
 
 		fmt.Println("seeding unique tokens in all the users...")
-		var users []truDB.User
-		err = db.Model(&users).Order("id ASC").Select()
+		var ids []int
+		err = db.Model((*truDB.User)(nil)).Column("id").Select(&ids)
 		if err != nil {
 			return err
 		}
-		for _, user := range users {
+		for _, id := range ids {
 			token, err := generateCryptoSafeRandomBytes(32)
 			if err != nil {
 				return err
 			}
-			user.Token = base64.StdEncoding.EncodeToString(token)
-			err = db.Update(&user)
+			_, err = db.Exec(`UPDATE users 
+				SET token = ?
+				WHERE id = ?`, base64.StdEncoding.EncodeToString(token), id)
 			if err != nil {
 				return err
 			}

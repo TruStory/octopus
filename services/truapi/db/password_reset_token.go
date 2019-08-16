@@ -8,11 +8,6 @@ import (
 	"github.com/go-pg/pg"
 )
 
-const (
-	PasswordResetTokenValidity            = 2 * time.Hour
-	PasswordResetTokenLimitWithinValidity = 3
-)
-
 // PasswordResetToken represents a token to reset password
 type PasswordResetToken struct {
 	Timestamps
@@ -62,20 +57,6 @@ func (c *Client) UnusedResetTokensByUser(userID int64) ([]PasswordResetToken, er
 
 // IssueResetToken inserts a token into the database
 func (c *Client) IssueResetToken(userID int64) (*PasswordResetToken, error) {
-	unused, err := c.UnusedResetTokensByUser(userID)
-	if err != nil {
-		return nil, err
-	}
-	// if within the validity period, too many resets are issued
-
-	if len(unused) >= PasswordResetTokenLimitWithinValidity {
-		beforeTime := unused[PasswordResetTokenLimitWithinValidity-1].CreatedAt.Add(PasswordResetTokenValidity)
-		if time.Now().Before(beforeTime) {
-			return nil, errors.New("too many password reset tokens are issued")
-		}
-	}
-
-	// all well...
 	token, err := generateCryptoSafeRandomBytes(64)
 	if err != nil {
 		return nil, errors.New("token could not be generated")
@@ -86,6 +67,16 @@ func (c *Client) IssueResetToken(userID int64) (*PasswordResetToken, error) {
 		Token:  hex.EncodeToString(token),
 	}
 	_, err = c.Model(prt).Insert()
+	if err != nil {
+		return nil, err
+	}
+
+	// revoke all previously issued tokens
+	_, err = c.Model(prt).
+		Where("token <> ?", prt.Token).
+		Where("used_at IS NULL").
+		Set("deleted_at = NOW()").
+		Update()
 	if err != nil {
 		return nil, err
 	}

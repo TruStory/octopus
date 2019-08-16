@@ -256,6 +256,9 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 		userMetrics.UniqueClaimsOpened = userOpenedClaims.UniqueOpenedClaims
 	}
 	for _, user := range users {
+		if user.Address == "" {
+			continue
+		}
 		if !user.CreatedAt.Before(beforeDate) {
 			continue
 		}

@@ -158,16 +158,16 @@ func (ta *TruAPI) twitterProfileResolver(ctx context.Context, addr string) db.Tw
 	return *twitterProfile
 }
 
-func (ta *TruAPI) userProfileResolver(ctx context.Context, addr string) db.UserProfile {
-	userProfile, err := ta.DBClient.UserProfileByAddress(addr)
-	if userProfile == nil {
-		return db.UserProfile{}
+func (ta *TruAPI) userProfileResolver(ctx context.Context, addr string) *db.UserProfile {
+	loaders, ok := getDataLoaders(ctx)
+	if !ok {
+		return nil
 	}
+	profile, err := loaders.userProfileLoader.Load(addr)
 	if err != nil {
-		return db.UserProfile{}
+		return nil
 	}
-
-	return *userProfile
+	return profile
 }
 
 func (ta *TruAPI) earnedBalanceResolver(ctx context.Context, q queryByAddress) sdk.Coin {

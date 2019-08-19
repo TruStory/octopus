@@ -342,15 +342,7 @@ func (ta *TruAPI) RegisterResolvers() {
 			return ta.pendingStakeResolver(ctx, queryByAddress{ID: q.Address})
 		},
 		"userProfile": func(ctx context.Context, q AppAccount) *db.UserProfile {
-			loaders, ok := getDataLoaders(ctx)
-			if !ok {
-				return nil
-			}
-			profile, err := loaders.userProfileLoader.Load(q.Address)
-			if err != nil {
-				return nil
-			}
-			return profile
+			return ta.userProfileResolver(ctx, q.Address)
 		},
 		// deprecated, use "userProfile" instead
 		"twitterProfile": func(ctx context.Context, q AppAccount) db.TwitterProfile {

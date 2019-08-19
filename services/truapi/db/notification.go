@@ -196,3 +196,19 @@ func (c *Client) MarkThreadNotificationsAsRead(addr string, claimID int64) error
 	}
 	return nil
 }
+
+// MarkArgumentNotificationAsRead marks as read argument notification.
+func (c *Client) MarkArgumentNotificationAsRead(addr string, claimID int64, argumentID int64) error {
+	notificationEvent := new(NotificationEvent)
+	_, err := c.Model(notificationEvent).
+		Where("notification_event.address = ?", addr).
+		Where("notification_event.type = ?", NotificationNewArgument).
+		Where("(notification_event.meta->>'claimId')::integer = ?", claimID).
+		Where("(notification_event.meta->>'argumentId')::integer = ?", argumentID).
+		Set("read = ?", true).
+		Update()
+	if err != nil {
+		return err
+	}
+	return nil
+}

@@ -45,7 +45,8 @@ const (
 )
 
 type dataLoaders struct {
-	appAccount *AppAccountLoader
+	appAccountLoader  *AppAccountLoader
+	userProfileLoader *UserProfileLoader
 }
 
 // TruAPI implements an HTTP server for TruStory functionality using `chttp.API`
@@ -122,7 +123,8 @@ func (ta *TruAPI) WithDataLoaders() mux.MiddlewareFunc {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			loaders := &dataLoaders{
-				appAccount: ta.AppAccountLoader(),
+				appAccountLoader:  ta.AppAccountLoader(),
+				userProfileLoader: ta.UserProfileLoader(),
 			}
 			ctx := context.WithValue(r.Context(), dataLoadersContextKey, loaders)
 			h.ServeHTTP(w, r.WithContext(ctx))
@@ -339,8 +341,16 @@ func (ta *TruAPI) RegisterResolvers() {
 		"pendingStake": func(ctx context.Context, q AppAccount) []EarnedCoin {
 			return ta.pendingStakeResolver(ctx, queryByAddress{ID: q.Address})
 		},
-		"userProfile": func(ctx context.Context, q AppAccount) db.UserProfile {
-			return ta.userProfileResolver(ctx, q.Address)
+		"userProfile": func(ctx context.Context, q AppAccount) *db.UserProfile {
+			loaders, ok := getDataLoaders(ctx)
+			if !ok {
+				return nil
+			}
+			profile, err := loaders.userProfileLoader.Load(q.Address)
+			if err != nil {
+				return nil
+			}
+			return profile
 		},
 		// deprecated, use "userProfile" instead
 		"twitterProfile": func(ctx context.Context, q AppAccount) db.TwitterProfile {
@@ -479,7 +489,7 @@ func (ta *TruAPI) RegisterResolvers() {
 			if !ok {
 				panic("loaders not present")
 			}
-			a, _ := l.appAccount.Load(q.Creator)
+			a, _ := l.appAccountLoader.Load(q.Creator)
 			return a
 		},
 		"createdAt": func(_ context.Context, q db.Comment) time.Time { return q.CreatedAt },
@@ -492,7 +502,7 @@ func (ta *TruAPI) RegisterResolvers() {
 			if !ok {
 				panic("loaders not present")
 			}
-			a, err := l.appAccount.Load(q.Creator.String())
+			a, err := l.appAccountLoader.Load(q.Creator.String())
 			fmt.Println("account", q.Creator, a, err)
 			return a
 			// return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
@@ -513,7 +523,7 @@ func (ta *TruAPI) RegisterResolvers() {
 			if !ok {
 				panic("loaders not present")
 			}
-			a, err := l.appAccount.Load(q.Creator.String())
+			a, err := l.appAccountLoader.Load(q.Creator.String())
 			if err != nil {
 				return nil
 			}

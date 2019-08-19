@@ -135,7 +135,7 @@ func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *App
 	if !ok {
 		panic("loaders not present")
 	}
-	appAccount, err := l.appAccount.Load(q.ID)
+	appAccount, err := l.appAccountLoader.Load(q.ID)
 	if err != nil {
 		return nil
 	}

@@ -95,6 +95,7 @@ type Queries interface {
 	ConnectedAccountsByUserID(userID int64) ([]ConnectedAccount, error)
 	ConnectedAccountByTypeAndID(accountType, accountID string) (*ConnectedAccount, error)
 	UserProfileByAddress(addr string) (*UserProfile, error)
+	UsersByAddress(addresses []string) ([]User, error)
 	UserProfileByUsername(username string) (*UserProfile, error)
 	ClaimViewsStats(date time.Time) ([]ClaimViewsStats, error)
 	ClaimRepliesStats(date time.Time) ([]ClaimRepliesStats, error)

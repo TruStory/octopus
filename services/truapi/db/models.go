@@ -96,6 +96,8 @@ type Queries interface {
 	ConnectedAccountByTypeAndID(accountType, accountID string) (*ConnectedAccount, error)
 	UserProfileByAddress(addr string) (*UserProfile, error)
 	UserProfileByUsername(username string) (*UserProfile, error)
+	ClaimViewsStats(date time.Time) ([]ClaimViewsStats, error)
+	ClaimRepliesStats(date time.Time) ([]ClaimRepliesStats, error)
 
 	// deprecated, use UserProfileByAddress/UserProfileByUsername
 	TwitterProfileByAddress(addr string) (*TwitterProfile, error)

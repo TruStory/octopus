@@ -530,9 +530,9 @@ func (ta *TruAPI) RegisterResolvers() {
 				return joinPath(ta.APIContext.Config.App.S3AssetsURL, path.Join("notifications", icon))
 			}
 			if q.SenderProfile != nil {
-				return q.SenderProfile.AvatarURL
+				return strings.Replace(q.SenderProfile.AvatarURL, "http://", "//", 1)
 			}
-			return q.UserProfile.AvatarURL
+			return strings.Replace(q.UserProfile.AvatarURL, "http://", "//", 1)
 		},
 		"meta": func(_ context.Context, q db.NotificationEvent) db.NotificationMeta {
 			return q.Meta

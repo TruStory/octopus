@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 	"unicode"
@@ -275,6 +276,12 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// simply logging the error as failure of this API call should not critically fail the registration request
+	err = ta.Dripper.ToWorkflow("onboarding").Subscribe(user.Email)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	render.Response(w, r, true, http.StatusOK)
 }
 
@@ -374,6 +381,9 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	largeURI := strings.Replace(user.AvatarURL, "_bigger", "_200x200", 1)
+	largeURI = strings.Replace(largeURI, "http://", "//", 1)
+
 	response := UserResponse{
 		UserID:   user.ID,
 		Address:  user.Address,
@@ -381,14 +391,14 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		UserMeta: user.Meta,
 		UserProfile: &UserProfileResponse{
 			Bio:       user.Bio,
-			AvatarURL: user.AvatarURL,
+			AvatarURL: largeURI,
 			FullName:  user.FullName,
 			Username:  user.Username,
 		},
 
 		// deprecated
 		TwitterProfile: &UserTwitterProfileResponse{
-			AvatarURI: user.AvatarURL,
+			AvatarURI: largeURI,
 			FullName:  user.FullName,
 			Username:  user.Username,
 		},

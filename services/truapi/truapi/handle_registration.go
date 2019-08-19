@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 
@@ -171,6 +172,15 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 			err = ta.DBClient.FollowCommunities(address.String(), ta.APIContext.Config.Community.DefaultFollowedCommunities)
 			if err != nil {
 				return nil, err
+			}
+		}
+
+		// if the user has email, we'll subscribe them to the drip emails
+		if user.Email != "" {
+			// simply logging the error as failure of this API call should not critically fail the registration request
+			err = ta.Dripper.ToWorkflow("onboarding").Subscribe(user.Email)
+			if err != nil {
+				log.Fatal(err)
 			}
 		}
 	} else {

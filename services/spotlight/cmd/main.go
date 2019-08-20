@@ -8,8 +8,10 @@ import (
 )
 
 func main() {
-	service := spotlight.NewService(getEnv("PORT", "54448"), mustEnv("SPOTLIGHT_GRAPHQL_ENDPOINT"))
-
+	port := getEnv("PORT", "54448")
+	endpoint := mustEnv("SPOTLIGHT_GRAPHQL_ENDPOINT")
+	jpegEnabled := getEnv("SPOTLIGHT_JPEG_ENABLED", "") == "true"
+	service := spotlight.NewService(port, endpoint, jpegEnabled)
 	service.Run()
 }
 func getEnv(env, defaultValue string) string {

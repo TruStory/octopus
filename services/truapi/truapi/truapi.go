@@ -178,6 +178,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 		WithUser(apiCtx, http.HandlerFunc(ta.handleFollowCommunities))).Methods(http.MethodPost)
 	api.Handle("/communities/unfollow/{communityID}",
 		WithUser(apiCtx, http.HandlerFunc(ta.handleUnfollowCommunity))).Methods(http.MethodDelete)
+	api.Handle("/highlights", WithUser(apiCtx, http.HandlerFunc(ta.HandleHighlights)))
 
 	if apiCtx.Config.App.MockRegistration {
 		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))

@@ -21,6 +21,7 @@ jobs: # basic units of work in a run
             GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.0
       - run: make check_deps
       - run: make check_lint
+      - run: make test
       - run: make build-linux
       - run:
           name: List built binaries

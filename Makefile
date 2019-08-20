@@ -10,6 +10,9 @@ check_lint:
 	@echo "--> Running golangci"
 	@golangci-lint run --verbose
 
+test:
+	make -C services/spotlight test
+
 build:
 	make -C services/push build
 	make -C services/uploader build

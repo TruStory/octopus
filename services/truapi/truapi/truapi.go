@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TruStory/octopus/services/truapi/dripper"
 	"github.com/TruStory/octopus/services/truapi/postman"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
@@ -48,6 +49,7 @@ type TruAPI struct {
 	GraphQLClient *graphql.Client
 	DBClient      db.Datastore
 	Postman       *postman.Postman
+	Dripper       *dripper.Dripper
 
 	// notifications
 	notificationsInitialized bool
@@ -62,12 +64,18 @@ func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 		log.Fatal(err)
 		os.Exit(1)
 	}
+	dripper, err := dripper.NewDripper(apiCtx.Config)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
 	ta := TruAPI{
 		API:                     chttp.NewAPI(apiCtx, supported),
 		APIContext:              apiCtx,
 		GraphQLClient:           graphql.NewGraphQLClient(),
 		DBClient:                db.NewDBClient(apiCtx.Config),
 		Postman:                 postman,
+		Dripper:                 dripper,
 		commentsNotificationsCh: make(chan CommentNotificationRequest),
 		httpClient: &http.Client{
 			Timeout: time.Second * 5,
@@ -153,6 +161,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/reactions", WithUser(apiCtx, WrapHandler(ta.HandleReaction)))
 	api.HandleFunc("/mentions/translateToCosmos", ta.HandleTranslateCosmosMentions)
 	api.HandleFunc("/metrics/users", ta.HandleUsersMetrics)
+	api.HandleFunc("/metrics/claims", ta.HandleClaimMetrics)
 	api.HandleFunc("/metrics/auth", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleAuthMetrics)))
 	api.Handle("/track/", WithUser(apiCtx, http.HandlerFunc(ta.HandleTrackEvent)))
 	api.Handle("/claim_of_the_day", WithUser(apiCtx, WrapHandler(ta.HandleClaimOfTheDayID)))
@@ -522,9 +531,9 @@ func (ta *TruAPI) RegisterResolvers() {
 				return joinPath(ta.APIContext.Config.App.S3AssetsURL, path.Join("notifications", icon))
 			}
 			if q.SenderProfile != nil {
-				return q.SenderProfile.AvatarURL
+				return strings.Replace(q.SenderProfile.AvatarURL, "http://", "//", 1)
 			}
-			return q.UserProfile.AvatarURL
+			return strings.Replace(q.UserProfile.AvatarURL, "http://", "//", 1)
 		},
 		"meta": func(_ context.Context, q db.NotificationEvent) db.NotificationMeta {
 			return q.Meta

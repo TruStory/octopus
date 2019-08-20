@@ -29,7 +29,6 @@ require (
 	github.com/gorilla/securecookie v1.1.1
 	github.com/graphql-go/graphql v0.7.8 // indirect
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
-	github.com/itskingori/go-wkhtml v0.0.0-20180226001954-aa8c15cb0496
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/julianshen/go-readability v0.0.0-20160929030430-accf5123e283 // indirect
@@ -63,7 +62,8 @@ require (
 	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a // indirect
-	golang.org/x/tools v0.0.0-20190815144358-9065c182e3b6 // indirect
+	golang.org/x/tools v0.0.0-20190820033707-85edb9ef3283 // indirect
+	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55 // indirect
 	google.golang.org/grpc v1.23.0 // indirect
 	honnef.co/go/tools v0.0.1-2019.2.2 // indirect
 	mellium.im/sasl v0.2.1 // indirect

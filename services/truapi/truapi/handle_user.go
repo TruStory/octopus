@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 	"unicode"
@@ -273,6 +274,12 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// simply logging the error as failure of this API call should not critically fail the registration request
+	err = ta.Dripper.ToWorkflow("onboarding").Subscribe(user.Email)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	render.Response(w, r, true, http.StatusOK)

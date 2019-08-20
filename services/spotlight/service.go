@@ -1,14 +1,14 @@
-package main
+package spotlight
 
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"html"
+	"image/jpeg"
+	"image/png"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,26 +18,28 @@ import (
 	"github.com/gobuffalo/packr/v2"
 
 	"github.com/gorilla/mux"
-	"github.com/itskingori/go-wkhtml/wkhtmltox"
 	"github.com/machinebox/graphql"
 )
 
 var regexMention = regexp.MustCompile("(cosmos|tru)([a-z0-9]{4})[a-z0-9]{31}([a-z0-9]{4})")
 
-type service struct {
+type Service struct {
 	port          string
-	storagePath   string
 	router        *mux.Router
 	graphqlClient *graphql.Client
 }
 
-func (s *service) run() {
-	s.router.Handle("/claim/{id:[0-9]+}/render-spotlight", renderClaimSpotlight(s))
-	s.router.Handle("/argument/{id:[0-9]+}/render-spotlight", renderArgumentSpotlight(s))
-	s.router.Handle("/claim/{claimID:[0-9]+}/comment/{id:[0-9]+}/render-spotlight", renderCommentSpotlight(s))
-	s.router.Handle("/claim/{id:[0-9]+}/spotlight", claimSpotlightHandler(s))
-	s.router.Handle("/argument/{id:[0-9]+}/spotlight", argumentSpotlightHandler(s))
-	s.router.Handle("/claim/{claimID:[0-9]+}/comment/{id:[0-9]+}/spotlight", commentSpotlightHandler(s))
+func NewService(port, endpoint string) *Service {
+	return &Service{
+		port:          port,
+		router:        mux.NewRouter(),
+		graphqlClient: graphql.NewClient(endpoint),
+	}
+}
+func (s *Service) Run() {
+	s.router.Handle("/claim/{id:[0-9]+}/spotlight", renderClaim(s))
+	s.router.Handle("/argument/{id:[0-9]+}/spotlight", renderArgument(s))
+	s.router.Handle("/claim/{claimID:[0-9]+}/comment/{id:[0-9]+}/spotlight", renderComment(s))
 	http.Handle("/", s.router)
 	err := http.ListenAndServe(":"+s.port, nil)
 	if err != nil {
@@ -46,18 +48,32 @@ func (s *service) run() {
 	}
 }
 
-func main() {
-	spotlight := &service{
-		port:          getEnv("PORT", "54448"),
-		storagePath:   getEnv("SPOTLIGHT_STORAGE_PATH", "./storage"),
-		router:        mux.NewRouter(),
-		graphqlClient: graphql.NewClient(mustEnv("SPOTLIGHT_GRAPHQL_ENDPOINT")),
+func render(preview string, w http.ResponseWriter) {
+	cmd := exec.Command("rsvg-convert", "-f", "png", "--width", "1920", "--height", "1080")
+	w.Header().Add("Content-Type", "image/jpg")
+	cmd.Stdin = strings.NewReader(preview)
+	buf := new(bytes.Buffer)
+	cmd.Stdout = buf
+
+	err := cmd.Run()
+	if err != nil {
+		http.Error(w, "URL Preview cannot be generated", http.StatusInternalServerError)
+		return
 	}
 
-	spotlight.run()
+	pngImage, err := png.Decode(buf)
+	if err != nil {
+		http.Error(w, "PNG can't be decoded", http.StatusInternalServerError)
+		return
+	}
+
+	if err := jpeg.Encode(w, pngImage, nil); err != nil {
+		http.Error(w, "Can't encode to JPEG", http.StatusInternalServerError)
+		return
+	}
 }
 
-func renderClaimSpotlight(s *service) http.Handler {
+func renderClaim(s *Service) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		claimID, err := strconv.ParseInt(vars["id"], 10, 64)
@@ -80,20 +96,13 @@ func renderClaimSpotlight(s *service) http.Handler {
 			http.Error(w, "URL Preview error", http.StatusInternalServerError)
 			return
 		}
-
 		compiledPreview := compileClaimPreview(rawPreview, data.Claim)
-		w.Header().Add("Content-Type", "image/svg+xml")
-		_, err = fmt.Fprint(w, compiledPreview)
-		if err != nil {
-			http.Error(w, "URL Preview cannot be generated", http.StatusInternalServerError)
-			return
-		}
+		render(compiledPreview, w)
 	}
-
 	return http.HandlerFunc(fn)
 }
 
-func renderArgumentSpotlight(s *service) http.Handler {
+func renderArgument(s *Service) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		argumentID, err := strconv.ParseInt(vars["id"], 10, 64)
@@ -118,18 +127,13 @@ func renderArgumentSpotlight(s *service) http.Handler {
 		}
 
 		compiledPreview := compileArgumentPreview(rawPreview, data.ClaimArgument)
-		w.Header().Add("Content-Type", "image/svg+xml")
-		_, err = fmt.Fprint(w, compiledPreview)
-		if err != nil {
-			http.Error(w, "URL Preview cannot be generated", http.StatusInternalServerError)
-			return
-		}
+		render(compiledPreview, w)
 	}
 
 	return http.HandlerFunc(fn)
 }
 
-func renderCommentSpotlight(s *service) http.Handler {
+func renderComment(s *Service) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		claimID, err := strconv.ParseInt(vars["claimID"], 10, 64)
@@ -160,12 +164,7 @@ func renderCommentSpotlight(s *service) http.Handler {
 		}
 
 		compiledPreview := compileCommentPreview(rawPreview, comment)
-		w.Header().Add("Content-Type", "image/svg+xml")
-		_, err = fmt.Fprint(w, compiledPreview)
-		if err != nil {
-			http.Error(w, "URL Preview cannot be generated", http.StatusInternalServerError)
-			return
-		}
+		render(compiledPreview, w)
 	}
 
 	return http.HandlerFunc(fn)
@@ -295,83 +294,7 @@ func wordWrap(body string) []string {
 	return lines
 }
 
-func claimSpotlightHandler(s *service) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		claimID := vars["id"]
-		log.Printf("serving spotlight for claimID : [%s]", claimID)
-
-		ifs := make(wkhtmltox.ImageFlagSet)
-		ifs.SetCacheDir(filepath.Join(s.storagePath, "web-cache"))
-		ifs.SetFormat("jpeg")
-
-		renderURL := fmt.Sprintf("http://localhost:%s/claim/%s/render-spotlight", s.port, claimID)
-		imageName := fmt.Sprintf("claim-%s.jpeg", claimID)
-		filePath := filepath.Join(s.storagePath, imageName)
-
-		_, err := ifs.Generate(renderURL, filePath)
-		if err != nil {
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
-		http.ServeFile(w, r, filePath)
-	}
-
-	return http.HandlerFunc(fn)
-}
-
-func argumentSpotlightHandler(s *service) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		argumentID := vars["id"]
-		log.Printf("serving spotlight for argumentId : [%s]", argumentID)
-
-		ifs := make(wkhtmltox.ImageFlagSet)
-		ifs.SetCacheDir(filepath.Join(s.storagePath, "web-cache"))
-		ifs.SetFormat("jpeg")
-
-		renderURL := fmt.Sprintf("http://localhost:%s/argument/%s/render-spotlight", s.port, argumentID)
-		imageName := fmt.Sprintf("argument-%s.jpeg", argumentID)
-		filePath := filepath.Join(s.storagePath, imageName)
-
-		_, err := ifs.Generate(renderURL, filePath)
-		if err != nil {
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
-		http.ServeFile(w, r, filePath)
-	}
-
-	return http.HandlerFunc(fn)
-}
-
-func commentSpotlightHandler(s *service) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		claimID := vars["claimID"]
-		commentID := vars["id"]
-		log.Printf("serving spotlight for commentID : [%s]", commentID)
-
-		ifs := make(wkhtmltox.ImageFlagSet)
-		ifs.SetCacheDir(filepath.Join(s.storagePath, "web-cache"))
-		ifs.SetFormat("jpeg")
-
-		renderURL := fmt.Sprintf("http://localhost:%s/claim/%s/comment/%s/render-spotlight", s.port, claimID, commentID)
-		imageName := fmt.Sprintf("comment-%s.jpeg", claimID)
-		filePath := filepath.Join(s.storagePath, imageName)
-
-		_, err := ifs.Generate(renderURL, filePath)
-		if err != nil {
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
-		http.ServeFile(w, r, filePath)
-	}
-
-	return http.HandlerFunc(fn)
-}
-
-func getClaim(s *service, claimID int64) (ClaimByIDResponse, error) {
+func getClaim(s *Service, claimID int64) (ClaimByIDResponse, error) {
 	graphqlReq := graphql.NewRequest(ClaimByIDQuery)
 
 	graphqlReq.Var("claimId", claimID)
@@ -384,7 +307,7 @@ func getClaim(s *service, claimID int64) (ClaimByIDResponse, error) {
 	return graphqlRes, nil
 }
 
-func getArgument(s *service, argumentID int64) (ArgumentByIDResponse, error) {
+func getArgument(s *Service, argumentID int64) (ArgumentByIDResponse, error) {
 	graphqlReq := graphql.NewRequest(ArgumentByIDQuery)
 
 	graphqlReq.Var("argumentId", argumentID)
@@ -397,7 +320,7 @@ func getArgument(s *service, argumentID int64) (ArgumentByIDResponse, error) {
 	return graphqlRes, nil
 }
 
-func getComment(s *service, claimID int64, commentID int64) (CommentObject, error) {
+func getComment(s *Service, claimID int64, commentID int64) (CommentObject, error) {
 	graphqlReq := graphql.NewRequest(CommentsByClaimIDQuery)
 
 	graphqlReq.Var("claimId", claimID)
@@ -414,20 +337,4 @@ func getComment(s *service, claimID int64, commentID int64) (CommentObject, erro
 	}
 
 	return CommentObject{}, nil
-}
-
-func getEnv(env, defaultValue string) string {
-	val := os.Getenv(env)
-	if val != "" {
-		return val
-	}
-	return defaultValue
-}
-
-func mustEnv(env string) string {
-	val := os.Getenv(env)
-	if val == "" {
-		panic(fmt.Sprintf("must provide %s variable", env))
-	}
-	return val
 }

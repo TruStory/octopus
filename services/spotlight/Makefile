@@ -12,13 +12,13 @@ deps:
 build:
 	make deps
 	packr2
-	go build -o ../../../bin/spotlightd cmd/main.go
+	go build -o ../../bin/spotlightd cmd/main.go
 	packr2 clean
 
 build-linux:
 	make deps
 	packr2
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ../../../bin/spotlightd cmd/main.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ../../bin/spotlightd cmd/main.go
 	packr2 clean
 	
 run:
@@ -27,7 +27,7 @@ run:
 build-docker:
 	make deps
 	packr2
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ../../../bin/spotlightd cmd/main.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o bin/spotlightd cmd/main.go
 	packr2 clean
 	docker build -t spotlightd .
 

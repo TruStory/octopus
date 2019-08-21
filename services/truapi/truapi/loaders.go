@@ -27,6 +27,7 @@ func (ta *TruAPI) AppAccountLoader() *AppAccountLoader {
 			accounts, err := ta.appAccountsResolver(context.Background(), addresses)
 			if err != nil {
 				errors = append(errors, err)
+				return nil, errors
 			}
 			return accounts, nil
 		},

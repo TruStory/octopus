@@ -24,6 +24,9 @@ var (
 func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, filter FeedFilter) []claim.Claim {
 	if filter == Latest {
 		// Reverse chronological order
+		sort.Slice(claims, func(i, j int) bool {
+			return claims[j].CreatedTime.Before(claims[i].CreatedTime)
+		})
 		return claims
 	} else if filter == Best {
 		// Total amount staked

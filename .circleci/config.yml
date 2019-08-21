@@ -21,6 +21,7 @@ jobs: # basic units of work in a run
             GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.0
       - run: make check_deps
       - run: make check_lint
+      - run: make test
       - run: make build-linux
       - run:
           name: List built binaries
@@ -92,7 +93,7 @@ jobs: # basic units of work in a run
                 scp bin/pushd "$BETA_USER@$BETA_HOST:$DEPLOY_LOCATION/pushd"
                 ssh $BETA_USER@$BETA_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
                 scp bin/spotlightd "$BETA_USER@$BETA_HOST:/opt/services/spotlight/bin/spotlightd"
-                ssh $BETA_USER@$BETA_HOST 'cd /opt/services/spotlight && CURRENT_UID=$(id -u):$(id -g) docker-compose up --build -d spotlightd'
+                ssh $BETA_USER@$BETA_HOST 'cd /opt/services/spotlight && docker-compose up --build -d spotlightd'
                 echo "deploying to beta.trustory.io"
             elif [ "${CIRCLE_BRANCH}" == "develop" ]
             then
@@ -105,7 +106,7 @@ jobs: # basic units of work in a run
                 scp bin/pushd "$DEVNET_USER@$DEVNET_HOST:$DEPLOY_LOCATION/pushd"
                 ssh $DEVNET_USER@$DEVNET_HOST "cd $SERVICE_LOCATION && docker-compose up --build -d pushd"
                 scp bin/spotlightd "$DEVNET_USER@$DEVNET_HOST:/opt/services/spotlight/bin/spotlightd"
-                ssh $DEVNET_USER@$DEVNET_HOST 'cd /opt/services/spotlight && CURRENT_UID=$(id -u):$(id -g) docker-compose up --build -d spotlightd'
+                ssh $DEVNET_USER@$DEVNET_HOST 'cd /opt/services/spotlight && docker-compose up --build -d spotlightd'
                 echo "deployed to devnet"
             fi
   migrate:

@@ -45,10 +45,7 @@ func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var dbEvent db.TrackEvent
-	user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
-	if ok && user != nil {
-		dbEvent.Address = user.Address
-	}
+	user, userOk := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
 	switch evt.Event {
 	case TrackEventClaimOpened:
 		if evt.Properties.ClaimID == nil {
@@ -84,7 +81,7 @@ func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		if user != nil {
+		if userOk && user != nil {
 			err = ta.DBClient.MarkArgumentNotificationAsRead(user.Address,
 				*evt.Properties.ClaimID,
 				*evt.Properties.ArgumentID)
@@ -106,6 +103,10 @@ func (ta *TruAPI) HandleTrackEvent(w http.ResponseWriter, r *http.Request) {
 	if dbEvent.Event == "" {
 		w.WriteHeader(http.StatusOK)
 		return
+	}
+
+	if userOk && user != nil {
+		dbEvent.Address = user.Address
 	}
 
 	if user == nil {

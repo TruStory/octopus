@@ -50,3 +50,9 @@ $PATH=$GOPATH/bin:$PATH
 docker ps
 docker logs [Container ID obtained from docker ps]
 ```
+### Running on macOS
+
+```bash
+make deps-darwin
+make run
+```

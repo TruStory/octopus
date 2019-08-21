@@ -18,24 +18,11 @@ import (
 
 // UserResponse is a JSON response body representing the result of User
 type UserResponse struct {
-	UserID      int64                `json:"user_id"`
+	UserID      int64                `json:"userId"`
 	Address     string               `json:"address"`
 	Bio         string               `json:"bio"`
 	UserMeta    db.UserMeta          `json:"userMeta"`
 	UserProfile *UserProfileResponse `json:"userProfile"`
-
-	// deprecated
-	TwitterProfile *UserTwitterProfileResponse `json:"twitterProfile"`
-	UserIDLegacy   int64                       `json:"userId"`
-	FullNameLegacy string                      `json:"fullname"`
-}
-
-// UserTwitterProfileResponse is a JSON response body representing the TwitterProfile of a user
-// deprecated: use UserProfile instead
-type UserTwitterProfileResponse struct {
-	Username  string `json:"username"`
-	FullName  string `json:"fullName"`
-	AvatarURI string `json:"avatarURI"`
 }
 
 // UserProfileResponse is a JSON response body representing the UserProfile
@@ -381,10 +368,15 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	largeURI := strings.Replace(user.AvatarURL, "_bigger", "_200x200", 1)
-	largeURI = strings.Replace(largeURI, "http://", "//", 1)
+	response := createUserResponse(user)
+	render.Response(w, r, response, http.StatusOK)
+}
 
-	response := UserResponse{
+func createUserResponse(user *db.User) UserResponse {
+	largeURI := strings.Replace(user.AvatarURL, "_bigger", "_200x200", 1)
+	largeURI = strings.Replace(largeURI, "http://", "https://", 1)
+
+	return UserResponse{
 		UserID:   user.ID,
 		Address:  user.Address,
 		Bio:      user.Bio,
@@ -395,18 +387,7 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 			FullName:  user.FullName,
 			Username:  user.Username,
 		},
-
-		// deprecated
-		TwitterProfile: &UserTwitterProfileResponse{
-			AvatarURI: largeURI,
-			FullName:  user.FullName,
-			Username:  user.Username,
-		},
-		UserIDLegacy:   user.ID,
-		FullNameLegacy: user.FullName,
 	}
-
-	render.Response(w, r, response, http.StatusOK)
 }
 
 func validateRegisterRequest(request RegisterUserRequest) error {

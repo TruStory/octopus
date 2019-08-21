@@ -133,7 +133,8 @@ func (ta *TruAPI) appAccountsResolver(ctx context.Context, addresses []sdk.AccAd
 func (ta *TruAPI) appAccountResolver(ctx context.Context, q queryByAddress) *AppAccount {
 	l, ok := getDataLoaders(ctx)
 	if !ok {
-		panic("loaders not present")
+		fmt.Println("loaders not present")
+		return nil
 	}
 	appAccount, err := l.appAccountLoader.Load(q.ID)
 	if err != nil {
@@ -562,6 +563,10 @@ func (ta *TruAPI) claimStakesResolver(ctx context.Context, q claim.Claim) []stak
 }
 
 func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q claim.Claim) []AppAccount {
+	loaders, ok := getDataLoaders(ctx)
+	if !ok {
+		return nil
+	}
 	stakes := ta.claimStakesResolver(ctx, q)
 	comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
 
@@ -575,8 +580,24 @@ func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q claim.Claim) 
 	}
 
 	participants := make([]AppAccount, 0)
+
+	addresses := make([]string, 0)
 	for address := range participantsMap {
-		participants = append(participants, *ta.appAccountResolver(ctx, queryByAddress{ID: address}))
+		addresses = append(addresses, address)
+	}
+	accounts, errs := loaders.appAccountLoader.LoadAll(addresses)
+	errors := make([]error, 0)
+	for _, e := range errs {
+		if e != nil {
+			errors = append(errors, e)
+		}
+	}
+	if len(errors) > 0 {
+		fmt.Println("errors", errors)
+		return participants
+	}
+	for _, acc := range accounts {
+		participants = append(participants, *acc)
 	}
 	return participants
 }

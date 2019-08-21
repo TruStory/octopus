@@ -490,14 +490,7 @@ func (ta *TruAPI) RegisterResolvers() {
 	ta.GraphQLClient.RegisterObjectResolver("Stake", staking.Stake{}, map[string]interface{}{
 		"id": func(_ context.Context, q staking.Stake) uint64 { return q.ID },
 		"creator": func(ctx context.Context, q staking.Stake) *AppAccount {
-			l, ok := getDataLoaders(ctx)
-			if !ok {
-				panic("loaders not present")
-			}
-			a, err := l.appAccountLoader.Load(q.Creator.String())
-			fmt.Println("account", q.Creator, a, err)
-			return a
-			// return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
+			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
 		"stake": func(ctx context.Context, q staking.Stake) sdk.Coin { return q.Amount },
 	})
@@ -511,15 +504,7 @@ func (ta *TruAPI) RegisterResolvers() {
 			return ta.claimArgumentResolver(ctx, queryByArgumentID{ID: q.ArgumentID})
 		},
 		"creator": func(ctx context.Context, q slashing.Slash) *AppAccount {
-			l, ok := getDataLoaders(ctx)
-			if !ok {
-				panic("loaders not present")
-			}
-			a, err := l.appAccountLoader.Load(q.Creator.String())
-			if err != nil {
-				return nil
-			}
-			return a
+			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
 	})
 

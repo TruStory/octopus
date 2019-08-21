@@ -13,13 +13,14 @@ import (
 
 func (ta *TruAPI) AppAccountLoader() *AppAccountLoader {
 	config := AppAccountLoaderConfig{
-		Fetch: func(keys []string) (accounts []*AppAccount, errors []error) {
+		Fetch: func(keys []string) ([]*AppAccount, []error) {
+			errors := make([]error, 0)
 			addresses := make([]sdk.AccAddress, 0, len(keys))
 			for _, k := range keys {
 				address, err := sdk.AccAddressFromBech32(k)
 				if err != nil {
 					errors = append(errors, err)
-					return
+					return nil, errors
 				}
 				addresses = append(addresses, address)
 			}
@@ -27,7 +28,7 @@ func (ta *TruAPI) AppAccountLoader() *AppAccountLoader {
 			if err != nil {
 				errors = append(errors, err)
 			}
-			return
+			return accounts, nil
 		},
 		Wait:     time.Millisecond * 2,
 		MaxBatch: 50,

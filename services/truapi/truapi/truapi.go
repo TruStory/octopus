@@ -147,7 +147,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/graphql", WithUser(apiCtx, WrapHandler(ta.HandleGraphQL)))
 	api.Handle("/presigned", WrapHandler(ta.HandlePresigned))
 	api.Handle("/unsigned", WrapHandler(ta.HandleUnsigned))
-	api.Handle("/register", WrapHandler(ta.HandleRegistration))
+	api.HandleFunc("/register", ta.HandleRegistration)
 	api.HandleFunc("/user", ta.HandleUserDetails)
 	api.Handle("/user/search", WrapHandler(ta.HandleUsernameSearch))
 	api.Handle("/notification", WithUser(apiCtx, WrapHandler(ta.HandleNotificationEvent)))
@@ -180,7 +180,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 		WithUser(apiCtx, http.HandlerFunc(ta.handleUnfollowCommunity))).Methods(http.MethodDelete)
 
 	if apiCtx.Config.App.MockRegistration {
-		api.Handle("/mock_register", WrapHandler(ta.HandleMockRegistration))
+		api.HandleFunc("/mock_register", ta.HandleMockRegistration)
 	}
 
 	ta.RegisterOAuthRoutes(apiCtx)
@@ -323,14 +323,14 @@ func (ta *TruAPI) RegisterResolvers() {
 		"id": func(_ context.Context, q db.TwitterProfile) string { return string(q.ID) },
 		"avatarURI": func(_ context.Context, q db.TwitterProfile) string {
 			largeURI := strings.Replace(q.AvatarURI, "_bigger", "_200x200", 1)
-			return strings.Replace(largeURI, "http://", "//", 1)
+			return strings.Replace(largeURI, "http://", "https://", 1)
 		},
 	})
 
 	ta.GraphQLClient.RegisterObjectResolver("User", db.UserProfile{}, map[string]interface{}{
 		"avatarURL": func(_ context.Context, q db.UserProfile) string {
 			largeURI := strings.Replace(q.AvatarURL, "_bigger", "_200x200", 1)
-			return strings.Replace(largeURI, "http://", "//", 1)
+			return strings.Replace(largeURI, "http://", "https://", 1)
 		},
 	})
 
@@ -531,9 +531,9 @@ func (ta *TruAPI) RegisterResolvers() {
 				return joinPath(ta.APIContext.Config.App.S3AssetsURL, path.Join("notifications", icon))
 			}
 			if q.SenderProfile != nil {
-				return strings.Replace(q.SenderProfile.AvatarURL, "http://", "//", 1)
+				return strings.Replace(q.SenderProfile.AvatarURL, "http://", "https://", 1)
 			}
-			return strings.Replace(q.UserProfile.AvatarURL, "http://", "//", 1)
+			return strings.Replace(q.UserProfile.AvatarURL, "http://", "https://", 1)
 		},
 		"meta": func(_ context.Context, q db.NotificationEvent) db.NotificationMeta {
 			return q.Meta

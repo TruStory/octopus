@@ -5,10 +5,22 @@ import (
 	"os"
 
 	"github.com/TruStory/octopus/services/spotlight"
+
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 )
 
 func main() {
-	service := spotlight.NewService(getEnv("PORT", "54448"), mustEnv("SPOTLIGHT_GRAPHQL_ENDPOINT"))
+	config := truCtx.Config{
+		Database: truCtx.DatabaseConfig{
+			Host: getEnv("PG_ADDR", "localhost"),
+			Port: 5432,
+			User: getEnv("PG_USER", "postgres"),
+			Pass: getEnv("PG_USER_PW", ""),
+			Name: getEnv("PG_DB_NAME", "trudb"),
+			Pool: 25,
+		},
+	}
+	service := spotlight.NewService(getEnv("PORT", "54448"), mustEnv("SPOTLIGHT_GRAPHQL_ENDPOINT"), config)
 
 	service.Run()
 }

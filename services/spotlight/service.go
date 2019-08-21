@@ -3,22 +3,29 @@ package spotlight
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"html"
 	"image/jpeg"
 	"image/png"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 
-	stripmd "github.com/writeas/go-strip-markdown"
+	"github.com/go-pg/pg"
+
+	"github.com/TruStory/octopus/services/truapi/db"
 
 	"github.com/gobuffalo/packr/v2"
-
 	"github.com/gorilla/mux"
 	"github.com/machinebox/graphql"
+	stripmd "github.com/writeas/go-strip-markdown"
+
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
 )
 
 var regexMention = regexp.MustCompile("(cosmos|tru)([a-z0-9]{4})[a-z0-9]{31}([a-z0-9]{4})")
@@ -27,19 +34,22 @@ type Service struct {
 	port          string
 	router        *mux.Router
 	graphqlClient *graphql.Client
+	dbClient      *db.Client
 }
 
-func NewService(port, endpoint string) *Service {
+func NewService(port, endpoint string, config truCtx.Config) *Service {
 	return &Service{
 		port:          port,
 		router:        mux.NewRouter(),
 		graphqlClient: graphql.NewClient(endpoint),
+		dbClient:      db.NewDBClient(config),
 	}
 }
 func (s *Service) Run() {
 	s.router.Handle("/claim/{id:[0-9]+}/spotlight", renderClaim(s))
 	s.router.Handle("/argument/{id:[0-9]+}/spotlight", renderArgument(s))
 	s.router.Handle("/claim/{claimID:[0-9]+}/comment/{id:[0-9]+}/spotlight", renderComment(s))
+	s.router.Handle("/highlight/{id:[0-9]+}/spotlight", renderHighlight(s))
 	http.Handle("/", s.router)
 	err := http.ListenAndServe(":"+s.port, nil)
 	if err != nil {
@@ -97,6 +107,52 @@ func renderClaim(s *Service) http.Handler {
 			return
 		}
 		compiledPreview := compileClaimPreview(rawPreview, data.Claim)
+		render(compiledPreview, w)
+	}
+	return http.HandlerFunc(fn)
+}
+
+func renderHighlight(s *Service) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		highlightID, err := strconv.ParseInt(vars["id"], 10, 64)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Invalid highlight ID passed.", http.StatusBadRequest)
+			return
+		}
+		highlight, err := getHighlight(s, highlightID)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		if highlight == nil {
+			log.Println("Invalid highlight ID passed.")
+			http.Error(w, "Invalid highlight ID passed.", http.StatusInternalServerError)
+			return
+		}
+		if highlight.HighlightableType != "argument" {
+			// when more highlightable types come in, this will become a loop. until then, efficiency.
+			log.Println("invalid highlightable type")
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		argument, err := getArgument(s, highlight.HighlightableID)
+
+		box := packr.New("Templates", "./templates")
+		rawPreview, err := box.Find("highlight-v2.svg")
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "URL Preview error", http.StatusInternalServerError)
+			return
+		}
+		compiledPreview, err := compileHighlightPreview(rawPreview, highlight, argument.ClaimArgument)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "URL Preview error", http.StatusInternalServerError)
+			return
+		}
 		render(compiledPreview, w)
 	}
 	return http.HandlerFunc(fn)
@@ -199,6 +255,52 @@ func compileClaimPreview(raw []byte, claim ClaimObject) string {
 	}
 
 	return string(compiled)
+}
+
+func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument ArgumentObject) (string, error) {
+	// BODY
+	bodyLines := wordWrap(highlight.Text)
+	// make sure to have 4 lines atleast
+	if len(bodyLines) < 4 {
+		for i := len(bodyLines); i < 4; i++ {
+			bodyLines = append(bodyLines, "")
+		}
+	} else if len(bodyLines) > 4 {
+		bodyLines[3] += "..." // ellipsis if the entire body couldn't be contained in this preview
+	}
+
+	// base64-ing the avatar
+	avatarResponse, err := http.Get(strings.Replace(argument.Creator.UserProfile.AvatarURL, "//", "http://", 1))
+	if err != nil {
+		return "", err
+	}
+	defer avatarResponse.Body.Close()
+
+	avatar, err := ioutil.ReadAll(avatarResponse.Body)
+	avatarBase64 := base64.StdEncoding.EncodeToString(avatar)
+
+	// compiling the template
+	var compiled bytes.Buffer
+	tmpl, err := template.New("highlight").Parse(string(raw))
+	if err != nil {
+		return "", err
+	}
+
+	vars := struct {
+		BodyLines    []string
+		Highlight    *db.Highlight
+		Argument     ArgumentObject
+		AvatarBase64 string
+	}{
+		BodyLines:    bodyLines,
+		Highlight:    highlight,
+		Argument:     argument,
+		AvatarBase64: avatarBase64,
+	}
+
+	tmpl.Execute(&compiled, vars)
+
+	return compiled.String(), nil
 }
 
 func compileArgumentPreview(raw []byte, argument ArgumentObject) string {
@@ -305,6 +407,19 @@ func getClaim(s *Service, claimID int64) (ClaimByIDResponse, error) {
 	}
 
 	return graphqlRes, nil
+}
+
+func getHighlight(s *Service, highlightID int64) (*db.Highlight, error) {
+	highlight := &db.Highlight{ID: highlightID}
+	err := s.dbClient.Find(highlight)
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return highlight, nil
 }
 
 func getArgument(s *Service, argumentID int64) (ArgumentByIDResponse, error) {

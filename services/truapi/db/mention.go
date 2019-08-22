@@ -26,6 +26,8 @@ func (c *Client) replaceAddressesWithProfileURLs(body string) (string, error) {
 func (c *Client) mapAddressesToProfileURLs(body string, profileURLPrefix string) (map[string]string, error) {
 	profileURLsByAddress := map[string]string{}
 	addresses := parseMentions(body)
+	// TODO : query multiple users instead of one by one
+	// https://github.com/TruStory/octopus/issues/315
 	for _, address := range addresses {
 		user, err := c.UserByAddress(address)
 		if err != nil {

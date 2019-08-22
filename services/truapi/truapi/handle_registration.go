@@ -174,7 +174,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 			// simply logging the error as failure of this API call should not critically fail the registration request
 			err = ta.Dripper.ToWorkflow("onboarding").Subscribe(user.Email)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
 			}
 		}
 	} else {

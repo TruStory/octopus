@@ -23,10 +23,11 @@ const (
 )
 
 var (
-	claimRegex         = regexp.MustCompile("/claim/([0-9]+)/?$")
-	claimArgumentRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
-	claimCommentRegex  = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/?$")
-	communityRegex     = regexp.MustCompile("/community/([^/]+)")
+	claimRegex                  = regexp.MustCompile("/claim/([0-9]+)/?$")
+	claimArgumentRegex          = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
+	claimCommentRegex           = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/?$")
+	communityRegex              = regexp.MustCompile("/community/([^/]+)")
+	claimArgumentHighlightRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/highlight/([0-9]+)/?$")
 )
 
 // Tags defines the struct containing all the request Meta Tags for a page
@@ -109,6 +110,7 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 		return compile(index, *metaTags)
 	}
 
+	// community/
 	matches = communityRegex.FindStringSubmatch(route)
 	if len(matches) == 2 {
 		// replace placeholder with community details
@@ -119,6 +121,32 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
 
+		return compile(index, *metaTags)
+	}
+
+	// /claim/xxx/argument/xxx/highlight/xxx
+	matches = claimArgumentHighlightRegex.FindStringSubmatch(route)
+	if len(matches) == 4 {
+		claimID, err := strconv.ParseUint(matches[1], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		argumentID, err := strconv.ParseUint(matches[2], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		highlightID, err := strconv.ParseInt(matches[3], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+
+		metaTags, err := makeClaimArgumentHighlightMetaTags(ta, route, claimID, argumentID, highlightID)
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
 		return compile(index, *metaTags)
 	}
 
@@ -211,6 +239,32 @@ func makeClaimArgumentMetaTags(ta *TruAPI, route string, claimID uint64, argumen
 		Title:       fmt.Sprintf("%s made an argument", "@"+creatorObj.Username),
 		Description: html.EscapeString(stripmd.Strip(argumentObj.Summary)),
 		Image:       fmt.Sprintf("%s/api/v1/spotlight?argument_id=%v", ta.APIContext.Config.App.URL, argumentID),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
+	}, nil
+}
+
+func makeClaimArgumentHighlightMetaTags(ta *TruAPI, route string, claimID uint64, argumentID uint64, highlightID int64) (*Tags, error) {
+	ctx := context.Background()
+	argumentObj := ta.claimArgumentResolver(ctx, queryByArgumentID{ID: argumentID})
+	creatorObj, err := ta.DBClient.UserByAddress(argumentObj.Creator.String())
+	if creatorObj == nil || err != nil {
+		// if error, return default
+		return nil, err
+	}
+	highlight := db.Highlight{ID: highlightID}
+	err = ta.DBClient.Find(&highlight)
+	if err != nil {
+		return nil, err
+	}
+
+	if highlight.ImageURL == "" {
+		// for the rare edge cases where the image caching has failed, we'll render the preview on the fly
+		highlight.ImageURL = fmt.Sprintf("%s/api/v1/spotlight?highlight_id=%v", ta.APIContext.Config.App.URL, highlightID)
+	}
+	return &Tags{
+		Title:       fmt.Sprintf("%s made an argument", "@"+creatorObj.Username),
+		Description: html.EscapeString(stripmd.Strip(highlight.Text)),
+		Image:       highlight.ImageURL,
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

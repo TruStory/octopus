@@ -10,3 +10,19 @@ type Highlight struct {
 	Text              string `json:"text"`
 	ImageURL          string `json:"image_url"`
 }
+
+// AddImageURLToHighlight adds the url for the cached version to a highlight
+func (c *Client) AddImageURLToHighlight(id int64, url string) error {
+	var highlight Highlight
+	_, err := c.Model(&highlight).
+		Where("id = ?", id).
+		Where("deleted_at IS NULL").
+		Set("image_url = ?", url).
+		Update()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

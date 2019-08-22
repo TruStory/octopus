@@ -228,7 +228,7 @@ func renderComment(s *Service) http.Handler {
 
 func compileClaimPreview(raw []byte, claim ClaimObject) string {
 	// BODY
-	bodyLines := wordWrap(claim.Body)
+	bodyLines := wordWrap(claim.Body, 7)
 	// make sure to have 3 lines atleast
 	if len(bodyLines) < 3 {
 		for i := len(bodyLines); i < 3; i++ {
@@ -259,7 +259,7 @@ func compileClaimPreview(raw []byte, claim ClaimObject) string {
 
 func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument ArgumentObject) (string, error) {
 	// BODY
-	bodyLines := wordWrap(highlight.Text)
+	bodyLines := wordWrap(highlight.Text, 10)
 	// make sure to have 4 lines atleast
 	if len(bodyLines) < 4 {
 		for i := len(bodyLines); i < 4; i++ {
@@ -305,7 +305,7 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 
 func compileArgumentPreview(raw []byte, argument ArgumentObject) string {
 	// BODY
-	bodyLines := wordWrap(argument.Summary)
+	bodyLines := wordWrap(argument.Summary, 7)
 	// make sure to have 3 lines atleast
 	if len(bodyLines) < 3 {
 		for i := len(bodyLines); i < 3; i++ {
@@ -329,7 +329,7 @@ func compileArgumentPreview(raw []byte, argument ArgumentObject) string {
 
 func compileCommentPreview(raw []byte, comment CommentObject) string {
 	// BODY
-	bodyLines := wordWrap(comment.Body)
+	bodyLines := wordWrap(comment.Body, 7)
 	// make sure to have 3 lines atleast
 	if len(bodyLines) < 3 {
 		for i := len(bodyLines); i < 3; i++ {
@@ -348,10 +348,9 @@ func compileCommentPreview(raw []byte, comment CommentObject) string {
 	return string(compiled)
 }
 
-func wordWrap(body string) []string {
+func wordWrap(body string, defaultWordsPerLine int) []string {
 	body = stripmd.Strip(html.EscapeString(body))
 	body = regexMention.ReplaceAllString(body, "$1$2...$3") // converts @cosmos1xqc5gsesg5m4jv252ce9g4jgfev52s68an2ss9 into @cosmos1xqc...2ss9
-	defaultWordsPerLine := 7
 	lines := make([]string, 0)
 	if strings.TrimSpace(body) == "" {
 		lines = append(lines, body)

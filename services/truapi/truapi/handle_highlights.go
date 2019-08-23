@@ -91,7 +91,7 @@ func renderAndCacheHighlight(ta *TruAPI, highlight *db.Highlight) (string, error
 	}
 
 	session, err := session.NewSession(&aws.Config{
-		Region:      aws.String("us-west-1"),
+		Region:      aws.String(ta.APIContext.Config.AWS.S3Region),
 		Credentials: credentials.NewStaticCredentials(ta.APIContext.Config.AWS.AccessKey, ta.APIContext.Config.AWS.AccessSecret, ""),
 	})
 	if err != nil {
@@ -100,7 +100,7 @@ func renderAndCacheHighlight(ta *TruAPI, highlight *db.Highlight) (string, error
 
 	uploader := s3manager.NewUploader(session)
 	uploaded, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String("trustory"),
+		Bucket: aws.String(ta.APIContext.Config.AWS.S3Bucket),
 		Key:    aws.String(fmt.Sprintf("highlights/highlight-%d-%d.jpg", highlight.ID, time.Now().Unix())),
 		Body:   rendered,
 	})

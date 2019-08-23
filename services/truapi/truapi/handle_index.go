@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	defaultDescription = "TruStory is a social network to debate claims with skin in the game"
+	defaultDescription = "TruStory is a social network to debate with skin in the game"
 	previewDirectory   = "communities/previews" // full url format: S3_URL/communities/previews/PREVIEW.jpeg
 )
 

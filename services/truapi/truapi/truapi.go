@@ -168,6 +168,9 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	sessionHandler := cookies.AnonymousSessionHandler(ta.APIContext)
 	ta.Use(sessionHandler)
 
+	liveRedirectHandler := RedirectHandler(apiCtx.Config.App.LiveDebateURL, http.StatusFound)
+	ta.Handle("/live", liveRedirectHandler)
+
 	api := ta.Subrouter("/api/v1")
 
 	// Enable gzip compression

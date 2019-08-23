@@ -11,7 +11,6 @@ import (
 
 // HandleSpotlight proxies the request from the clients to the spotlight service
 func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
-
 	// firing up the http client
 	client := &http.Client{
 		Timeout: time.Second * 10,

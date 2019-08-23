@@ -23,6 +23,7 @@ import (
 type CreateHighlightRequest struct {
 	HighlightableType string `json:"highlightable_type"`
 	HighlightableID   int64  `json:"highlightable_id"`
+	HighlightedURL    string `json:"highlighted_url"`
 	Text              string `json:"text"`
 }
 
@@ -51,9 +52,15 @@ func (ta *TruAPI) createHighlight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	highlightableType, highlightableID, err := parseHighlightableFromRequest(request)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	highlight := &db.Highlight{
-		HighlightableType: request.HighlightableType,
-		HighlightableID:   request.HighlightableID,
+		HighlightableType: highlightableType,
+		HighlightableID:   highlightableID,
 		Text:              request.Text,
 	}
 	err = ta.DBClient.Add(highlight)
@@ -110,7 +117,7 @@ func renderHighlight(ta *TruAPI, highlight *db.Highlight) (io.Reader, error) {
 		Timeout: time.Second * 10,
 	}
 
-	spotlightURL := fmt.Sprintf("%s/api/v1/spotlight", ta.APIContext.Config.App.URL)
+	spotlightURL := fmt.Sprintf("%s/api/v1/spotlight", "http://localhost:1337")
 	request, err := http.NewRequest("GET", spotlightURL, nil)
 	if err != nil {
 		return nil, err
@@ -130,6 +137,12 @@ func renderHighlight(ta *TruAPI, highlight *db.Highlight) (io.Reader, error) {
 }
 
 func validateCreateHighlightRequest(request CreateHighlightRequest) error {
+	// if highlighted url is provided
+	if request.HighlightedURL != "" {
+		return nil
+	}
+
+	// if highlightable is provided
 	if request.HighlightableType == "" {
 		return errors.New("invalid highlightable type")
 	}
@@ -159,4 +172,38 @@ func validateHighlightableType(highlightableType string) error {
 	}
 
 	return errors.New("invalid highlightable type")
+}
+
+func parseHighlightableFromRequest(request CreateHighlightRequest) (string, int64, error) {
+	// if highlighted url is passed
+	if request.HighlightedURL != "" {
+		// if argument
+		matches := claimArgumentRegex.FindStringSubmatch(request.HighlightedURL)
+		if len(matches) == 3 {
+			highlightableType := "argument"
+			highlightableID, err := strconv.ParseInt(matches[2], 10, 64)
+			if err != nil {
+				return "", 0, err
+			}
+
+			return highlightableType, highlightableID, nil
+		}
+
+		// if comment
+		matches = claimCommentRegex.FindStringSubmatch(request.HighlightedURL)
+		if len(matches) == 3 {
+			highlightableType := "comment"
+			highlightableID, err := strconv.ParseInt(matches[2], 10, 64)
+			if err != nil {
+				return "", 0, err
+			}
+
+			return highlightableType, highlightableID, nil
+		}
+
+		return "", 0, errors.New("highlighted url not supported yet")
+	}
+
+	// if highlightable is passed
+	return request.HighlightableType, request.HighlightableID, nil
 }

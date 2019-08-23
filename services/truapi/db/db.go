@@ -3,6 +3,7 @@ package db
 import (
 	"crypto/rand"
 	"fmt"
+	"os"
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/go-pg/pg"
@@ -15,6 +16,15 @@ type Client struct {
 	config truCtx.Config
 }
 
+type dbLogger struct{}
+
+func (d dbLogger) BeforeQuery(q *pg.QueryEvent) {
+}
+
+func (d dbLogger) AfterQuery(q *pg.QueryEvent) {
+	fmt.Println(q.FormattedQuery())
+}
+
 // NewDBClient creates a Postgres client
 func NewDBClient(config truCtx.Config) *Client {
 	db := pg.Connect(&pg.Options{
@@ -24,6 +34,9 @@ func NewDBClient(config truCtx.Config) *Client {
 		Database: config.Database.Name,
 		PoolSize: config.Database.Pool,
 	})
+	if os.Getenv("PG_DEBUG_QUERY") == "true" {
+		db.AddQueryHook(dbLogger{})
+	}
 
 	return &Client{db, config}
 }

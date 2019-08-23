@@ -7,6 +7,7 @@ import (
 	"html"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -35,14 +36,16 @@ type Service struct {
 	router        *mux.Router
 	graphqlClient *graphql.Client
 	dbClient      *db.Client
+	jpeg          bool
 }
 
-func NewService(port, endpoint string, config truCtx.Config) *Service {
+func NewService(port, endpoint string, jpeg bool, config truCtx.Config) *Service {
 	return &Service{
 		port:          port,
 		router:        mux.NewRouter(),
 		graphqlClient: graphql.NewClient(endpoint),
 		dbClient:      db.NewDBClient(config),
+		jpeg:          jpeg,
 	}
 }
 func (s *Service) Run() {
@@ -58,9 +61,13 @@ func (s *Service) Run() {
 	}
 }
 
-func render(preview string, w http.ResponseWriter) {
+func render(preview string, w http.ResponseWriter, jpegEnabled bool) {
 	cmd := exec.Command("rsvg-convert", "-f", "png", "--width", "1920", "--height", "1080")
-	w.Header().Add("Content-Type", "image/jpg")
+	contentType := "image/png"
+	if jpegEnabled {
+		contentType = "image/jpeg"
+	}
+	w.Header().Add("Content-Type", contentType)
 	cmd.Stdin = strings.NewReader(preview)
 	buf := new(bytes.Buffer)
 	cmd.Stdout = buf
@@ -68,6 +75,13 @@ func render(preview string, w http.ResponseWriter) {
 	err := cmd.Run()
 	if err != nil {
 		http.Error(w, "URL Preview cannot be generated", http.StatusInternalServerError)
+		return
+	}
+	if !jpegEnabled {
+		_, err := io.Copy(w, buf)
+		if err != nil {
+			http.Error(w, "URL Preview cannot be generated", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -107,7 +121,7 @@ func renderClaim(s *Service) http.Handler {
 			return
 		}
 		compiledPreview := compileClaimPreview(rawPreview, data.Claim)
-		render(compiledPreview, w)
+		render(compiledPreview, w, s.jpeg)
 	}
 	return http.HandlerFunc(fn)
 }
@@ -158,7 +172,7 @@ func renderHighlight(s *Service) http.Handler {
 			http.Error(w, "URL Preview error", http.StatusInternalServerError)
 			return
 		}
-		render(compiledPreview, w)
+		render(compiledPreview, w, s.jpeg)
 	}
 	return http.HandlerFunc(fn)
 }
@@ -188,7 +202,7 @@ func renderArgument(s *Service) http.Handler {
 		}
 
 		compiledPreview := compileArgumentPreview(rawPreview, data.ClaimArgument)
-		render(compiledPreview, w)
+		render(compiledPreview, w, s.jpeg)
 	}
 
 	return http.HandlerFunc(fn)
@@ -225,7 +239,7 @@ func renderComment(s *Service) http.Handler {
 		}
 
 		compiledPreview := compileCommentPreview(rawPreview, comment)
-		render(compiledPreview, w)
+		render(compiledPreview, w, s.jpeg)
 	}
 
 	return http.HandlerFunc(fn)
@@ -275,8 +289,7 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 	}
 
 	// base64-ing the avatar
-	avatarURL := strings.Replace(argument.Creator.UserProfile.AvatarURL, "//", "http://", 1)
-	avatarURL = strings.Replace(avatarURL, "_bigger", "_200x200", 1)
+	avatarURL := strings.Replace(argument.Creator.UserProfile.AvatarURL, "_bigger", "_200x200", 1)
 	avatarResponse, err := http.Get(avatarURL)
 	if err != nil {
 		return "", err

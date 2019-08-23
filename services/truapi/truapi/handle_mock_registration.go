@@ -6,16 +6,31 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/TruStory/octopus/services/truapi/chttp"
+	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/truapi/render"
 	"github.com/dghubble/go-twitter/twitter"
 )
 
 // HandleMockRegistration takes an empty request and returns a `RegistrationResponse`
-func (ta *TruAPI) HandleMockRegistration(r *http.Request) chttp.Response {
+func (ta *TruAPI) HandleMockRegistration(w http.ResponseWriter, r *http.Request) {
 	// Get the mock Twitter User from the auth token
 	twitterUser := getMockTwitterUser()
 
-	return RegisterTwitterUser(ta, twitterUser)
+	user, err := RegisterTwitterUser(ta, twitterUser)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	cookie, err := cookies.GetLoginCookie(ta.APIContext, user)
+	if err != nil {
+		render.LoginError(w, r, ErrServerError, http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w, cookie)
+	response := createUserResponse(user)
+	render.Response(w, r, response, http.StatusOK)
 }
 
 func getMockTwitterUser() *twitter.User {

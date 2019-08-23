@@ -10,11 +10,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/TruStory/octopus/services/truapi/chttp"
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/truapi/render"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
@@ -28,11 +28,10 @@ type RegistrationRequest struct {
 
 // RegistrationResponse is a JSON response body representing the result of registering a key
 type RegistrationResponse struct {
-	UserID               string                          `json:"userId"`
-	Address              string                          `json:"address"`
-	AuthenticationCookie string                          `json:"authenticationCookie"`
-	UserMeta             db.UserMeta                     `json:"userMeta"`
-	UserProfile          RegistrationUserProfileResponse `json:"userProfile"`
+	UserID      string                          `json:"userId"`
+	Address     string                          `json:"address"`
+	UserMeta    db.UserMeta                     `json:"userMeta"`
+	UserProfile RegistrationUserProfileResponse `json:"userProfile"`
 
 	// deprecated
 	TwitterProfile RegistrationTwitterProfileResponse `json:"twitterProfile"`
@@ -54,63 +53,58 @@ type RegistrationUserProfileResponse struct {
 }
 
 // HandleRegistration takes a `RegistrationRequest` and returns a `RegistrationResponse`
-func (ta *TruAPI) HandleRegistration(r *http.Request) chttp.Response {
+func (ta *TruAPI) HandleRegistration(w http.ResponseWriter, r *http.Request) {
 	rr := new(RegistrationRequest)
 	reqBytes, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
-		return chttp.SimpleErrorResponse(400, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	err = json.Unmarshal(reqBytes, &rr)
 	if err != nil {
-		return chttp.SimpleErrorResponse(400, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// Get the Twitter User from the auth token
 	twitterUser, err := getTwitterUser(ta.APIContext, rr.AuthToken, rr.AuthTokenSecret)
 	if err != nil {
-		return chttp.SimpleErrorResponse(400, err)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	return RegisterTwitterUser(ta, twitterUser)
+	user, err := RegisterTwitterUser(ta, twitterUser)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	cookie, err := cookies.GetLoginCookie(ta.APIContext, user)
+	if err != nil {
+		render.LoginError(w, r, ErrServerError, http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w, cookie)
+	response := createUserResponse(user)
+	render.Response(w, r, response, http.StatusOK)
 }
 
 // RegisterTwitterUser registers a new twitter user
-func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) chttp.Response {
+func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 	user, err := CalibrateUser(ta, twitterUser)
 	if err != nil {
-		return chttp.SimpleErrorResponse(400, err)
+		return nil, err
 	}
 
 	err = ta.DBClient.TouchLastAuthenticatedAt(user.ID)
 	if err != nil {
-		return chttp.SimpleErrorResponse(400, err)
+		return nil, err
 	}
 
-	cookieValue, err := cookies.MakeLoginCookieValue(ta.APIContext, user)
-	if err != nil {
-		return chttp.SimpleErrorResponse(400, err)
-	}
-
-	responseBytes, _ := json.Marshal(RegistrationResponse{
-		UserID:               twitterUser.IDStr,
-		Address:              user.Address,
-		AuthenticationCookie: cookieValue,
-		UserMeta:             user.Meta,
-		UserProfile: RegistrationUserProfileResponse{
-			Username:  user.Username,
-			FullName:  user.FullName,
-			AvatarURL: user.AvatarURL,
-		},
-		TwitterProfile: RegistrationTwitterProfileResponse{
-			Username:  user.Username,
-			FullName:  user.FullName,
-			AvatarURI: user.AvatarURL,
-		},
-	})
-
-	return chttp.SimpleResponse(201, responseBytes)
+	return user, nil
 }
 
 // CalibrateUser takes a twitter authenticated user and makes sure it has
@@ -180,7 +174,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 			// simply logging the error as failure of this API call should not critically fail the registration request
 			err = ta.Dripper.ToWorkflow("onboarding").Subscribe(user.Email)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
 			}
 		}
 	} else {

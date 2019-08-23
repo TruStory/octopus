@@ -10,6 +10,9 @@ import (
 )
 
 func main() {
+	port := getEnv("PORT", "54448")
+	endpoint := mustEnv("SPOTLIGHT_GRAPHQL_ENDPOINT")
+	jpegEnabled := getEnv("SPOTLIGHT_JPEG_ENABLED", "") == "true"
 	config := truCtx.Config{
 		Database: truCtx.DatabaseConfig{
 			Host: getEnv("PG_ADDR", "localhost"),
@@ -20,8 +23,7 @@ func main() {
 			Pool: 25,
 		},
 	}
-	service := spotlight.NewService(getEnv("PORT", "54448"), mustEnv("SPOTLIGHT_GRAPHQL_ENDPOINT"), config)
-
+	service := spotlight.NewService(port, endpoint, jpegEnabled, config)
 	service.Run()
 }
 func getEnv(env, defaultValue string) string {

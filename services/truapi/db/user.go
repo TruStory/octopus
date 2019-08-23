@@ -717,6 +717,19 @@ func (c *Client) UserProfileByAddress(addr string) (*UserProfile, error) {
 	return userProfile, nil
 }
 
+// UsersByAddress fetches a list of users by address
+func (c *Client) UsersByAddress(addresses []string) ([]User, error) {	
+	users := make([]User, 0)
+	err := c.Model(&users).WhereIn("address in (?)", pg.In(addresses)).Select()
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
 // UserProfileByUsername fetches user profile by username
 func (c *Client) UserProfileByUsername(username string) (*UserProfile, error) {
 	userProfile := new(UserProfile)

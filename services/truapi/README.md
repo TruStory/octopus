@@ -7,7 +7,6 @@ TruAPI serves as an HTTP server for the TruStory mobile and web apps, as well as
 Contains:
 * config.toml file (see below)
 * local key store
-* Twitter whitelist
 
 ## Environment configuration
 
@@ -24,6 +23,15 @@ name = TruStory
 4. Default value "TruStory" if not supplied by the above
 
 Precedence: 1 -> 2 -> 3 -> 4
+
+### Live Debate URL
+
+To update the live debate URL, modify config.toml with the URL path. i.e:
+```
+[app]
+live-debate-url  = "/claim/1036"
+```
+Then restart TruAPI.
 
 ## Running
 

@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
-	github.com/TruStory/truchain v0.1.26-0.20190812203359-40260a79402c
+	github.com/TruStory/truchain v0.1.26-0.20190816034251-573237e34281
 	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.21.5
@@ -44,7 +44,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/samsarahq/go v0.0.0-20190126203740-720caea591c9 // indirect
-	github.com/samsarahq/thunder v0.5.0
+	github.com/samsarahq/thunder v0.5.1-0.20190814161136-ef9b23e4cfcb
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
@@ -56,6 +56,7 @@ require (
 	github.com/tendermint/tendermint v0.31.5
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/ugorji/go v1.1.7 // indirect
+	github.com/vektah/dataloaden v0.3.0
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 	golang.org/x/exp v0.0.0-20190731235908-ec7cb31e5a56 // indirect

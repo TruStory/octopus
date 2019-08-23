@@ -12,6 +12,7 @@ type AppConfig struct {
 	UploadURL        string `mapstructure:"upload-url"`
 	S3AssetsURL      string `mapstructure:"s3-assets-url"`
 	MixpanelToken    string `mapstructure:"mixpanel-token"`
+	LiveDebateURL    string `mapstructure:"live-debate-url"`
 }
 
 // CookieConfig is the config for the cookie

@@ -270,7 +270,9 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 	}
 
 	// base64-ing the avatar
-	avatarResponse, err := http.Get(strings.Replace(argument.Creator.UserProfile.AvatarURL, "//", "http://", 1))
+	avatarURL := strings.Replace(argument.Creator.UserProfile.AvatarURL, "//", "http://", 1)
+	avatarURL = strings.Replace(avatarURL, "_bigger", "_200x200", 1)
+	avatarResponse, err := http.Get(avatarURL)
 	if err != nil {
 		return "", err
 	}
@@ -290,11 +292,13 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 		BodyLines    []string
 		Highlight    *db.Highlight
 		Argument     ArgumentObject
+		AvatarType   string
 		AvatarBase64 string
 	}{
 		BodyLines:    bodyLines,
 		Highlight:    highlight,
 		Argument:     argument,
+		AvatarType:   avatarResponse.Header.Get("Content-Type"),
 		AvatarBase64: avatarBase64,
 	}
 

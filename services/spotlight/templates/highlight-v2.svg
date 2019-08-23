@@ -40,6 +40,6 @@
 <clipPath id="clip0">
 <rect width="118.883" height="73.3449" fill="white" transform="translate(900.088 98)"/>
 </clipPath>
-<image id="image0" width="128" height="128" xlink:href="data:image/jpeg;base64,{{ .AvatarBase64 }}"/>
+<image id="image0" width="128" height="128" xlink:href="data:{{ .AvatarType }};base64,{{ .AvatarBase64 }}"/>
 </defs>
 </svg>

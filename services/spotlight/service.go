@@ -139,6 +139,11 @@ func renderHighlight(s *Service) http.Handler {
 			return
 		}
 		argument, err := getArgument(s, highlight.HighlightableID)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "URL Preview error", http.StatusInternalServerError)
+			return
+		}
 
 		box := packr.New("Templates", "./templates")
 		rawPreview, err := box.Find("highlight-v2.svg")
@@ -279,6 +284,9 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 	defer avatarResponse.Body.Close()
 
 	avatar, err := ioutil.ReadAll(avatarResponse.Body)
+	if err != nil {
+		return "", err
+	}
 	avatarBase64 := base64.StdEncoding.EncodeToString(avatar)
 
 	// compiling the template
@@ -302,7 +310,10 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 		AvatarBase64: avatarBase64,
 	}
 
-	tmpl.Execute(&compiled, vars)
+	err = tmpl.Execute(&compiled, vars)
+	if err != nil {
+		return "", err
+	}
 
 	return compiled.String(), nil
 }

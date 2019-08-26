@@ -188,6 +188,7 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 	ctx := context.Background()
 
 	claimObj := ta.claimResolver(ctx, queryByClaimID{ID: claimID})
+	claimImage := ta.claimImageResolver(ctx, claimObj)
 	participants := ta.claimParticipantsResolver(ctx, claimObj)
 	totalStaked := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 	arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claimID})
@@ -205,7 +206,7 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 	}
 
 	// HACK: video debate thumbnails
-	image := fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v", ta.APIContext.Config.App.URL, claimID)
+	image := claimImage
 	if claimID == 824 {
 		image = "https://s3-us-west-1.amazonaws.com/trustory/images/22405a4351507698.jpg"
 	} else if claimID == 981 {

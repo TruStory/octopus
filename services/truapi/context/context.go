@@ -105,6 +105,11 @@ type AWSConfig struct {
 	AccessSecret string `mapstructure:"aws-access-secret"`
 }
 
+// SpotlightConfig is the config for the Spotlight service
+type SpotlightConfig struct {
+	URL string `mapstructure:"spotlight-url"`
+}
+
 // DripperConfig is the config to send the drip campaigns
 type DripperConfig struct {
 	Key       string                  `mapstructure:"dripper-api-key"`
@@ -135,6 +140,7 @@ type Config struct {
 	Params    ParamsConfig
 	Admin     AdminConfig
 	AWS       AWSConfig
+	Spotlight SpotlightConfig
 	Dripper   DripperConfig
 }
 

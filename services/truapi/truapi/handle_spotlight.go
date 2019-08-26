@@ -33,13 +33,13 @@ func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
 	// preparing the request
 	spotlightURL := ""
 	if claimID != "" && commentID != "" {
-		spotlightURL = fmt.Sprintf("http://localhost:54448/claim/%s/comment/%s/spotlight", claimID, commentID)
+		spotlightURL = fmt.Sprintf("%s/claim/%s/comment/%s/spotlight", ta.APIContext.Config.Spotlight.URL, commentID)
 	} else if claimID != "" {
-		spotlightURL = fmt.Sprintf("http://localhost:54448/claim/%s/spotlight", claimID)
+		spotlightURL = fmt.Sprintf("%s/claim/%s/spotlight", ta.APIContext.Config.Spotlight.URL, claimID)
 	} else if argumentID != "" {
-		spotlightURL = fmt.Sprintf("http://localhost:54448/argument/%s/spotlight", argumentID)
+		spotlightURL = fmt.Sprintf("%s/argument/%s/spotlight", ta.APIContext.Config.Spotlight.URL, argumentID)
 	} else if highlightID != "" {
-		spotlightURL = fmt.Sprintf("http://localhost:54448/highlight/%s/spotlight", highlightID)
+		spotlightURL = fmt.Sprintf("%s/highlight/%s/spotlight", ta.APIContext.Config.Spotlight.URL, highlightID)
 	}
 	request, err := http.NewRequest("GET", spotlightURL, req.Body)
 	if err != nil {

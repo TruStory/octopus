@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -69,27 +70,56 @@ func (ta *TruAPI) createHighlight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url, err := renderAndCacheHighlight(ta, highlight)
+	go renderAndCacheHighlight(ta, highlight)
+
+	render.Response(w, r, highlight, 200)
+}
+
+func renderAndCacheHighlight(ta *TruAPI, highlight *db.Highlight) {
+	rendered, err := renderHighlight(ta, highlight)
 	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		log.Println(err)
+		return
+	}
+
+	url, err := cacheHighlight(ta, highlight, rendered)
+	if err != nil {
+		log.Println(err)
 		return
 	}
 
 	err = ta.DBClient.AddImageURLToHighlight(highlight.ID, url)
 	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		log.Println(err)
 		return
 	}
-
-	render.Response(w, r, highlight, 200)
 }
 
-func renderAndCacheHighlight(ta *TruAPI, highlight *db.Highlight) (string, error) {
-	rendered, err := renderHighlight(ta, highlight)
-	if err != nil {
-		return "", err
+func renderHighlight(ta *TruAPI, highlight *db.Highlight) (io.Reader, error) {
+	// firing up the http client
+	client := &http.Client{
+		Timeout: time.Second * 10,
 	}
 
+	spotlightURL := fmt.Sprintf("%s/highlight/%d/spotlight", ta.APIContext.Config.Spotlight.URL, highlight.ID)
+	request, err := http.NewRequest("GET", spotlightURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	q := request.URL.Query()
+	q.Add("highlight_id", strconv.FormatInt(highlight.ID, 10))
+	request.URL.RawQuery = q.Encode()
+
+	// processing the request
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Body, nil
+}
+
+func cacheHighlight(ta *TruAPI, highlight *db.Highlight, rendered io.Reader) (string, error) {
 	session, err := session.NewSession(&aws.Config{
 		Region:      aws.String(ta.APIContext.Config.AWS.S3Region),
 		Credentials: credentials.NewStaticCredentials(ta.APIContext.Config.AWS.AccessKey, ta.APIContext.Config.AWS.AccessSecret, ""),
@@ -109,31 +139,6 @@ func renderAndCacheHighlight(ta *TruAPI, highlight *db.Highlight) (string, error
 	}
 
 	return uploaded.Location, nil
-}
-
-func renderHighlight(ta *TruAPI, highlight *db.Highlight) (io.Reader, error) {
-	// firing up the http client
-	client := &http.Client{
-		Timeout: time.Second * 10,
-	}
-
-	spotlightURL := fmt.Sprintf("%s/api/v1/spotlight", "http://localhost:1337")
-	request, err := http.NewRequest("GET", spotlightURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	q := request.URL.Query()
-	q.Add("highlight_id", strconv.FormatInt(highlight.ID, 10))
-	request.URL.RawQuery = q.Encode()
-	fmt.Println(request, spotlightURL)
-
-	// processing the request
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, err
-	}
-
-	return response.Body, nil
 }
 
 func validateCreateHighlightRequest(request CreateHighlightRequest) error {

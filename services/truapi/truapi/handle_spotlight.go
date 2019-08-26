@@ -33,7 +33,7 @@ func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
 	// preparing the request
 	spotlightURL := ""
 	if claimID != "" && commentID != "" {
-		spotlightURL = fmt.Sprintf("%s/claim/%s/comment/%s/spotlight", ta.APIContext.Config.Spotlight.URL, commentID)
+		spotlightURL = fmt.Sprintf("%s/claim/%s/comment/%s/spotlight", ta.APIContext.Config.Spotlight.URL, claimID, commentID)
 	} else if claimID != "" {
 		spotlightURL = fmt.Sprintf("%s/claim/%s/spotlight", ta.APIContext.Config.Spotlight.URL, claimID)
 	} else if argumentID != "" {

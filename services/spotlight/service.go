@@ -128,7 +128,7 @@ func renderClaim(s *Service) http.Handler {
 		}
 
 		box := packr.New("Templates", "./templates")
-		rawPreview, err := box.Find("claim-v2.svg")
+		rawPreview, err := box.Find("claim.svg")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "URL Preview error", http.StatusInternalServerError)
@@ -174,7 +174,7 @@ func renderHighlight(s *Service) http.Handler {
 		}
 
 		box := packr.New("Templates", "./templates")
-		rawPreview, err := box.Find("highlight-v2.svg")
+		rawPreview, err := box.Find("highlight.svg")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "URL Preview error", http.StatusInternalServerError)
@@ -208,7 +208,7 @@ func renderArgument(s *Service) http.Handler {
 		}
 
 		box := packr.New("Templates", "./templates")
-		rawPreview, err := box.Find("argument-v2.svg")
+		rawPreview, err := box.Find("argument.svg")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "URL Preview error", http.StatusInternalServerError)

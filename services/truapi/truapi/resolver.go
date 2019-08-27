@@ -740,9 +740,17 @@ func (ta *TruAPI) appAccountSlashResolver(ctx context.Context, q staking.Argumen
 func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []db.Comment {
 	comments, err := ta.DBClient.CommentsByClaimID(q.ID)
 	if err != nil {
-		panic(err)
+		fmt.Println("claimComments err: ", err)
 	}
 	return comments
+}
+
+func (ta *TruAPI) claimQuestionsResolver(ctx context.Context, q queryByClaimID) []db.Question {
+	questions, err := ta.DBClient.QuestionsByClaimID(q.ID)
+	if err != nil {
+		fmt.Println("claimQuestions err: ", err)
+	}
+	return questions
 }
 
 func (ta *TruAPI) appAccountClaimsCreatedResolver(ctx context.Context, q queryByAddress) []claim.Claim {

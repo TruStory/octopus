@@ -44,3 +44,40 @@ FROM (
     x0.date=':start_date:') as d0
     ON d1.address=d0.address and d1.community=d0.community  
 `
+
+const appendClaimMetricsDailyQuery = `
+SELECT 
+d1.job_date_time, 
+d1.date,
+d1.created_date,
+d1.flagged,
+d1.id,
+d1.community_id,
+d1.claim_name,
+d1.arguments_created - IFNULL(d0.arguments_created,0) arguments_created,
+d1.agrees_given - IFNULL(d0.agrees_given,0) agrees_given,
+d1.staked - IFNULL(d0.staked,0) staked,
+d1.staked_backed - IFNULL(d0.staked_backed,0) staked_backed,
+d1.staked_argument_backed - IFNULL(d0.staked_argument_backed, 0) staked_argument_backed,
+d1.staked_agree_backed - IFNULL(d0.staked_agree_backed, 0) staked_agree_backed,
+d1.staked_challenged - IFNULL(d0.staked_challenged,0) staked_challenged,
+d1.staked_argument_challenged - IFNULL(d0.staked_argument_challenged, 0) staked_argument_challenged,
+d1.staked_agree_challenged - IFNULL(d0.staked_agree_challenged, 0) staked_agree_challenged,
+d1.user_views - IFNULL(d0.user_views, 0) user_views,
+d1.unique_user_views - IFNULL(d0.unique_user_views, 0) unique_user_views,
+d1.anon_views - IFNULL(d0.anon_views, 0) anon_views,
+d1.unique_anon_views - IFNULL(d0.unique_anon_views, 0) unique_anon_views,
+d1.user_arguments_views - IFNULL(d0.user_arguments_views, 0) user_arguments_views,
+d1.unique_user_arguments_views - IFNULL(d0.unique_user_arguments_views, 0) unique_user_arguments_views,
+d1.anon_arguments_views - IFNULL(d0.anon_arguments_views, 0) anon_arguments_views,
+d1.unique_anon_arguments_views - IFNULL(d0.unique_anon_arguments_views, 0) unique_anon_arguments_views,
+d1.replies - IFNULL(d0.replies, 0) replies,
+d1.last_activiy_argument last_activity_argument,
+d1.last_activity_agree last_activity_agree
+FROM 
+
+(select * from ` + "`:source_table:`" + ` as x1 where x1.date = ':end_date:') as d1
+left join 
+(select * from ` + "`:source_table:`" + ` as x2 where x2.date = ':start_date:') as d0
+  ON d1.id = d0.id
+`

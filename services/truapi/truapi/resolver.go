@@ -745,6 +745,14 @@ func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) [
 	return comments
 }
 
+func (ta *TruAPI) claimQuestionsResolver(ctx context.Context, q queryByClaimID) []db.Question {
+	questions, err := ta.DBClient.QuestionsByClaimID(q.ID)
+	if err != nil {
+		panic(err)
+	}
+	return questions
+}
+
 func (ta *TruAPI) appAccountClaimsCreatedResolver(ctx context.Context, q queryByAddress) []claim.Claim {
 	creator, err := sdk.AccAddressFromBech32(q.ID)
 	if err != nil {

@@ -21,12 +21,13 @@ require (
 	github.com/go-pg/migrations v6.7.3+incompatible
 	github.com/go-pg/pg v8.0.3+incompatible
 	github.com/gobuffalo/logger v1.0.1 // indirect
-	github.com/gobuffalo/packr/v2 v2.5.2
+	github.com/gobuffalo/packr/v2 v2.6.0
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.7.2
 	github.com/gorilla/securecookie v1.1.1
+	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/graphql-go/graphql v0.7.8 // indirect
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
@@ -41,7 +42,9 @@ require (
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/prometheus/client_golang v1.1.0 // indirect
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4 // indirect
+	github.com/prometheus/procfs v0.0.4 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
+	github.com/rogpeppe/go-internal v1.3.1 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/samsarahq/go v0.0.0-20190126203740-720caea591c9 // indirect
 	github.com/samsarahq/thunder v0.5.1-0.20190814161136-ef9b23e4cfcb
@@ -60,10 +63,10 @@ require (
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 	golang.org/x/exp v0.0.0-20190731235908-ec7cb31e5a56 // indirect
-	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
+	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a // indirect
-	golang.org/x/tools v0.0.0-20190820033707-85edb9ef3283 // indirect
+	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456 // indirect
+	golang.org/x/tools v0.0.0-20190827152308-062dbaebb618 // indirect
 	google.golang.org/api v0.9.0 // indirect
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55 // indirect
 	google.golang.org/grpc v1.23.0 // indirect

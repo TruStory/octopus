@@ -31,6 +31,20 @@ import (
 
 var regexMention = regexp.MustCompile("(cosmos|tru)([a-z0-9]{4})[a-z0-9]{31}([a-z0-9]{4})")
 
+const (
+	WORDS_PER_LINE_CLAIM     = 7
+	WORDS_PER_LINE_ARGUMENT  = 7
+	WORDS_PER_LINE_COMMENT   = 7
+	WORDS_PER_LINE_HIGHLIGHT = 10
+
+	MAX_CHARS_PER_LINE = 40
+
+	BODY_LINES_CLAIM     = 3
+	BODY_LINES_ARGUMENT  = 3
+	BODY_LINES_COMMENT   = 3
+	BODY_LINES_HIGHLIGHT = 4
+)
+
 type Service struct {
 	port          string
 	router        *mux.Router
@@ -247,14 +261,14 @@ func renderComment(s *Service) http.Handler {
 
 func compileClaimPreview(raw []byte, claim ClaimObject) string {
 	// BODY
-	bodyLines := wordWrap(claim.Body, 7)
-	// make sure to have 3 lines atleast
-	if len(bodyLines) < 3 {
-		for i := len(bodyLines); i < 3; i++ {
+	bodyLines := wordWrap(claim.Body, WORDS_PER_LINE_CLAIM)
+	// make sure to have minimum lines atleast
+	if len(bodyLines) < BODY_LINES_CLAIM {
+		for i := len(bodyLines); i < BODY_LINES_CLAIM; i++ {
 			bodyLines = append(bodyLines, "")
 		}
-	} else if len(bodyLines) > 3 {
-		bodyLines[2] += "..." // ellipsis if the entire body couldn't be contained in this preview
+	} else if len(bodyLines) > BODY_LINES_CLAIM {
+		bodyLines[BODY_LINES_CLAIM-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
 	}
 	compiled := bytes.Replace(raw, []byte("$PLACEHOLDER__BODY_LINE_1"), []byte(bodyLines[0]), -1)
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_2"), []byte(bodyLines[1]), -1)
@@ -278,17 +292,18 @@ func compileClaimPreview(raw []byte, claim ClaimObject) string {
 
 func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument ArgumentObject) (string, error) {
 	// BODY
-	bodyLines := wordWrap(highlight.Text, 10)
-	// make sure to have 4 lines atleast
-	if len(bodyLines) < 4 {
-		for i := len(bodyLines); i < 4; i++ {
+	bodyLines := wordWrap(highlight.Text, WORDS_PER_LINE_HIGHLIGHT)
+	// make sure to have minimum lines atleast
+	if len(bodyLines) < BODY_LINES_HIGHLIGHT {
+		for i := len(bodyLines); i < BODY_LINES_HIGHLIGHT; i++ {
 			bodyLines = append(bodyLines, "")
 		}
-	} else if len(bodyLines) > 4 {
-		bodyLines[3] += "..." // ellipsis if the entire body couldn't be contained in this preview
+	} else if len(bodyLines) > BODY_LINES_HIGHLIGHT {
+		bodyLines[BODY_LINES_HIGHLIGHT-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
 	}
 
 	// base64-ing the avatar
+	// we need to fetch the image and convert it into base64 so that we can embed it in the SVG template.
 	avatarURL := strings.Replace(argument.Creator.UserProfile.AvatarURL, "_bigger", "_200x200", 1)
 	avatarResponse, err := http.Get(avatarURL)
 	if err != nil {
@@ -333,14 +348,14 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 
 func compileArgumentPreview(raw []byte, argument ArgumentObject) string {
 	// BODY
-	bodyLines := wordWrap(argument.Summary, 7)
-	// make sure to have 3 lines atleast
-	if len(bodyLines) < 3 {
-		for i := len(bodyLines); i < 3; i++ {
+	bodyLines := wordWrap(argument.Summary, WORDS_PER_LINE_ARGUMENT)
+	// make sure to have minimum lines atleast
+	if len(bodyLines) < BODY_LINES_ARGUMENT {
+		for i := len(bodyLines); i < BODY_LINES_ARGUMENT; i++ {
 			bodyLines = append(bodyLines, "")
 		}
-	} else if len(bodyLines) > 3 {
-		bodyLines[2] += "..." // ellipsis if the entire body couldn't be contained in this preview
+	} else if len(bodyLines) > BODY_LINES_ARGUMENT {
+		bodyLines[BODY_LINES_ARGUMENT-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
 	}
 	compiled := bytes.Replace(raw, []byte("$PLACEHOLDER__BODY_LINE_1"), []byte(bodyLines[0]), -1)
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_2"), []byte(bodyLines[1]), -1)
@@ -357,14 +372,14 @@ func compileArgumentPreview(raw []byte, argument ArgumentObject) string {
 
 func compileCommentPreview(raw []byte, comment CommentObject) string {
 	// BODY
-	bodyLines := wordWrap(comment.Body, 7)
-	// make sure to have 3 lines atleast
-	if len(bodyLines) < 3 {
-		for i := len(bodyLines); i < 3; i++ {
+	bodyLines := wordWrap(comment.Body, WORDS_PER_LINE_COMMENT)
+	// make sure to have minimum lines atleast
+	if len(bodyLines) < BODY_LINES_COMMENT {
+		for i := len(bodyLines); i < BODY_LINES_COMMENT; i++ {
 			bodyLines = append(bodyLines, "")
 		}
-	} else if len(bodyLines) > 3 {
-		bodyLines[2] += "..." // ellipsis if the entire body couldn't be contained in this preview
+	} else if len(bodyLines) > BODY_LINES_COMMENT {
+		bodyLines[BODY_LINES_COMMENT-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
 	}
 	compiled := bytes.Replace(raw, []byte("$PLACEHOLDER__BODY_LINE_1"), []byte(bodyLines[0]), -1)
 	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_2"), []byte(bodyLines[1]), -1)
@@ -388,7 +403,7 @@ func wordWrap(body string, defaultWordsPerLine int) []string {
 	// convert string to slice
 	words := strings.Fields(body)
 	wordsPerLine := defaultWordsPerLine
-	maxCharsPerLine := 40
+	maxCharsPerLine := MAX_CHARS_PER_LINE
 
 	if len(words) < wordsPerLine {
 		wordsPerLine = len(words)

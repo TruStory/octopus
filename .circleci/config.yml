@@ -179,7 +179,7 @@ jobs: # basic units of work in a run
           command: |
             cd actions/metrics
             make decrypt_secret
-            go run *.go
+            go run *.go all
 workflows:
   version: 2
   build-workflow:

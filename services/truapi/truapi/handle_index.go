@@ -20,6 +20,12 @@ import (
 const (
 	defaultDescription = "TruStory is a social network to debate with skin in the game"
 	previewDirectory   = "communities/previews" // full url format: S3_URL/communities/previews/PREVIEW.jpeg
+
+	REGEX_MATCHES_CLAIM          = 2
+	REGEX_MATCHES_CLAIM_ARGUMENT = 3
+	REGEX_MATCHES_CLAIM_COMMENT  = 3
+	REGEX_MATCHES_COMMUNITY      = 2
+	REGEX_MATCHES_HIGHLIGHT      = 4
 )
 
 var (
@@ -51,7 +57,7 @@ func CompileIndexFile(ta *TruAPI, index []byte, route string) string {
 func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 	// /claim/xxx
 	matches := claimRegex.FindStringSubmatch(route)
-	if len(matches) == 2 {
+	if len(matches) == REGEX_MATCHES_CLAIM {
 		// replace placeholder with claim details, where claim id is in matches[1]
 		claimID, err := strconv.ParseInt(matches[1], 10, 64)
 		if err != nil {
@@ -68,7 +74,7 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 
 	// /claim/xxx/argument/xxx
 	matches = claimArgumentRegex.FindStringSubmatch(route)
-	if len(matches) == 3 {
+	if len(matches) == REGEX_MATCHES_CLAIM_ARGUMENT {
 		// replace placeholder with claim details, where claim id is in matches[1]
 		claimID, err := strconv.ParseUint(matches[1], 10, 64)
 		if err != nil {
@@ -90,7 +96,7 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 
 	// /claim/xxx/comment/xxx
 	matches = claimCommentRegex.FindStringSubmatch(route)
-	if len(matches) == 3 {
+	if len(matches) == REGEX_MATCHES_CLAIM_COMMENT {
 		// replace placeholder with claim details, where claim id is in matches[1]
 		claimID, err := strconv.ParseUint(matches[1], 10, 64)
 		if err != nil {
@@ -112,7 +118,7 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 
 	// community/
 	matches = communityRegex.FindStringSubmatch(route)
-	if len(matches) == 2 {
+	if len(matches) == REGEX_MATCHES_COMMUNITY {
 		// replace placeholder with community details
 		communityID := matches[1]
 
@@ -126,7 +132,7 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 
 	// /claim/xxx/argument/xxx/highlight/xxx
 	matches = claimArgumentHighlightRegex.FindStringSubmatch(route)
-	if len(matches) == 4 {
+	if len(matches) == REGEX_MATCHES_HIGHLIGHT {
 		claimID, err := strconv.ParseUint(matches[1], 10, 64)
 		if err != nil {
 			// if error, return the default tags

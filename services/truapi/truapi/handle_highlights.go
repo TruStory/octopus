@@ -168,7 +168,7 @@ func validateCreateHighlightRequest(request CreateHighlightRequest) error {
 }
 
 func validateHighlightableType(highlightableType string) error {
-	valid := []string{"argument"}
+	valid := []string{"argument", "comment"}
 
 	for _, validType := range valid {
 		if validType == highlightableType {
@@ -184,7 +184,7 @@ func parseHighlightableFromRequest(request CreateHighlightRequest) (string, int6
 	if request.HighlightedURL != "" {
 		// if argument
 		matches := claimArgumentRegex.FindStringSubmatch(request.HighlightedURL)
-		if len(matches) == 3 {
+		if len(matches) == REGEX_MATCHES_CLAIM_ARGUMENT {
 			highlightableType := "argument"
 			highlightableID, err := strconv.ParseInt(matches[2], 10, 64)
 			if err != nil {
@@ -196,7 +196,7 @@ func parseHighlightableFromRequest(request CreateHighlightRequest) (string, int6
 
 		// if comment
 		matches = claimCommentRegex.FindStringSubmatch(request.HighlightedURL)
-		if len(matches) == 3 {
+		if len(matches) == REGEX_MATCHES_CLAIM_COMMENT {
 			highlightableType := "comment"
 			highlightableID, err := strconv.ParseInt(matches[2], 10, 64)
 			if err != nil {

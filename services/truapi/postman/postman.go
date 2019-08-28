@@ -3,13 +3,13 @@ package postman
 import (
 	"html/template"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
-
+	
 	"github.com/TruStory/octopus/services/truapi/context"
-
+	
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	packr "github.com/gobuffalo/packr/v2"
 )
 

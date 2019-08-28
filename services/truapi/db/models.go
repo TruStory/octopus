@@ -25,6 +25,8 @@ type Mutations interface {
 	MarkThreadNotificationsAsRead(addr string, claimID int64) error
 	MarkArgumentNotificationAsRead(addr string, claimID int64, argumentID int64) error
 	AddComment(comment *Comment) error
+	AddQuestion(question *Question) error
+	DeleteQuestion(ID int64) error
 	AddInvite(invite *Invite) error
 	ReactOnReactionable(addr string, reaction ReactionType, reactionable Reactionable) error
 	UnreactByAddressAndID(addr string, id int64) error
@@ -53,6 +55,7 @@ type Mutations interface {
 	FollowedCommunities(address string) ([]FollowedCommunity, error)
 	UnfollowCommunity(address, communityID string) error
 	FollowsCommunity(address, communityID string) (bool, error)
+	AddImageURLToHighlight(id int64, url string) error
 }
 
 // Queries read from the database
@@ -67,6 +70,8 @@ type Queries interface {
 	FlaggedStoriesIDs(flagAdmin string, flagLimit int) ([]int64, error)
 	CommentsByArgumentID(argumentID int64) ([]Comment, error)
 	CommentsByClaimID(claimID uint64) ([]Comment, error)
+	QuestionsByClaimID(claimID uint64) ([]Question, error)
+	QuestionByID(ID int64) (*Question, error)
 	Invites() ([]Invite, error)
 	InvitesByAddress(addr string) ([]Invite, error)
 	InvitesByFriendEmail(email string) (*Invite, error)

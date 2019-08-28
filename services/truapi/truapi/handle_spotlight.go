@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
@@ -12,7 +11,6 @@ import (
 
 // HandleSpotlight proxies the request from the clients to the spotlight service
 func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
-
 	// firing up the http client
 	client := &http.Client{
 		Timeout: time.Second * 10,
@@ -26,20 +24,22 @@ func (ta *TruAPI) HandleSpotlight(res http.ResponseWriter, req *http.Request) {
 	claimID := req.FormValue("claim_id")
 	argumentID := req.FormValue("argument_id")
 	commentID := req.FormValue("comment_id")
-	if claimID == "" && argumentID == "" && commentID == "" {
-		render.Error(res, req, "provide a valid claim or argument or comment", http.StatusBadRequest)
+	highlightID := req.FormValue("highlight_id")
+	if claimID == "" && argumentID == "" && commentID == "" && highlightID == "" {
+		render.Error(res, req, "provide a valid claim or argument or comment or highlight", http.StatusBadRequest)
 		return
 	}
 
 	// preparing the request
 	spotlightURL := ""
 	if claimID != "" && commentID != "" {
-		spotlightURL = strings.Replace("http://localhost:54448/claim/CLAIM_ID/comment/COMMENT_ID/spotlight", "CLAIM_ID", claimID, -1)
-		spotlightURL = strings.Replace(spotlightURL, "COMMENT_ID", commentID, -1)
+		spotlightURL = fmt.Sprintf("%s/claim/%s/comment/%s/spotlight", ta.APIContext.Config.Spotlight.URL, claimID, commentID)
 	} else if claimID != "" {
-		spotlightURL = strings.Replace("http://localhost:54448/claim/CLAIM_ID/spotlight", "CLAIM_ID", claimID, -1)
+		spotlightURL = fmt.Sprintf("%s/claim/%s/spotlight", ta.APIContext.Config.Spotlight.URL, claimID)
 	} else if argumentID != "" {
-		spotlightURL = strings.Replace("http://localhost:54448/argument/ARGUMENT_ID/spotlight", "ARGUMENT_ID", argumentID, -1)
+		spotlightURL = fmt.Sprintf("%s/argument/%s/spotlight", ta.APIContext.Config.Spotlight.URL, argumentID)
+	} else if highlightID != "" {
+		spotlightURL = fmt.Sprintf("%s/highlight/%s/spotlight", ta.APIContext.Config.Spotlight.URL, highlightID)
 	}
 	request, err := http.NewRequest("GET", spotlightURL, req.Body)
 	if err != nil {

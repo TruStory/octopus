@@ -192,6 +192,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/upload", ta.HandleUpload)
 	api.Handle("/flagStory", WrapHandler(ta.HandleFlagStory))
 	api.Handle("/comments", WrapHandler(ta.HandleComment))
+	api.Handle("/questions", WrapHandler(ta.HandleQuestion))
 	api.HandleFunc("/comments/open/{claimID:[0-9]+}", ta.handleThreadOpened)
 	api.Handle("/invite", WrapHandler(ta.HandleInvite))
 	api.Handle("/reactions", WrapHandler(ta.HandleReaction))
@@ -213,6 +214,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/communities/follow", http.HandlerFunc(ta.handleFollowCommunities)).Methods(http.MethodPost)
 	api.Handle("/communities/unfollow/{communityID}",
 		http.HandlerFunc(ta.handleUnfollowCommunity)).Methods(http.MethodDelete)
+	api.Handle("/highlights", http.HandlerFunc(ta.HandleHighlights))
 
 	if apiCtx.Config.App.MockRegistration {
 		api.HandleFunc("/mock_register", ta.HandleMockRegistration)
@@ -484,6 +486,18 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"createdAt": func(_ context.Context, q db.Comment) time.Time { return q.CreatedAt },
 	})
+
+	ta.GraphQLClient.RegisterQueryResolver("claimQuestions", ta.claimQuestionsResolver)
+	ta.GraphQLClient.RegisterObjectResolver("Question", db.Question{}, map[string]interface{}{
+		"id":         func(_ context.Context, q db.Question) int64 { return q.ID },
+		"claimId":    func(_ context.Context, q db.Question) int64 { return q.ClaimID },
+		"body":       func(_ context.Context, q db.Question) string { return q.Body },
+		"creator": func(ctx context.Context, q db.Question) *AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
+		},
+		"createdAt": func(_ context.Context, q db.Question) time.Time { return q.CreatedAt },
+	})
+
 
 	ta.GraphQLClient.RegisterObjectResolver("Stake", staking.Stake{}, map[string]interface{}{
 		"id": func(_ context.Context, q staking.Stake) uint64 { return q.ID },

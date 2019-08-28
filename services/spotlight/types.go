@@ -83,8 +83,8 @@ type UserObject struct {
 
 // UserProfileObject defines the schema of the twitter profile
 type UserProfileObject struct {
-	AvatarURL string `json:"avatar_url"`
-	FullName  string `json:"full_name"`
+	AvatarURL string `json:"avatarURL"`
+	FullName  string `json:"fullName"`
 	Username  string `json:"username"`
 }
 

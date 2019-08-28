@@ -55,6 +55,7 @@ type Mutations interface {
 	FollowedCommunities(address string) ([]FollowedCommunity, error)
 	UnfollowCommunity(address, communityID string) error
 	FollowsCommunity(address, communityID string) (bool, error)
+	AddImageURLToHighlight(id int64, url string) error
 }
 
 // Queries read from the database

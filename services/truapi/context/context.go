@@ -98,9 +98,16 @@ type AdminConfig struct {
 // AWSConfig is the config for the AWS SDK
 type AWSConfig struct {
 	Region       string `mapstructure:"aws-region"`
+	S3Region     string `mapstructure:"aws-s3-region"`
+	S3Bucket     string `mapstructure:"aws-s3-bucket"`
 	Sender       string `mapstructure:"aws-ses-sender"`
 	AccessKey    string `mapstructure:"aws-access-key"`
 	AccessSecret string `mapstructure:"aws-access-secret"`
+}
+
+// SpotlightConfig is the config for the Spotlight service
+type SpotlightConfig struct {
+	URL string `mapstructure:"spotlight-url"`
 }
 
 // DripperConfig is the config to send the drip campaigns
@@ -133,6 +140,7 @@ type Config struct {
 	Params    ParamsConfig
 	Admin     AdminConfig
 	AWS       AWSConfig
+	Spotlight SpotlightConfig
 	Dripper   DripperConfig
 }
 

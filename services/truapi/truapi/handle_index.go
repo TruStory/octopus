@@ -25,6 +25,7 @@ const (
 	REGEX_MATCHES_CLAIM_ARGUMENT = 3
 	REGEX_MATCHES_CLAIM_COMMENT  = 3
 	REGEX_MATCHES_COMMUNITY      = 2
+	REGEX_MATCHES_PROFILE        = 2
 	REGEX_MATCHES_HIGHLIGHT      = 4
 )
 
@@ -33,6 +34,7 @@ var (
 	claimArgumentRegex          = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
 	claimCommentRegex           = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/?$")
 	communityRegex              = regexp.MustCompile("/community/([^/]+)")
+	profileRegex                = regexp.MustCompile("/profile/([a-z0-9]+)/?$")
 	claimArgumentHighlightRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/highlight/([0-9]+)/?$")
 )
 
@@ -123,6 +125,20 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 		communityID := matches[1]
 
 		metaTags, err := makeCommunityMetaTags(ta, route, communityID)
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+
+		return compile(index, *metaTags)
+	}
+
+	// profile/XXX
+	matches = profileRegex.FindStringSubmatch(route)
+	if len(matches) == REGEX_MATCHES_PROFILE {
+		// replace placeholder with profile details
+		address := matches[1]
+
+		metaTags, err := makeProfileMetaTags(ta, route, address)
 		if err != nil {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
@@ -311,6 +327,22 @@ func makeCommunityMetaTags(ta *TruAPI, route string, communityID string) (*Tags,
 		Title:       fmt.Sprintf("%s Community on %s", community.Name, ta.APIContext.Config.App.Name),
 		Description: community.Description,
 		Image:       joinPath(previewsDirectory, fmt.Sprintf("%s.jpg", communityID)),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
+	}, nil
+}
+
+// makes the profile meta tags
+func makeProfileMetaTags(ta *TruAPI, route string, address string) (*Tags, error) {
+	profileObj, err := ta.DBClient.UserByAddress(address)
+	if profileObj == nil || err != nil {
+		// if error, return default
+		return nil, err
+	}
+
+	return &Tags{
+		Title:       fmt.Sprintf("%s — TruStory", profileObj.FullName),
+		Description: profileObj.Bio,
+		Image:       profileObj.AvatarURL,
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

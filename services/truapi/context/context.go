@@ -101,6 +101,8 @@ type AWSConfig struct {
 	Sender       string `mapstructure:"aws-ses-sender"`
 	AccessKey    string `mapstructure:"aws-access-key"`
 	AccessSecret string `mapstructure:"aws-access-secret"`
+	S3Region     string `mapstructure:"aws-s3-region"`
+	S3Bucket     string `mapstructure:"aws-s3-bucket"`
 }
 
 // DripperConfig is the config to send the drip campaigns

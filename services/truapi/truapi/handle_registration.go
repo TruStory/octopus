@@ -110,6 +110,7 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error
 // CalibrateUser takes a twitter authenticated user and makes sure it has
 // been properly calibrated in the database with all proper keypairs
 func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
+	ctx := context.Background()
 	connectedAccount, err := ta.DBClient.ConnectedAccountByTypeAndID("twitter", fmt.Sprintf("%d", twitterUser.ID))
 	if err != nil {
 		return nil, err
@@ -163,7 +164,13 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = ta.DBClient.FollowCommunities(address.String(), ta.APIContext.Config.Community.DefaultFollowedCommunities)
+			// follow all communities by default
+			communities := ta.communitiesResolver(ctx)
+			communityIDs := make([]string, 0)
+			for _, community := range communities {
+				communityIDs = append(communityIDs, community.ID)
+			}
+			err = ta.DBClient.FollowCommunities(address.String(), communityIDs)
 			if err != nil {
 				return nil, err
 			}

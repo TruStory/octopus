@@ -122,15 +122,14 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 		return nil, err
 	}
 
+	// we'll make a local copy of their avatar photo to remove the dependency on twitter
+	avatarURL, err := cacheAvatarLocally(ta.APIContext, twitterUser.ProfileImageURL)
+	if err != nil {
+		return nil, err
+	}
+
 	if connectedAccount == nil {
 		// this user is logging in for the first time, thus, register them
-
-		// we'll make a local copy of their avatar photo to remove the dependency on twitter
-		avatarURL, err := cacheAvatarLocally(ta.APIContext, twitterUser.ProfileImageURL)
-		if err != nil {
-			return nil, err
-		}
-
 		connectedAccount = &db.ConnectedAccount{
 			AccountType: "twitter",
 			AccountID:   fmt.Sprintf("%d", twitterUser.ID),
@@ -198,7 +197,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 			Bio:       twitterUser.Description,
 			Username:  twitterUser.ScreenName,
 			FullName:  twitterUser.Name,
-			AvatarURL: strings.Replace(twitterUser.ProfileImageURL, "_normal", "_bigger", 1),
+			AvatarURL: avatarURL,
 		}
 		err = ta.DBClient.UpsertConnectedAccount(connectedAccount)
 		if err != nil {

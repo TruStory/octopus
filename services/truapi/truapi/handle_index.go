@@ -269,7 +269,7 @@ func makeClaimArgumentHighlightMetaTags(ta *TruAPI, route string, claimID uint64
 		highlight.ImageURL = fmt.Sprintf("%s/api/v1/spotlight?highlight_id=%v", ta.APIContext.Config.App.URL, highlightID)
 	}
 	return &Tags{
-		Title:       fmt.Sprintf("%s made an argument", "@"+creatorObj.Username),
+		Title:       fmt.Sprintf("@%s made an argument", creatorObj.Username),
 		Description: html.EscapeString(stripmd.Strip(highlight.Text)),
 		Image:       highlight.ImageURL,
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),

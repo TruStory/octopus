@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/go-pg/pg"
 
@@ -305,7 +306,9 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 	// base64-ing the avatar
 	// we need to fetch the image and convert it into base64 so that we can embed it in the SVG template.
 	avatarURL := strings.Replace(argument.Creator.UserProfile.AvatarURL, "_bigger", "_200x200", 1)
-	avatarResponse, err := http.Get(avatarURL)
+	avatarResponse, err := (&http.Client{
+		Timeout: time.Second * 5,
+	}).Get(avatarURL)
 	if err != nil {
 		return "", err
 	}

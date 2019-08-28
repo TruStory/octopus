@@ -299,6 +299,9 @@ func makeFileName(response *http.Response) (string, error) {
 	}
 
 	contentType := strings.Split(response.Header.Get("Content-Type"), "/")
+	if len(contentType) < 2 {
+		return "", nil
+	}
 
 	return fmt.Sprintf("%s-%d.%s", hex.EncodeToString(random), time.Now().Unix(), contentType[1]), nil
 }

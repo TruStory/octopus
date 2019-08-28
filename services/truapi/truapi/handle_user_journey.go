@@ -10,17 +10,17 @@ import (
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
-type UserJourneyResponse struct {
-	UserID int64                    `json:"user_id"`
-	Steps  map[UserJourneyStep]bool `json:"steps"`
-}
-
 type UserJourneyStep string
 
 const (
 	JourneyStepOneArgument UserJourneyStep = "one_argument"
 	JourneyStepFiveAgrees  UserJourneyStep = "five_agrees"
 )
+
+type UserJourneyResponse struct {
+	UserID int64                    `json:"user_id"`
+	Steps  map[UserJourneyStep]bool `json:"steps"`
+}
 
 // HandleUserJourney returns the progress of a user on the journey
 func (ta *TruAPI) HandleUserJourney(w http.ResponseWriter, r *http.Request) {

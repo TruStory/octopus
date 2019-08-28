@@ -191,6 +191,15 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 			}
 		}
 	} else {
+		user, err := ta.DBClient.UserByID(connectedAccount.UserID)
+		if err != nil {
+			return nil, err
+		}
+		user.AvatarURL = avatarURL
+		err = ta.DBClient.UpdateModel(user)
+		if err != nil {
+			return nil, err
+		}
 		// this user is already our user, so, we'll just update their meta fields to stay updated
 		connectedAccount.Meta = db.ConnectedAccountMeta{
 			Email:     twitterUser.Email,
@@ -275,12 +284,14 @@ func cacheAvatarLocally(apiCtx truCtx.TruAPIContext, avatarURL string) (string, 
 	if err != nil {
 		return "", err
 	}
+	contentType := avatarResponse.Header.Get("Content-Type")
 
 	uploader := s3manager.NewUploader(session)
 	uploaded, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(apiCtx.Config.AWS.S3Bucket),
-		Key:    aws.String(fmt.Sprintf("images/avatar-%s", filename)),
-		Body:   avatarResponse.Body,
+		Bucket:      aws.String(apiCtx.Config.AWS.S3Bucket),
+		Key:         aws.String(fmt.Sprintf("images/avatar-%s", filename)),
+		Body:        avatarResponse.Body,
+		ContentType: &contentType,
 	})
 	if err != nil {
 		return "", err

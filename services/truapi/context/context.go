@@ -76,9 +76,8 @@ type WebConfig struct {
 
 // CommunityConfig is the config for the community
 type CommunityConfig struct {
-	InactiveCommunities        []string `mapstructure:"inactive-communities"`
-	BetaCommunities            []string `mapstructure:"beta-communities"`
-	DefaultFollowedCommunities []string `mapstructure:"default-followed-communities"`
+	InactiveCommunities []string `mapstructure:"inactive-communities"`
+	BetaCommunities     []string `mapstructure:"beta-communities"`
 }
 
 // ParamsConfig is the config for off-chain params
@@ -101,6 +100,13 @@ type AWSConfig struct {
 	Sender       string `mapstructure:"aws-ses-sender"`
 	AccessKey    string `mapstructure:"aws-access-key"`
 	AccessSecret string `mapstructure:"aws-access-secret"`
+	S3Region     string `mapstructure:"aws-s3-region"`
+	S3Bucket     string `mapstructure:"aws-s3-bucket"`
+}
+
+// SpotlightConfig is the config for the Spotlight service
+type SpotlightConfig struct {
+	URL string `mapstructure:"spotlight-url"`
 }
 
 // DripperConfig is the config to send the drip campaigns
@@ -133,6 +139,7 @@ type Config struct {
 	Params    ParamsConfig
 	Admin     AdminConfig
 	AWS       AWSConfig
+	Spotlight SpotlightConfig
 	Dripper   DripperConfig
 }
 

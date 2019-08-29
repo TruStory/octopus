@@ -18,15 +18,24 @@ import (
 )
 
 const (
-	defaultDescription = "TruStory is a social network to debate claims with skin in the game"
+	defaultDescription = "TruStory is a social network to debate with skin in the game"
 	previewDirectory   = "communities/previews" // full url format: S3_URL/communities/previews/PREVIEW.jpeg
+
+	REGEX_MATCHES_CLAIM          = 2
+	REGEX_MATCHES_CLAIM_ARGUMENT = 3
+	REGEX_MATCHES_CLAIM_COMMENT  = 3
+	REGEX_MATCHES_COMMUNITY      = 2
+	REGEX_MATCHES_PROFILE        = 2
+	REGEX_MATCHES_HIGHLIGHT      = 4
 )
 
 var (
-	claimRegex         = regexp.MustCompile("/claim/([0-9]+)/?$")
-	claimArgumentRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
-	claimCommentRegex  = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/?$")
-	communityRegex     = regexp.MustCompile("/community/([^/]+)")
+	claimRegex                  = regexp.MustCompile("/claim/([0-9]+)/?$")
+	claimArgumentRegex          = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
+	claimCommentRegex           = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/?$")
+	communityRegex              = regexp.MustCompile("/community/([^/]+)")
+	profileRegex                = regexp.MustCompile("/profile/([a-z0-9]+)/?$")
+	claimArgumentHighlightRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/highlight/([0-9]+)/?$")
 )
 
 // Tags defines the struct containing all the request Meta Tags for a page
@@ -50,7 +59,7 @@ func CompileIndexFile(ta *TruAPI, index []byte, route string) string {
 func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 	// /claim/xxx
 	matches := claimRegex.FindStringSubmatch(route)
-	if len(matches) == 2 {
+	if len(matches) == REGEX_MATCHES_CLAIM {
 		// replace placeholder with claim details, where claim id is in matches[1]
 		claimID, err := strconv.ParseInt(matches[1], 10, 64)
 		if err != nil {
@@ -67,7 +76,7 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 
 	// /claim/xxx/argument/xxx
 	matches = claimArgumentRegex.FindStringSubmatch(route)
-	if len(matches) == 3 {
+	if len(matches) == REGEX_MATCHES_CLAIM_ARGUMENT {
 		// replace placeholder with claim details, where claim id is in matches[1]
 		claimID, err := strconv.ParseUint(matches[1], 10, 64)
 		if err != nil {
@@ -89,7 +98,7 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 
 	// /claim/xxx/comment/xxx
 	matches = claimCommentRegex.FindStringSubmatch(route)
-	if len(matches) == 3 {
+	if len(matches) == REGEX_MATCHES_CLAIM_COMMENT {
 		// replace placeholder with claim details, where claim id is in matches[1]
 		claimID, err := strconv.ParseUint(matches[1], 10, 64)
 		if err != nil {
@@ -109,8 +118,9 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 		return compile(index, *metaTags)
 	}
 
+	// community/
 	matches = communityRegex.FindStringSubmatch(route)
-	if len(matches) == 2 {
+	if len(matches) == REGEX_MATCHES_COMMUNITY {
 		// replace placeholder with community details
 		communityID := matches[1]
 
@@ -119,6 +129,46 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
 
+		return compile(index, *metaTags)
+	}
+
+	// profile/XXX
+	matches = profileRegex.FindStringSubmatch(route)
+	if len(matches) == REGEX_MATCHES_PROFILE {
+		// replace placeholder with profile details
+		address := matches[1]
+
+		metaTags, err := makeProfileMetaTags(ta, route, address)
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+
+		return compile(index, *metaTags)
+	}
+
+	// /claim/xxx/argument/xxx/highlight/xxx
+	matches = claimArgumentHighlightRegex.FindStringSubmatch(route)
+	if len(matches) == REGEX_MATCHES_HIGHLIGHT {
+		claimID, err := strconv.ParseUint(matches[1], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		argumentID, err := strconv.ParseUint(matches[2], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		highlightID, err := strconv.ParseInt(matches[3], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+
+		metaTags, err := makeClaimArgumentHighlightMetaTags(ta, route, claimID, argumentID, highlightID)
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
 		return compile(index, *metaTags)
 	}
 
@@ -160,6 +210,7 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 	ctx := context.Background()
 
 	claimObj := ta.claimResolver(ctx, queryByClaimID{ID: claimID})
+	claimImage := ta.claimImageResolver(ctx, claimObj)
 	participants := ta.claimParticipantsResolver(ctx, claimObj)
 	totalStaked := sdk.NewCoin(app.StakeDenom, sdk.NewInt(0))
 	arguments := ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: claimID})
@@ -177,7 +228,7 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 	}
 
 	// HACK: video debate thumbnails
-	image := fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v", ta.APIContext.Config.App.URL, claimID)
+	image := claimImage
 	if claimID == 824 {
 		image = "https://s3-us-west-1.amazonaws.com/trustory/images/22405a4351507698.jpg"
 	} else if claimID == 981 {
@@ -186,10 +237,12 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 		image = "https://s3-us-west-1.amazonaws.com/trustory/images/95157a0231559474.jpg"
 	} else if claimID == 1036 {
 		image = "https://s3-us-west-1.amazonaws.com/trustory/images/9316406a9a374444.jpg"
+	} else if claimID == 1135 {
+		image = "https://s3-us-west-1.amazonaws.com/trustory/images/a578421649897493.jpg"
 	}
 
 	description := fmt.Sprintf("%d participant%s, %s %s", totalParticipants, totalParticipantsPlural, totalStaked.Amount.Quo(sdk.NewInt(app.Shanev)), db.CoinDisplayName)
-	if claimID == 824 || claimID == 981 || claimID == 995 || claimID == 1036 {
+	if claimID == 824 || claimID == 981 || claimID == 995 || claimID == 1036 || claimID == 1135 {
 		description = ""
 	}
 
@@ -213,6 +266,32 @@ func makeClaimArgumentMetaTags(ta *TruAPI, route string, claimID uint64, argumen
 		Title:       fmt.Sprintf("%s made an argument", "@"+creatorObj.Username),
 		Description: html.EscapeString(stripmd.Strip(argumentObj.Summary)),
 		Image:       fmt.Sprintf("%s/api/v1/spotlight?argument_id=%v", ta.APIContext.Config.App.URL, argumentID),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
+	}, nil
+}
+
+func makeClaimArgumentHighlightMetaTags(ta *TruAPI, route string, claimID uint64, argumentID uint64, highlightID int64) (*Tags, error) {
+	ctx := context.Background()
+	argumentObj := ta.claimArgumentResolver(ctx, queryByArgumentID{ID: argumentID})
+	creatorObj, err := ta.DBClient.UserByAddress(argumentObj.Creator.String())
+	if creatorObj == nil || err != nil {
+		// if error, return default
+		return nil, err
+	}
+	highlight := db.Highlight{ID: highlightID}
+	err = ta.DBClient.Find(&highlight)
+	if err != nil {
+		return nil, err
+	}
+
+	if highlight.ImageURL == "" {
+		// for the rare edge cases where the image caching has failed, we'll render the preview on the fly
+		highlight.ImageURL = fmt.Sprintf("%s/api/v1/spotlight?highlight_id=%v", ta.APIContext.Config.App.URL, highlightID)
+	}
+	return &Tags{
+		Title:       fmt.Sprintf("@%s made an argument", creatorObj.Username),
+		Description: html.EscapeString(stripmd.Strip(highlight.Text)),
+		Image:       highlight.ImageURL,
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }
@@ -252,6 +331,22 @@ func makeCommunityMetaTags(ta *TruAPI, route string, communityID string) (*Tags,
 		Title:       fmt.Sprintf("%s Community on %s", community.Name, ta.APIContext.Config.App.Name),
 		Description: community.Description,
 		Image:       joinPath(previewsDirectory, fmt.Sprintf("%s.jpg", communityID)),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
+	}, nil
+}
+
+// makes the profile meta tags
+func makeProfileMetaTags(ta *TruAPI, route string, address string) (*Tags, error) {
+	profileObj, err := ta.DBClient.UserByAddress(address)
+	if profileObj == nil || err != nil {
+		// if error, return default
+		return nil, err
+	}
+
+	return &Tags{
+		Title:       fmt.Sprintf("%s — TruStory", profileObj.FullName),
+		Description: profileObj.Bio,
+		Image:       profileObj.AvatarURL,
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

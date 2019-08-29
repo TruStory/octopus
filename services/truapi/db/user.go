@@ -20,6 +20,9 @@ import (
 // InvitedUserDefaultName is the default name given to the invited user
 const InvitedUserDefaultName = "<invited user>"
 
+// InvitesValidity is the expiry period for the granted invites
+const InvitesValidity = time.Hour * 24 * 14 // 2 weeks
+
 // User is the user on the TruStory platform
 type User struct {
 	Timestamps
@@ -718,7 +721,7 @@ func (c *Client) UserProfileByAddress(addr string) (*UserProfile, error) {
 }
 
 // UsersByAddress fetches a list of users by address
-func (c *Client) UsersByAddress(addresses []string) ([]User, error) {	
+func (c *Client) UsersByAddress(addresses []string) ([]User, error) {
 	users := make([]User, 0)
 	err := c.Model(&users).WhereIn("address in (?)", pg.In(addresses)).Select()
 	if err == pg.ErrNoRows {
@@ -750,6 +753,22 @@ func (c *Client) UserProfileByUsername(username string) (*UserProfile, error) {
 	}
 
 	return userProfile, nil
+}
+
+// GrantInvites grants the given number of invites to the user
+func (c *Client) GrantInvites(id int64, count int) error {
+	user := new(User)
+	_, err := c.Model(user).
+		Where("id = ?", id).
+		Set("invites_left = invites_left + ?", count).
+		Set("invites_valid_until = ?", time.Now().Add(InvitesValidity)).
+		Update()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getHashedPassword(password string) (string, error) {

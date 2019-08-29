@@ -469,13 +469,13 @@ func (ta *TruAPI) RegisterResolvers() {
 			claim := ta.claimResolver(ctx, queryByClaimID{ID: q.ClaimID})
 			return &claim
 		},
-
-		// deprecated
-		"hasSlashed": func(_ context.Context, q staking.Argument) bool { return false },
 	})
 
+	// deprecated: use paginated "comments" resolver instead
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("Comment", db.Comment{}, map[string]interface{}{
+
+	ta.GraphQLClient.RegisterPaginatedQueryResolver("comments", ta.claimCommentsResolver)
+	ta.GraphQLClient.RegisterPaginatedObjectResolver("PaginatedComment", "iD", db.Comment{}, map[string]interface{}{
 		"id":         func(_ context.Context, q db.Comment) int64 { return q.ID },
 		"parentId":   func(_ context.Context, q db.Comment) int64 { return q.ParentID },
 		"claimId":    func(_ context.Context, q db.Comment) int64 { return q.ClaimID },
@@ -489,15 +489,14 @@ func (ta *TruAPI) RegisterResolvers() {
 
 	ta.GraphQLClient.RegisterQueryResolver("claimQuestions", ta.claimQuestionsResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Question", db.Question{}, map[string]interface{}{
-		"id":         func(_ context.Context, q db.Question) int64 { return q.ID },
-		"claimId":    func(_ context.Context, q db.Question) int64 { return q.ClaimID },
-		"body":       func(_ context.Context, q db.Question) string { return q.Body },
+		"id":      func(_ context.Context, q db.Question) int64 { return q.ID },
+		"claimId": func(_ context.Context, q db.Question) int64 { return q.ClaimID },
+		"body":    func(_ context.Context, q db.Question) string { return q.Body },
 		"creator": func(ctx context.Context, q db.Question) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
 		},
 		"createdAt": func(_ context.Context, q db.Question) time.Time { return q.CreatedAt },
 	})
-
 
 	ta.GraphQLClient.RegisterObjectResolver("Stake", staking.Stake{}, map[string]interface{}{
 		"id": func(_ context.Context, q staking.Stake) uint64 { return q.ID },

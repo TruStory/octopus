@@ -235,10 +235,12 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 		image = "https://s3-us-west-1.amazonaws.com/trustory/images/407a1236454a9a59.jpg"
 	} else if claimID == 1036 {
 		image = "https://s3-us-west-1.amazonaws.com/trustory/images/9316406a9a374444.jpg"
+	} else if claimID == 1135 {
+		image = "https://s3-us-west-1.amazonaws.com/trustory/images/a578421649897493.jpg"
 	}
 
 	description := fmt.Sprintf("%d participant%s, %s %s", totalParticipants, totalParticipantsPlural, totalStaked.Amount.Quo(sdk.NewInt(app.Shanev)), db.CoinDisplayName)
-	if claimID == 824 || claimID == 981 || claimID == 1036 {
+	if claimID == 824 || claimID == 981 || claimID == 1036 || claimID == 1135 {
 		description = ""
 	}
 

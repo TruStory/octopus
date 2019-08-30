@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -31,15 +33,9 @@ func main() {
 		},
 	}
 
-	userJourneyEndpoint := mustEnv("USER_JOURNEY_ENDPOINT")
-	adminUsername := mustEnv("ADMIN_USERNAME")
-	adminPassword := mustEnv("ADMIN_PASSWORD")
 	inviteBatchSize, err := strconv.Atoi(mustEnv("INVITE_BATCH_SIZE"))
 	if err != nil {
 		log.Fatalln(err)
-	}
-	httpClient := &http.Client{
-		Timeout: time.Second * 10,
 	}
 	dbClient := db.NewDBClient(config)
 
@@ -54,24 +50,11 @@ func main() {
 		fmt.Printf("Evaluating user with ID: %d -- ", newUser.ID)
 
 		// check if they are eligible to be given their first set of invites
-		request, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s?user_id=%d", userJourneyEndpoint, newUser.ID), nil)
-		request.SetBasicAuth(adminUsername, adminPassword)
+		eligible, err := userHasBecomeEligible(newUser)
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatal(err)
 		}
-		response, err := httpClient.Do(request)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		defer response.Body.Close()
-
-		var userJourney UserJourneyResponse
-		err = json.NewDecoder(response.Body).Decode(&userJourney)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		if !userHasBecomeEligible(userJourney) {
+		if !eligible {
 			fmt.Printf("not yet eligible. ❌\n")
 			continue
 		}
@@ -81,14 +64,14 @@ func main() {
 
 		// give invites
 		fmt.Printf("\tGranting %d new invites... ", inviteBatchSize)
-		err = dbClient.GrantInvites(userJourney.Data.UserID, inviteBatchSize)
+		err = dbClient.GrantInvites(newUser.ID, inviteBatchSize)
 		if err != nil {
 			log.Fatalln(err)
 		}
 		fmt.Printf("✅\n")
 
 		// check if they were referred by another user
-		user, err := dbClient.UserByID(userJourney.Data.UserID)
+		user, err := dbClient.UserByID(newUser.ID)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -110,9 +93,12 @@ func main() {
 		}
 		fmt.Printf("✅\n")
 
-		// TODO: reward TRU to the inviting user
 		// Q: Should we check if the referrer users themselves are eligible yet or not?
 		fmt.Printf("\tWas referred by %s. Rewarding them with TRU...", referrer.Username)
+		err = sendReward(*referrer, mustEnv("REWARD_STEP_FIVE_AGREES"))
+		if err != nil {
+			log.Fatalln(err)
+		}
 		fmt.Printf("✅\n")
 	}
 }
@@ -130,13 +116,63 @@ func getNewUsers(dbClient *db.Client) ([]db.User, error) {
 	return users, nil
 }
 
-func userHasBecomeEligible(userJourney UserJourneyResponse) bool {
+func userHasBecomeEligible(user db.User) (bool, error) {
+	response, err := makeHTTPRequest(http.MethodGet, fmt.Sprintf("%s?user_id=%d", mustEnv("ENDPOINT_USER_JOURNEY"), user.ID), nil)
+	if err != nil {
+		return false, err
+	}
+	defer response.Body.Close()
+
+	var userJourney UserJourneyResponse
+	err = json.NewDecoder(response.Body).Decode(&userJourney)
+	if err != nil {
+		return false, err
+	}
+
 	for _, step := range requiredSteps {
 		// if any step is not completed, the user is not eligible
 		if !userJourney.Data.Steps[step] {
-			return false
+			return false, err
 		}
 	}
 
-	return true
+	return true, nil
+}
+
+func sendReward(user db.User, amount string) error {
+	body := struct {
+		UserID int64  `json:"user_id"`
+		Amount string `json:"amount"`
+	}{
+		UserID: user.ID,
+		Amount: amount,
+	}
+	bodyBuffer := new(bytes.Buffer)
+	err := json.NewEncoder(bodyBuffer).Encode(body)
+	if err != nil {
+		return err
+	}
+	_, err = makeHTTPRequest(http.MethodPost, mustEnv("ENDPOINT_GIFT"), bodyBuffer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func makeHTTPRequest(method, endpoint string, body io.Reader) (*http.Response, error) {
+	httpClient := &http.Client{
+		Timeout: time.Second * 10,
+	}
+	request, err := http.NewRequest(method, endpoint, body)
+	request.SetBasicAuth(mustEnv("ADMIN_USERNAME"), mustEnv("ADMIN_PASSWORD"))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }

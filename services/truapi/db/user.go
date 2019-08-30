@@ -47,10 +47,20 @@ type User struct {
 
 // UserMeta holds user meta data
 type UserMeta struct {
-	OnboardFollowCommunities *bool `json:"onboardFollowCommunities,omitempty"`
-	OnboardCarousel          *bool `json:"onboardCarousel,omitempty"`
-	OnboardContextual        *bool `json:"onboardContextual,omitempty"`
+	OnboardFollowCommunities *bool             `json:"onboardFollowCommunities,omitempty"`
+	OnboardCarousel          *bool             `json:"onboardCarousel,omitempty"`
+	OnboardContextual        *bool             `json:"onboardContextual,omitempty"`
+	Journey                  []UserJourneyStep `json:"journey"`
 }
+
+// UserJourneyStep is a step in the entire journey
+type UserJourneyStep string
+
+const (
+	JourneyStepSignedUp    UserJourneyStep = "signed_up"
+	JourneyStepOneArgument UserJourneyStep = "one_argument"
+	JourneyStepFiveAgrees  UserJourneyStep = "five_agrees"
+)
 
 // UserProfile contains the fields that make up the user profile
 type UserProfile struct {
@@ -796,6 +806,37 @@ func (c *Client) ConsumeInvite(id int64) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// UsersWithIncompleteJourney returns all the users who have not yet completed their journey
+func (c *Client) UsersWithIncompleteJourney() ([]User, error) {
+	var users = make([]User, 0)
+	err := c.Model(&users).
+		Where("meta ? 'journey' = false").
+		WhereOr("jsonb_array_length(meta->'journey') < ?", 3).
+		Select()
+	if err != nil {
+		return users, err
+	}
+
+	return users, nil
+}
+
+// UpdateUserJourney updates the user journey
+func (c *Client) UpdateUserJourney(id int64, journey []UserJourneyStep) error {
+	user, err := c.UserByID(id)
+	if err != nil {
+		return err
+	}
+	meta := user.Meta
+	meta.Journey = journey
+
+	err = c.SetUserMeta(id, &meta)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getHashedPassword(password string) (string, error) {

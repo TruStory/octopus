@@ -58,6 +58,8 @@ type Mutations interface {
 	AddImageURLToHighlight(id int64, url string) error
 	GrantInvites(id int64, count int) error
 	ConsumeInvite(id int64) (bool, error)
+	UsersWithIncompleteJourney() ([]User, error)
+	UpdateUserJourney(id int64, journey []UserJourneyStep) error
 }
 
 // Queries read from the database

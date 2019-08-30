@@ -10,15 +10,20 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/TruStory/octopus/services/truapi/truapi"
-
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
 )
 
-var requiredSteps = [...]truapi.UserJourneyStep{
-	truapi.JourneyStepOneArgument,
-	truapi.JourneyStepFiveAgrees,
+var requiredSteps = [...]db.UserJourneyStep{
+	db.JourneyStepSignedUp,
+	db.JourneyStepOneArgument,
+	db.JourneyStepFiveAgrees,
+}
+
+var rewardForStep = map[db.UserJourneyStep]string{
+	db.JourneyStepSignedUp:    mustEnv("REWARD_STEP_SIGNUP"),
+	db.JourneyStepOneArgument: mustEnv("REWARD_STEP_ONE_ARGUMENT"),
+	db.JourneyStepFiveAgrees:  mustEnv("REWARD_STEP_FIVE_AGREES"),
 }
 
 func main() {
@@ -39,76 +44,92 @@ func main() {
 	}
 	dbClient := db.NewDBClient(config)
 
-	// get all the users who haven't been given out first batch of invites
+	// get all the users who haven't completed their journey yet
 	newUsers, err := getNewUsers(dbClient)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	fmt.Printf("Evaluating %d new users.\n", len(newUsers))
 
-	for _, newUser := range newUsers {
-		fmt.Printf("Evaluating user with ID: %d -- ", newUser.ID)
+	for _, user := range newUsers {
+		fmt.Printf("Evaluating user with ID: %d -- ", user.ID)
+
+		// checking for the progress made
+		currentJourney, err := getCurrentJourney(user)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		// if there are not new steps done by the user, we are done here
+		if len(user.Meta.Journey) == len(currentJourney) {
+			// moving on to the next one
+
+			continue
+		}
+		additionalStepsCompleted := additionalStepsCompleted(currentJourney, user.Meta.Journey)
 
 		// check if they are eligible to be given their first set of invites
-		eligible, err := userHasBecomeEligible(newUser)
-		if err != nil {
-			log.Fatal(err)
-		}
+		eligible := userHasBecomeEligible(currentJourney)
 		if !eligible {
-			fmt.Printf("not yet eligible. ❌\n")
-			continue
+			// no invites to be given yet
+			fmt.Printf("not yet eligible for invites. ❌\n")
+		} else {
+			// award the first set of invites
+			fmt.Printf("has become eligible for invites. ✅\n")
+
+			fmt.Printf("\tGranting %d new invites... ", inviteBatchSize)
+			err = dbClient.GrantInvites(user.ID, inviteBatchSize)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			fmt.Printf("✅\n")
 		}
 
-		// if yes...
-		fmt.Printf("has become eligible. ✅\n")
-
-		// give invites
-		fmt.Printf("\tGranting %d new invites... ", inviteBatchSize)
-		err = dbClient.GrantInvites(newUser.ID, inviteBatchSize)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		fmt.Printf("✅\n")
-
-		// check if they were referred by another user
-		user, err := dbClient.UserByID(newUser.ID)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
+		// if they were not referre by anyone, we are done for them
 		if user.ReferredBy == 0 {
+			// updating the current journey, and...
+			err = dbClient.UpdateUserJourney(user.ID, currentJourney)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			// moving on to the next one...
 			continue
 		}
 
-		// if yes...
 		referrer, err := dbClient.UserByID(user.ReferredBy)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		// reward more invites to the inviting user
-		fmt.Printf("\tWas referred by %s. Granting them %d invites as well...", referrer.Username, inviteBatchSize)
-		err = dbClient.GrantInvites(referrer.ID, inviteBatchSize)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		fmt.Printf("✅\n")
 
-		// Q: Should we check if the referrer users themselves are eligible yet or not?
-		fmt.Printf("\tWas referred by %s. Rewarding them with TRU...", referrer.Username)
-		err = sendReward(*referrer, mustEnv("REWARD_STEP_FIVE_AGREES"))
+		// if the user has become eligible, reward more invites to the inviting user
+		if eligible {
+			fmt.Printf("\tWas referred by %s. Granting them %d invites as well...", referrer.Username, inviteBatchSize)
+			err = dbClient.GrantInvites(referrer.ID, inviteBatchSize)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			fmt.Printf("✅\n")
+		}
+
+		for _, step := range additionalStepsCompleted {
+			reward := rewardForStep[step]
+			fmt.Printf("\tRewarding referrer (%s) them with %s because %s is completed...", referrer.Username, reward, step)
+			err = sendReward(*referrer, reward)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			fmt.Printf("✅\n")
+		}
+
+		err = dbClient.UpdateUserJourney(user.ID, currentJourney)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		fmt.Printf("✅\n")
 	}
 }
 
 func getNewUsers(dbClient *db.Client) ([]db.User, error) {
-	users := make([]db.User, 0)
-	err := dbClient.Model(&users).
-		Where("invites_valid_until IS NULL"). // meaning, they have never been given any invites
-		Select()
-
+	users, err := dbClient.UsersWithIncompleteJourney()
 	if err != nil {
 		return users, err
 	}
@@ -116,27 +137,37 @@ func getNewUsers(dbClient *db.Client) ([]db.User, error) {
 	return users, nil
 }
 
-func userHasBecomeEligible(user db.User) (bool, error) {
+func getCurrentJourney(user db.User) (journey []db.UserJourneyStep, err error) {
 	response, err := makeHTTPRequest(http.MethodGet, fmt.Sprintf("%s?user_id=%d", mustEnv("ENDPOINT_USER_JOURNEY"), user.ID), nil)
 	if err != nil {
-		return false, err
+		return
 	}
 	defer response.Body.Close()
 
 	var userJourney UserJourneyResponse
 	err = json.NewDecoder(response.Body).Decode(&userJourney)
 	if err != nil {
-		return false, err
+		return
 	}
 
 	for _, step := range requiredSteps {
-		// if any step is not completed, the user is not eligible
-		if !userJourney.Data.Steps[step] {
-			return false, err
+		if userJourney.Data.Steps[step] {
+			journey = append(journey, step)
 		}
 	}
 
-	return true, nil
+	return
+}
+
+func userHasBecomeEligible(journey []db.UserJourneyStep) bool {
+	for _, step := range requiredSteps {
+		// if any step is not completed, the user is not eligible
+		if !containsStep(journey, step) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func sendReward(user db.User, amount string) error {
@@ -175,4 +206,26 @@ func makeHTTPRequest(method, endpoint string, body io.Reader) (*http.Response, e
 	}
 
 	return response, nil
+}
+
+func containsStep(haystack []db.UserJourneyStep, needle db.UserJourneyStep) bool {
+	for _, step := range haystack {
+		if step == needle {
+			return true
+		}
+	}
+
+	return false
+}
+
+func additionalStepsCompleted(current []db.UserJourneyStep, previous []db.UserJourneyStep) []db.UserJourneyStep {
+	var diff []db.UserJourneyStep
+
+	for _, step := range current {
+		if !containsStep(previous, step) {
+			diff = append(diff, step)
+		}
+	}
+
+	return diff
 }

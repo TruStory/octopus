@@ -10,16 +10,9 @@ import (
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
-type UserJourneyStep string
-
-const (
-	JourneyStepOneArgument UserJourneyStep = "one_argument"
-	JourneyStepFiveAgrees  UserJourneyStep = "five_agrees"
-)
-
 type UserJourneyResponse struct {
-	UserID int64                    `json:"user_id"`
-	Steps  map[UserJourneyStep]bool `json:"steps"`
+	UserID int64                       `json:"user_id"`
+	Steps  map[db.UserJourneyStep]bool `json:"steps"`
 }
 
 // HandleUserJourney returns the progress of a user on the journey
@@ -52,13 +45,18 @@ func (ta *TruAPI) HandleUserJourney(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	steps := make(map[UserJourneyStep]bool)
-	steps[JourneyStepOneArgument], err = isStepCompleted(ta, JourneyStepOneArgument, user)
+	steps := make(map[db.UserJourneyStep]bool)
+	steps[db.JourneyStepSignedUp], err = isStepCompleted(ta, db.JourneyStepSignedUp, user)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
-	steps[JourneyStepFiveAgrees], err = isStepCompleted(ta, JourneyStepFiveAgrees, user)
+	steps[db.JourneyStepOneArgument], err = isStepCompleted(ta, db.JourneyStepOneArgument, user)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+	steps[db.JourneyStepFiveAgrees], err = isStepCompleted(ta, db.JourneyStepFiveAgrees, user)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
@@ -72,11 +70,13 @@ func (ta *TruAPI) HandleUserJourney(w http.ResponseWriter, r *http.Request) {
 	render.Response(w, r, response, http.StatusOK)
 }
 
-func isStepCompleted(ta *TruAPI, step UserJourneyStep, user *db.User) (bool, error) {
+func isStepCompleted(ta *TruAPI, step db.UserJourneyStep, user *db.User) (bool, error) {
 	switch step {
-	case JourneyStepOneArgument:
+	case db.JourneyStepSignedUp:
+		return true, nil
+	case db.JourneyStepOneArgument:
 		return isOneArgumentStepComplete(ta, user)
-	case JourneyStepFiveAgrees:
+	case db.JourneyStepFiveAgrees:
 		return isFiveAgreesStepComplete(ta, user)
 	}
 

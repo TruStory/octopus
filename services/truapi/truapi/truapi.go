@@ -212,6 +212,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/users/authentication", ta.HandleUserAuthentication)
 	api.HandleFunc("/users/onboard", ta.HandleUserOnboard)
 	api.HandleFunc("/users/journey", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleUserJourney)))
+	api.HandleFunc("/gift", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleGift)))
 	api.Handle("/communities/follow", http.HandlerFunc(ta.handleFollowCommunities)).Methods(http.MethodPost)
 	api.Handle("/communities/unfollow/{communityID}",
 		http.HandlerFunc(ta.handleUnfollowCommunity)).Methods(http.MethodDelete)

@@ -152,17 +152,6 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		Username: request.Username,
 	}
 
-	// check if the signing user was invited by anyone before
-	referrer, err := ta.DBClient.InvitesByFriendEmail(request.Email)
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if referrer != nil {
-		request.ReferredBy = referrer.Creator
-	}
-
 	err = ta.DBClient.RegisterUser(user, request.ReferredBy)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)

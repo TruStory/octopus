@@ -57,6 +57,7 @@ type Mutations interface {
 	FollowsCommunity(address, communityID string) (bool, error)
 	AddImageURLToHighlight(id int64, url string) error
 	GrantInvites(id int64, count int) error
+	ConsumeInvite(id int64) (bool, error)
 }
 
 // Queries read from the database

@@ -251,7 +251,14 @@ func (c *Client) RegisterUser(user *User, referrerCode string) error {
 		return err
 	}
 	if referrer != nil {
-		user.ReferredBy = referrer.ID
+		consumed, err := c.ConsumeInvite(referrer.ID)
+		if err != nil {
+			return err
+		}
+
+		if consumed {
+			user.ReferredBy = referrer.ID
+		}
 	}
 
 	err = c.AddUser(user)
@@ -769,6 +776,26 @@ func (c *Client) GrantInvites(id int64, count int) error {
 	}
 
 	return nil
+}
+
+// ConsumeInvite consumes one invite, if available
+func (c *Client) ConsumeInvite(id int64) (bool, error) {
+	user := new(User)
+	result, err := c.Model(user).
+		Where("id = ?", id).
+		Where("invites_valid_until >= NOW()").
+		Where("invites_left > 0"). // must have atleast one invite left to be consumed
+		Set("invites_left = invites_left - 1").
+		Update()
+	if err != nil {
+		return false, err
+	}
+
+	if result.RowsAffected() == 0 {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func getHashedPassword(password string) (string, error) {

@@ -133,7 +133,7 @@ func getNewUsers(dbClient *db.Client) ([]db.User, error) {
 func userHasBecomeEligible(userJourney UserJourneyResponse) bool {
 	for _, step := range requiredSteps {
 		// if any step is not completed, the user is not eligible
-		if userJourney.Data.Steps[step] == false {
+		if !userJourney.Data.Steps[step] {
 			return false
 		}
 	}

@@ -14,7 +14,7 @@ type Comment struct {
 // CommentsByArgumentID finds comments by argument id
 func (c *Client) CommentsByArgumentID(argumentID int64) ([]Comment, error) {
 	comments := make([]Comment, 0)
-	err := c.Model(&comments).Where("argument_id = ?", argumentID).Select()
+	err := c.Model(&comments).Where("argument_id = ?", argumentID).Order("id ASC").Select()
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (c *Client) CommentsByArgumentID(argumentID int64) ([]Comment, error) {
 // CommentsByClaimID finds comments by claim id
 func (c *Client) CommentsByClaimID(claimID uint64) ([]Comment, error) {
 	comments := make([]Comment, 0)
-	err := c.Model(&comments).Where("claim_id = ?", claimID).Select()
+	err := c.Model(&comments).Where("claim_id = ?", claimID).Order("id ASC").Select()
 	if err != nil {
 		return nil, err
 	}

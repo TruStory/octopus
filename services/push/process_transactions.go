@@ -1,16 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/TruStory/truchain/x/slashing"
-	slashingtags "github.com/TruStory/truchain/x/slashing/tags"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 
 	"github.com/TruStory/truchain/x/staking"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/types"
 )
 
@@ -115,14 +112,14 @@ func (s *service) processUpvote(data []byte, notifications chan<- *Notification)
 	}
 }
 
-func getTagValue(key string, tags sdk.Tags) ([]byte, bool) {
-	for _, tag := range tags.ToKVPairs() {
-		if string(tag.Key) == key {
-			return tag.Value, true
-		}
-	}
-	return nil, false
-}
+//func getTagValue(key string, tags sdk.Tags) ([]byte, bool) {
+//	for _, tag := range tags.ToKVPairs() {
+//		if string(tag.Key) == key {
+//			return tag.Value, true
+//		}
+//	}
+//	return nil, false
+//}
 
 func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
 	notifications chan<- *Notification, meta db.NotificationMeta, argumentID int64, minCount string) {
@@ -170,64 +167,65 @@ func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
 			}
 		}
 	}
-
 }
-func (s *service) processSlash(data []byte, tags sdk.Tags, notifications chan<- *Notification) {
-	slash := slashing.Slash{}
-	err := slashing.ModuleCodec.UnmarshalJSON(data, &slash)
-	if err != nil {
-		s.log.WithError(err).Error("error decoding argument created event")
-		return
-	}
-	argument, err := s.getArgumentSummary(int64(slash.ArgumentID))
-	if err != nil {
-		s.log.WithError(err).Error("error getting participants ")
-		return
-	}
-	meta := db.NotificationMeta{
-		ClaimID:    &argument.ClaimArgument.ClaimID,
-		ArgumentID: uint64Ptr(slash.ArgumentID),
-	}
 
-	reason := slash.Reason.String()
-	if slash.Reason == slashing.SlashReasonOther {
-		reason = slash.DetailedReason
-	}
-	notifications <- &Notification{
-		To:     argument.ClaimArgument.Creator.Address,
-		Msg:    fmt.Sprintf("Someone marked your argument as **Not Helpful** because: **%s** ", reason),
-		TypeID: int64(slash.ArgumentID),
-		Type:   db.NotificationNotHelpful,
-		Meta:   meta,
-		Action: "Not Helpful received on an Argument",
-	}
+//func (s *service) processSlash(data []byte, tags sdk.Tags, notifications chan<- *Notification) {
+//	slash := slashing.Slash{}
+//	err := slashing.ModuleCodec.UnmarshalJSON(data, &slash)
+//	if err != nil {
+//		s.log.WithError(err).Error("error decoding argument created event")
+//		return
+//	}
+//	argument, err := s.getArgumentSummary(int64(slash.ArgumentID))
+//	if err != nil {
+//		s.log.WithError(err).Error("error getting participants ")
+//		return
+//	}
+//	meta := db.NotificationMeta{
+//		ClaimID:    &argument.ClaimArgument.ClaimID,
+//		ArgumentID: uint64Ptr(slash.ArgumentID),
+//	}
+//
+//	reason := slash.Reason.String()
+//	if slash.Reason == slashing.SlashReasonOther {
+//		reason = slash.DetailedReason
+//	}
+//	notifications <- &Notification{
+//		To:     argument.ClaimArgument.Creator.Address,
+//		Msg:    fmt.Sprintf("Someone marked your argument as **Not Helpful** because: **%s** ", reason),
+//		TypeID: int64(slash.ArgumentID),
+//		Type:   db.NotificationNotHelpful,
+//		Meta:   meta,
+//		Action: "Not Helpful received on an Argument",
+//	}
+//
+//	b, ok := getTagValue(slashingtags.SlashResults, tags)
+//	minSlashCount, _ := getTagValue("min-slash-count", tags)
+//	count := string(minSlashCount)
+//	if ok {
+//		punishResults := make([]slashing.PunishmentResult, 0)
+//		err := json.Unmarshal(b, &punishResults)
+//		if err != nil {
+//			s.log.WithError(err).Warn("error decoding punish results")
+//		}
+//
+//		if err == nil {
+//			s.notifySlashes(punishResults, notifications, meta, int64(slash.ArgumentID), count)
+//		}
+//	}
+//}
 
-	b, ok := getTagValue(slashingtags.SlashResults, tags)
-	minSlashCount, _ := getTagValue("min-slash-count", tags)
-	count := string(minSlashCount)
-	if ok {
-		punishResults := make([]slashing.PunishmentResult, 0)
-		err := json.Unmarshal(b, &punishResults)
-		if err != nil {
-			s.log.WithError(err).Warn("error decoding punish results")
-		}
-
-		if err == nil {
-			s.notifySlashes(punishResults, notifications, meta, int64(slash.ArgumentID), count)
-		}
-	}
-
-}
 func (s *service) processTxEvent(evt types.EventDataTx, notifications chan<- *Notification) {
-	for _, tag := range evt.Result.Tags {
-		action := string(tag.Value)
-		switch action {
-		case "create-argument":
-			s.processArgumentCreated(evt.Result.Data, notifications)
-		case "create-upvote":
-			s.processUpvote(evt.Result.Data, notifications)
-		case "create-slash":
-			s.processSlash(evt.Result.Data, evt.Result.Tags, notifications)
-		}
-	}
+	//for _, tag := range evt.Result.Tags {
+	//	action := string(tag.Value)
+	//	switch action {
+	//	case "create-argument":
+	//		s.processArgumentCreated(evt.Result.Data, notifications)
+	//	case "create-upvote":
+	//		s.processUpvote(evt.Result.Data, notifications)
+	//	case "create-slash":
+	//		s.processSlash(evt.Result.Data, evt.Result.Tags, notifications)
+	//	}
+	//}
+	fmt.Println("in processTxEvent")
 }

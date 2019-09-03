@@ -336,7 +336,7 @@ func (ta *TruAPI) leaderboardResolver(ctx context.Context, q queryByDateAndMetri
 	sortBy := q.Metric.Value()
 	topUsers, err := ta.DBClient.Leaderboard(since, sortBy, limit, ta.APIContext.Config.Community.InactiveCommunities)
 	if err != nil {
-		panic(err)
+		log.Println("couldn't get leaderboard results", err)
 	}
 	return topUsers
 }

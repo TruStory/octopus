@@ -32,8 +32,8 @@ const (
 	ArgumentAgreed
 )
 
-type LeaderboardMetricFilter int64
-type LeaderboardDateFilter int64
+type LeaderboardMetricFilter int
+type LeaderboardDateFilter int
 
 const (
 	LeaderboardMetricFilterTruEarned LeaderboardMetricFilter = iota

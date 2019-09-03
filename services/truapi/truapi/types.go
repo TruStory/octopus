@@ -32,6 +32,51 @@ const (
 	ArgumentAgreed
 )
 
+type LeaderboardMetricFilter int
+type LeaderboardDateFilter int
+
+const (
+	LeaderboardMetricFilterTruEarned LeaderboardMetricFilter = iota
+	LeaderboardMetricFilterAgreesReceived
+	LeaderboardMetricFilterAgreesGiven
+)
+
+const (
+	LeaderboardDateFilterLastWeek LeaderboardDateFilter = iota
+	LeaderboardDateFilterLastMonth
+	LeaderboardDateFilterLastYear
+	LeaderboardDateFilterAllTime
+)
+
+var LeaderboardMetricSortByMapping = []string{
+	LeaderboardMetricFilterTruEarned:      "earned",
+	LeaderboardMetricFilterAgreesReceived: "agrees_received",
+	LeaderboardMetricFilterAgreesGiven:    "agrees_given",
+}
+
+func (f LeaderboardMetricFilter) Value() string {
+	// if unknown fallback to last tru earned
+	if int(f) >= len(LeaderboardMetricSortByMapping) {
+		return LeaderboardMetricSortByMapping[LeaderboardMetricFilterTruEarned]
+	}
+	return LeaderboardMetricSortByMapping[f]
+}
+
+var LeaderboardDateRangeMapping = []time.Duration{
+	LeaderboardDateFilterLastWeek:  time.Duration(-1) * time.Hour * 24 * 7,
+	LeaderboardDateFilterLastMonth: time.Duration(-1) * time.Hour * 24 * 30,
+	LeaderboardDateFilterLastYear:  time.Duration(-1) * time.Hour * 24 * 365,
+	LeaderboardDateFilterAllTime:   time.Duration(0),
+}
+
+func (f LeaderboardDateFilter) Value() time.Duration {
+	// if unknown fallback to last week
+	if int(f) >= len(LeaderboardDateRangeMapping) {
+		return LeaderboardDateRangeMapping[LeaderboardDateFilterLastWeek]
+	}
+	return LeaderboardDateRangeMapping[f]
+}
+
 // CommentNotificationRequest is the payload sent to pushd for sending notifications.
 type CommentNotificationRequest struct {
 	// ID is the comment id.

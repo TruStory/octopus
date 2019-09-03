@@ -99,6 +99,11 @@ func (ta *TruAPI) RunNotificationSender(apiCtx truCtx.TruAPIContext) error {
 	return nil
 }
 
+// RunLeaderboardScheduler runs the leaderboard background processing.
+func (ta *TruAPI) RunLeaderboardScheduler(apiCtx truCtx.TruAPIContext) {
+	go ta.leaderboardScheduler()
+}
+
 // WrapHandler wraps a chttp.Handler and returns a standar http.Handler
 func WrapHandler(h chttp.Handler) http.Handler {
 	return h.HandlerFunc()
@@ -385,6 +390,16 @@ func (ta *TruAPI) RegisterResolvers() {
 	})
 
 	ta.GraphQLClient.RegisterQueryResolver("appAccountEarnings", ta.appAccountEarningsResolver)
+
+	ta.GraphQLClient.RegisterQueryResolver("leaderboard", ta.leaderboardResolver)
+	ta.GraphQLClient.RegisterObjectResolver("LeaderboardTopUser", db.LeaderboardTopUser{}, map[string]interface{}{
+		"account": func(ctx context.Context, t db.LeaderboardTopUser) *AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: t.Address})
+		},
+		"earned": func(ctx context.Context, t db.LeaderboardTopUser) sdk.Coin {
+			return sdk.NewInt64Coin(app.StakeDenom, t.Earned)
+		},
+	})
 
 	ta.GraphQLClient.RegisterQueryResolver("communities", ta.communitiesResolver)
 	ta.GraphQLClient.RegisterQueryResolver("community", ta.communityResolver)

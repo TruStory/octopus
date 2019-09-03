@@ -293,8 +293,6 @@ func (ta *TruAPI) processStats() error {
 	if err != nil {
 		return err
 	}
-	// ensuring all metrics are calculated in UTC.
-	// start, end := getLeaderboardBetweenDates(time.Now().UTC())
 	log.Println("Completed leaderboard stats")
 	return nil
 }
@@ -309,6 +307,7 @@ func (ta *TruAPI) leaderboardScheduler() {
 		interval = ta.APIContext.Config.Leaderboard.Interval
 	}
 	log.Printf("leaderboard: update interval of %d minutes \n", interval)
+	// try to sync when truapi just started
 	err := ta.processStats()
 	if err != nil {
 		log.Println("an error occurred processing stats, waiting for next interval", err)

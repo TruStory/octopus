@@ -267,15 +267,15 @@ func (ta *TruAPI) processStats() error {
 		if err != nil {
 			return err
 		}
-		lasProcessedDateTime = date
+		lastProcessedDateTime = date
 	}
 
 	if lastDate != nil {
-		lasProcessedDateTime = lastDate.Date
+		lastProcessedDateTime = lastDate.Date
 	}
 	now := time.Now().UTC()
 	start := getZeroHour(now)
-	dateToProcess := lasProcessedDateTime.Add(time.Duration(24) * time.Hour)
+	dateToProcess := lastProcessedDateTime.Add(time.Duration(24) * time.Hour)
 	for dateToProcess.Before(start) {
 		log.Println("Syncing pending date", dateToProcess.Format("2006-01-02"))
 		s, e := getLeaderboardBetweenDates(dateToProcess)

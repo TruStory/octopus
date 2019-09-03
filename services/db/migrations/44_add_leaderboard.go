@@ -37,7 +37,7 @@ func init() {
 		)`)
 		return err
 	}, func(db migrations.DB) error {
-		fmt.Println("dropping connected_accounts table...")
+		fmt.Println("dropping leaderboard tables...")
 		_, err := db.Exec(`DROP TABLE leaderboard_processed_dates`)
 		if err != nil {
 			return err

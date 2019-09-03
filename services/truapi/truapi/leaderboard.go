@@ -123,7 +123,7 @@ func (ta *TruAPI) statsByDate(date time.Time) (*LeaderboardStats, error) {
 		exported.TransactionInterestArgumentCreation,
 		exported.TransactionInterestUpvoteReceived,
 		exported.TransactionInterestUpvoteGiven,
-		exported.TransactionCuratorReward,
+		// exported.TransactionCuratorReward,
 	}
 	for _, user := range users {
 		if user.Address == "" || !user.CreatedAt.Before(date) {
@@ -338,7 +338,6 @@ func (ta *TruAPI) leaderboardResolver(ctx context.Context, q queryByDateAndMetri
 		since = time.Time{}
 	}
 	sortBy := q.Metric.Value()
-	fmt.Println("excluded communities", ta.APIContext.Config.Community.InactiveCommunities)
 	topUsers, err := ta.DBClient.Leaderboard(since, sortBy, limit, ta.APIContext.Config.Community.InactiveCommunities)
 	if err != nil {
 		panic(err)

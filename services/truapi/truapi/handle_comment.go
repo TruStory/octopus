@@ -15,6 +15,7 @@ type AddCommentRequest struct {
 	ParentID   int64  `json:"parent_id,omitempty"`
 	ClaimID    int64  `json:"claim_id,omitempty"`
 	ArgumentID int64  `json:"argument_id,omitempty"`
+	ElementID  int64  `json:"element_id,omitempty"`
 	Body       string `json:"body"`
 }
 
@@ -44,6 +45,7 @@ func (ta *TruAPI) handleCreateComment(r *http.Request) chttp.Response {
 		ParentID:   request.ParentID,
 		ClaimID:    request.ClaimID,
 		ArgumentID: request.ArgumentID,
+		ElementID:  request.ElementID,
 		Body:       request.Body,
 		Creator:    user.Address,
 	}

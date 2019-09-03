@@ -99,7 +99,7 @@ func (ta *TruAPI) RunNotificationSender(apiCtx truCtx.TruAPIContext) error {
 	return nil
 }
 
-// RunLeaderboardScheduler connects to the push notification service
+// RunLeaderboardScheduler runs the leaderboard background processing.
 func (ta *TruAPI) RunLeaderboardScheduler(apiCtx truCtx.TruAPIContext) {
 	go ta.leaderboardScheduler()
 }

@@ -117,8 +117,6 @@ func (ta *TruAPI) statsByDate(date time.Time) (*LeaderboardStats, error) {
 		}
 	}
 	trackedTransactions := []exported.TransactionType{
-		exported.TransactionBacking,
-		exported.TransactionChallenge,
 		exported.TransactionInterestArgumentCreation,
 		exported.TransactionInterestUpvoteReceived,
 		exported.TransactionInterestUpvoteGiven,
@@ -262,7 +260,7 @@ func (ta *TruAPI) processStats() error {
 		return err
 	}
 
-	var lasProcessedDateTime time.Time
+	var lastProcessedDateTime time.Time
 	if lastDate == nil {
 		log.Println("Processing seed metrics")
 		date, err := ta.leaderboardSeed()

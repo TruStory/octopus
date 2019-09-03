@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
 
@@ -104,6 +105,11 @@ type Queries interface {
 	UserProfileByUsername(username string) (*UserProfile, error)
 	ClaimViewsStats(date time.Time) ([]ClaimViewsStats, error)
 	ClaimRepliesStats(date time.Time) ([]ClaimRepliesStats, error)
+	Leaderboard(since time.Time, sortBy string, limit int) ([]LeaderboardTopUser, error)
+	LastLeaderboardProcessedDate() (*LeaderboardProcessedDate, error)
+	FeedLeaderboardInTransaction(fn func(*pg.Tx) error) error
+	UpsertLeaderboardMetric(tx *pg.Tx, metric *LeaderboardUserMetric) error
+	UpsertLeaderboardProcessedDate(tx *pg.Tx, metric *LeaderboardProcessedDate) error
 
 	// deprecated, use UserProfileByAddress/UserProfileByUsername
 	TwitterProfileByAddress(addr string) (*TwitterProfile, error)

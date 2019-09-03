@@ -99,6 +99,11 @@ func (ta *TruAPI) RunNotificationSender(apiCtx truCtx.TruAPIContext) error {
 	return nil
 }
 
+// RunLeaderboardScheduler connects to the push notification service
+func (ta *TruAPI) RunLeaderboardScheduler(apiCtx truCtx.TruAPIContext) {
+	go ta.leaderboardScheduler()
+}
+
 // WrapHandler wraps a chttp.Handler and returns a standar http.Handler
 func WrapHandler(h chttp.Handler) http.Handler {
 	return h.HandlerFunc()
@@ -386,6 +391,16 @@ func (ta *TruAPI) RegisterResolvers() {
 
 	ta.GraphQLClient.RegisterQueryResolver("appAccountEarnings", ta.appAccountEarningsResolver)
 
+	ta.GraphQLClient.RegisterQueryResolver("leaderboard", ta.leaderboardResolver)
+	ta.GraphQLClient.RegisterObjectResolver("LeaderboardTopUser", db.LeaderboardTopUser{}, map[string]interface{}{
+		"account": func(ctx context.Context, t db.LeaderboardTopUser) *AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: t.Address})
+		},
+		"earned": func(ctx context.Context, t db.LeaderboardTopUser) sdk.Coin {
+			return sdk.NewInt64Coin(app.StakeDenom, t.Earned)
+		},
+	})
+
 	ta.GraphQLClient.RegisterQueryResolver("communities", ta.communitiesResolver)
 	ta.GraphQLClient.RegisterQueryResolver("community", ta.communityResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Community", community.Community{}, map[string]interface{}{
@@ -489,15 +504,14 @@ func (ta *TruAPI) RegisterResolvers() {
 
 	ta.GraphQLClient.RegisterQueryResolver("claimQuestions", ta.claimQuestionsResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Question", db.Question{}, map[string]interface{}{
-		"id":         func(_ context.Context, q db.Question) int64 { return q.ID },
-		"claimId":    func(_ context.Context, q db.Question) int64 { return q.ClaimID },
-		"body":       func(_ context.Context, q db.Question) string { return q.Body },
+		"id":      func(_ context.Context, q db.Question) int64 { return q.ID },
+		"claimId": func(_ context.Context, q db.Question) int64 { return q.ClaimID },
+		"body":    func(_ context.Context, q db.Question) string { return q.Body },
 		"creator": func(ctx context.Context, q db.Question) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})
 		},
 		"createdAt": func(_ context.Context, q db.Question) time.Time { return q.CreatedAt },
 	})
-
 
 	ta.GraphQLClient.RegisterObjectResolver("Stake", staking.Stake{}, map[string]interface{}{
 		"id": func(_ context.Context, q staking.Stake) uint64 { return q.ID },

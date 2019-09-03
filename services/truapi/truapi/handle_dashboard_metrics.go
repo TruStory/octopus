@@ -228,7 +228,7 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 	trackedTransactions := []exported.TransactionType{
 		exported.TransactionBacking,
 		exported.TransactionChallenge,
-		// exported.TransactionCuratorReward,
+		exported.TransactionCuratorReward,
 		exported.TransactionInterestArgumentCreation,
 		exported.TransactionInterestUpvoteReceived,
 		exported.TransactionInterestUpvoteGiven,
@@ -295,7 +295,6 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 				ucm.EarnedCoin = sdk.NewCoin(transaction.CommunityID, ucm.EarnedCoin.Amount.Add(transaction.Amount.Amount))
 			case exported.TransactionCuratorReward:
 				ucm.CuratorReward = ucm.CuratorReward.Add(transaction.Amount)
-				ucm.EarnedCoin = sdk.NewCoin(transaction.CommunityID, ucm.EarnedCoin.Amount.Add(transaction.Amount.Amount))
 			}
 
 		}

@@ -116,14 +116,10 @@ func (ta *TruAPI) statsByDate(date time.Time) (*LeaderboardStats, error) {
 			}
 		}
 	}
-	// currently the chain is not adding curator reward as earned stake
-	// which causes differences between whats on the profile
-	// commenting transaction until fully resolved
 	trackedTransactions := []exported.TransactionType{
 		exported.TransactionInterestArgumentCreation,
 		exported.TransactionInterestUpvoteReceived,
 		exported.TransactionInterestUpvoteGiven,
-		// exported.TransactionCuratorReward,
 	}
 	for _, user := range users {
 		if user.Address == "" || !user.CreatedAt.Before(date) {

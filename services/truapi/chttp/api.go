@@ -13,11 +13,10 @@ import (
 	"github.com/TruStory/truchain/x/account"
 	"github.com/TruStory/truchain/x/bank"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
+	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/gorilla/mux"
 	"github.com/oklog/ulid"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -175,10 +174,10 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	if err != nil {
 		return
 	}
-	err = cliCtx.EnsureAccountExistsFromAddr(registrarAddr)
-	if err != nil {
-		return
-	}
+	//err = cliCtx.EnsureAccountExistsFromAddr(registrarAddr)
+	//if err != nil {
+	//	return
+	//}
 	sk, err := StdKey(algo, k)
 	if err != nil {
 		return
@@ -190,12 +189,14 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	}
 
 	// build and sign the transaction
-	seq, err := cliCtx.GetAccountSequence(registrarAddr)
-	if err != nil {
-		return
-	}
+	//seq, err := cliCtx.GetAccountSequence(registrarAddr)
+	//if err != nil {
+	//	return
+	//}
 
-	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+	//txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+	txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
 		return
@@ -276,7 +277,8 @@ func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
+
+	res, _, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
 	if err != nil {
 		return res, err
 	}
@@ -290,7 +292,7 @@ func (a *API) Query(path string, params interface{}, cdc *codec.Codec) ([]byte, 
 	if err != nil {
 		return nil, err
 	}
-	res, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
+	res, _, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
 	if err != nil {
 		return res, err
 	}

@@ -327,7 +327,6 @@ type queryByDateAndMetricFilter struct {
 }
 
 func (ta *TruAPI) leaderboardResolver(ctx context.Context, q queryByDateAndMetricFilter) []db.LeaderboardTopUser {
-	fmt.Println("query params", q)
 	limit := leaderboardDefaultTopDisplaying
 	if ta.APIContext.Config.Leaderboard.TopDisplaying > 0 {
 		limit = ta.APIContext.Config.Leaderboard.TopDisplaying
@@ -338,7 +337,6 @@ func (ta *TruAPI) leaderboardResolver(ctx context.Context, q queryByDateAndMetri
 		since = time.Time{}
 	}
 	sortBy := q.Metric.Value()
-	fmt.Println(since, sortBy)
 	topUsers, err := ta.DBClient.Leaderboard(since, sortBy, limit)
 	if err != nil {
 		panic(err)

@@ -228,7 +228,7 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 	trackedTransactions := []exported.TransactionType{
 		exported.TransactionBacking,
 		exported.TransactionChallenge,
-		exported.TransactionCuratorReward,
+		// exported.TransactionCuratorReward,
 		exported.TransactionInterestArgumentCreation,
 		exported.TransactionInterestUpvoteReceived,
 		exported.TransactionInterestUpvoteGiven,

@@ -116,6 +116,9 @@ func (ta *TruAPI) statsByDate(date time.Time) (*LeaderboardStats, error) {
 			}
 		}
 	}
+	// currently the chain is not adding curator reward as earned stake
+	// which causes differences between whats on the profile
+	// commenting transaction until fully resolved
 	trackedTransactions := []exported.TransactionType{
 		exported.TransactionInterestArgumentCreation,
 		exported.TransactionInterestUpvoteReceived,
@@ -335,7 +338,8 @@ func (ta *TruAPI) leaderboardResolver(ctx context.Context, q queryByDateAndMetri
 		since = time.Time{}
 	}
 	sortBy := q.Metric.Value()
-	topUsers, err := ta.DBClient.Leaderboard(since, sortBy, limit)
+	fmt.Println("excluded communities", ta.APIContext.Config.Community.InactiveCommunities)
+	topUsers, err := ta.DBClient.Leaderboard(since, sortBy, limit, ta.APIContext.Config.Community.InactiveCommunities)
 	if err != nil {
 		panic(err)
 	}

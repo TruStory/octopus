@@ -81,14 +81,16 @@ func (c *Client) FeedLeaderboardInTransaction(fn func(*pg.Tx) error) (err error)
 	return err
 }
 
-func (c *Client) Leaderboard(since time.Time, sortBy string, limit int) ([]LeaderboardTopUser, error) {
+func (c *Client) Leaderboard(since time.Time, sortBy string, limit int, excludedCommunities []string) ([]LeaderboardTopUser, error) {
 	topUsers := make([]LeaderboardTopUser, 0)
 	q := c.Model((*LeaderboardUserMetric)(nil)).
 		Column("address").
 		ColumnExpr("SUM(earned) earned").
 		ColumnExpr("SUM(agrees_received) agrees_received").
 		ColumnExpr("SUM(agrees_given) agrees_given")
-
+	if len(excludedCommunities) > 0 {
+		q = q.Where("community_id  not in(?)", pg.In(excludedCommunities))
+	}
 	if !since.IsZero() {
 		q = q.Where("date >= ?", since)
 	}

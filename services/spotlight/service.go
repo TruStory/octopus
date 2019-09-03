@@ -132,7 +132,7 @@ func renderClaim(s *Service) http.Handler {
 		rawPreview, err := box.Find("claim.svg")
 		if err != nil {
 			log.Println(err)
-			http.Error(w, "URL Preview error", http.StatusInternalServerError)
+			http.Error(w, "Claim URL Preview error: svg file not found", http.StatusInternalServerError)
 			return
 		}
 		compiledPreview := compileClaimPreview(rawPreview, data.Claim)
@@ -170,7 +170,7 @@ func renderHighlight(s *Service) http.Handler {
 		argument, err := getArgument(s, highlight.HighlightableID)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, "URL Preview error", http.StatusInternalServerError)
+			http.Error(w, "Highlight URL Preview error, argument not found", http.StatusInternalServerError)
 			return
 		}
 
@@ -178,13 +178,13 @@ func renderHighlight(s *Service) http.Handler {
 		rawPreview, err := box.Find("highlight.svg")
 		if err != nil {
 			log.Println(err)
-			http.Error(w, "URL Preview error", http.StatusInternalServerError)
+			http.Error(w, "Highlight URL Preview error, svg file not found", http.StatusInternalServerError)
 			return
 		}
 		compiledPreview, err := compileHighlightPreview(rawPreview, highlight, argument.ClaimArgument)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, "URL Preview error", http.StatusInternalServerError)
+			http.Error(w, "Highlight URL Preview error, template compilation failed", http.StatusInternalServerError)
 			return
 		}
 		render(compiledPreview, w, s.jpeg)
@@ -212,7 +212,7 @@ func renderArgument(s *Service) http.Handler {
 		rawPreview, err := box.Find("argument.svg")
 		if err != nil {
 			log.Println(err)
-			http.Error(w, "URL Preview error", http.StatusInternalServerError)
+			http.Error(w, "Argument URL Preview error: svg file not found", http.StatusInternalServerError)
 			return
 		}
 
@@ -249,7 +249,7 @@ func renderComment(s *Service) http.Handler {
 		rawPreview, err := box.Find("comment.svg")
 		if err != nil {
 			log.Println(err)
-			http.Error(w, "URL Preview error", http.StatusInternalServerError)
+			http.Error(w, "Comment URL Preview error: svg file not found", http.StatusInternalServerError)
 			return
 		}
 

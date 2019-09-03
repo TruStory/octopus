@@ -484,13 +484,13 @@ func (ta *TruAPI) RegisterResolvers() {
 			claim := ta.claimResolver(ctx, queryByClaimID{ID: q.ClaimID})
 			return &claim
 		},
-
-		// deprecated
-		"hasSlashed": func(_ context.Context, q staking.Argument) bool { return false },
 	})
 
+	// deprecated: use paginated "comments" resolver instead
 	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("Comment", db.Comment{}, map[string]interface{}{
+
+	ta.GraphQLClient.RegisterPaginatedQueryResolver("comments", ta.claimCommentsResolver)
+	ta.GraphQLClient.RegisterPaginatedObjectResolver("PaginatedComment", "iD", db.Comment{}, map[string]interface{}{
 		"id":         func(_ context.Context, q db.Comment) int64 { return q.ID },
 		"parentId":   func(_ context.Context, q db.Comment) int64 { return q.ParentID },
 		"claimId":    func(_ context.Context, q db.Comment) int64 { return q.ClaimID },

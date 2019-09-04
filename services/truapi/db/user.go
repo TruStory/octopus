@@ -20,8 +20,8 @@ import (
 // InvitedUserDefaultName is the default name given to the invited user
 const InvitedUserDefaultName = "<invited user>"
 
-// InvitesValidity is the expiry period for the granted invites
-const InvitesValidity = time.Hour * 24 * 14 // 2 weeks
+// StepsToCompleteJourney denotes the number of steps one user has to complete to be considered active
+const StepsToCompleteJourney = 3 // signup, write an argument, receive five agrees
 
 // User is the user on the TruStory platform
 type User struct {
@@ -779,7 +779,6 @@ func (c *Client) GrantInvites(id int64, count int) error {
 	_, err := c.Model(user).
 		Where("id = ?", id).
 		Set("invites_left = invites_left + ?", count).
-		Set("invites_valid_until = ?", time.Now().Add(InvitesValidity)).
 		Update()
 
 	if err != nil {
@@ -794,7 +793,6 @@ func (c *Client) ConsumeInvite(id int64) (bool, error) {
 	user := new(User)
 	result, err := c.Model(user).
 		Where("id = ?", id).
-		Where("invites_valid_until >= NOW()").
 		Where("invites_left > 0"). // must have atleast one invite left to be consumed
 		Set("invites_left = invites_left - 1").
 		Update()
@@ -814,7 +812,7 @@ func (c *Client) UsersWithIncompleteJourney() ([]User, error) {
 	var users = make([]User, 0)
 	err := c.Model(&users).
 		Where("meta ? 'journey' = false").
-		WhereOr("jsonb_array_length(meta->'journey') < ?", 3).
+		WhereOr("jsonb_array_length(meta->'journey') < ?", StepsToCompleteJourney).
 		Select()
 	if err != nil {
 		return users, err

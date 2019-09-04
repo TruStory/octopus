@@ -21,7 +21,6 @@ import (
 	"github.com/TruStory/truchain/x/slashing"
 	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/dghubble/gologin/twitter"
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
 	"github.com/gorilla/handlers"
@@ -274,7 +273,7 @@ func (ta *TruAPI) RegisterOAuthRoutes(apiCtx truCtx.TruAPIContext) {
 		Endpoint:       twitterOAuth1.AuthorizeEndpoint,
 	}
 
-	ta.Handle("/auth-twitter", twitter.LoginHandler(oauth1Config, nil))
+	ta.Handle("/auth-twitter", OAuthLoginHandler(apiCtx, oauth1Config, nil))
 	ta.Handle("/auth-twitter-callback", HandleOAuthSuccess(oauth1Config, IssueSession(apiCtx, ta), HandleOAuthFailure(ta)))
 	ta.Handle("/auth-logout", Logout(apiCtx))
 }

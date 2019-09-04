@@ -583,7 +583,7 @@ func (c *Client) InvitedUsersByID(referrerID int64) ([]User, error) {
 }
 
 // AddUserViaConnectedAccount adds a new user using a new connected account
-func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) (*User, error) {
+func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount, referrerCode string) (*User, error) {
 	// a.) check if their email address is associated with an existing account.
 	// if yes, merge them with that account
 	if connectedAccount.Meta.Email != "" {
@@ -624,16 +624,17 @@ func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) 
 	}
 
 	// setting referrer, if any
-	invite, err := c.InvitesByFriendEmail(user.Email)
+	referrer, err := c.UserByAddress(referrerCode)
 	if err != nil {
 		return nil, err
 	}
-	if invite != nil {
-		referrer, err := c.UserByAddress(invite.Creator)
+	if referrer != nil {
+		consumed, err := c.ConsumeInvite(referrer.ID)
 		if err != nil {
 			return nil, err
 		}
-		if referrer != nil {
+
+		if consumed {
 			user.ReferredBy = referrer.ID
 		}
 	}

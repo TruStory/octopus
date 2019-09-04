@@ -62,7 +62,6 @@ func main() {
 		// if there are not new steps done by the user, we are done here
 		if len(user.Meta.Journey) == len(currentJourney) {
 			// moving on to the next one
-
 			continue
 		}
 		additionalStepsCompleted := additionalStepsCompleted(currentJourney, user.Meta.Journey)
@@ -84,7 +83,7 @@ func main() {
 			fmt.Printf("✅\n")
 		}
 
-		// if they were not referre by anyone, we are done for them
+		// if they were not referred by anyone, we are done for them
 		if user.ReferredBy == 0 {
 			// updating the current journey, and...
 			err = dbClient.UpdateUserJourney(user.ID, currentJourney)

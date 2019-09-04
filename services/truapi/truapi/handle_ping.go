@@ -2,6 +2,7 @@ package truapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"

@@ -99,6 +99,11 @@ func (ta *TruAPI) RunNotificationSender(apiCtx truCtx.TruAPIContext) error {
 	return nil
 }
 
+// RunLeaderboardScheduler runs the leaderboard background processing.
+func (ta *TruAPI) RunLeaderboardScheduler(apiCtx truCtx.TruAPIContext) {
+	go ta.leaderboardScheduler()
+}
+
 // WrapHandler wraps a chttp.Handler and returns a standar http.Handler
 func WrapHandler(h chttp.Handler) http.Handler {
 	return h.HandlerFunc()
@@ -388,6 +393,16 @@ func (ta *TruAPI) RegisterResolvers() {
 
 	ta.GraphQLClient.RegisterQueryResolver("appAccountEarnings", ta.appAccountEarningsResolver)
 
+	ta.GraphQLClient.RegisterQueryResolver("leaderboard", ta.leaderboardResolver)
+	ta.GraphQLClient.RegisterObjectResolver("LeaderboardTopUser", db.LeaderboardTopUser{}, map[string]interface{}{
+		"account": func(ctx context.Context, t db.LeaderboardTopUser) *AppAccount {
+			return ta.appAccountResolver(ctx, queryByAddress{ID: t.Address})
+		},
+		"earned": func(ctx context.Context, t db.LeaderboardTopUser) sdk.Coin {
+			return sdk.NewInt64Coin(app.StakeDenom, t.Earned)
+		},
+	})
+
 	ta.GraphQLClient.RegisterQueryResolver("communities", ta.communitiesResolver)
 	ta.GraphQLClient.RegisterQueryResolver("community", ta.communityResolver)
 	ta.GraphQLClient.RegisterObjectResolver("Community", community.Community{}, map[string]interface{}{
@@ -427,7 +442,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		"participants":      ta.claimParticipantsResolver,
 		"participantsCount": func(ctx context.Context, q claim.Claim) int { return len(ta.claimParticipantsResolver(ctx, q)) },
 		"comments": func(ctx context.Context, q claim.Claim) []db.Comment {
-			return ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
+			return ta.commentsResolver(ctx, queryCommentsParams{ClaimID: &q.ID})
 		},
 		"creator": func(ctx context.Context, q claim.Claim) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
@@ -471,13 +486,10 @@ func (ta *TruAPI) RegisterResolvers() {
 			claim := ta.claimResolver(ctx, queryByClaimID{ID: q.ClaimID})
 			return &claim
 		},
-
-		// deprecated
-		"hasSlashed": func(_ context.Context, q staking.Argument) bool { return false },
 	})
 
-	ta.GraphQLClient.RegisterQueryResolver("claimComments", ta.claimCommentsResolver)
-	ta.GraphQLClient.RegisterObjectResolver("Comment", db.Comment{}, map[string]interface{}{
+	ta.GraphQLClient.RegisterPaginatedQueryResolver("comments", ta.commentsResolver)
+	ta.GraphQLClient.RegisterPaginatedObjectResolver("Comment", "iD", db.Comment{}, map[string]interface{}{
 		"id":         func(_ context.Context, q db.Comment) int64 { return q.ID },
 		"parentId":   func(_ context.Context, q db.Comment) int64 { return q.ParentID },
 		"claimId":    func(_ context.Context, q db.Comment) int64 { return q.ClaimID },

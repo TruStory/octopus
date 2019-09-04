@@ -1,6 +1,7 @@
 package truapi
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -191,6 +192,7 @@ func (ta *TruAPI) updateUserDetails(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
 	var request VerifyUserViaTokenRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
@@ -246,7 +248,13 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = ta.DBClient.FollowCommunities(address.String(), ta.APIContext.Config.Community.DefaultFollowedCommunities)
+	// follow all communities by default
+	communities := ta.communitiesResolver(ctx)
+	communityIDs := make([]string, 0)
+	for _, community := range communities {
+		communityIDs = append(communityIDs, community.ID)
+	}
+	err = ta.DBClient.FollowCommunities(address.String(), communityIDs)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return

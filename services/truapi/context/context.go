@@ -83,9 +83,8 @@ type WebConfig struct {
 
 // CommunityConfig is the config for the community
 type CommunityConfig struct {
-	InactiveCommunities        []string `mapstructure:"inactive-communities"`
-	BetaCommunities            []string `mapstructure:"beta-communities"`
-	DefaultFollowedCommunities []string `mapstructure:"default-followed-communities"`
+	InactiveCommunities []string `mapstructure:"inactive-communities"`
+	BetaCommunities     []string `mapstructure:"beta-communities"`
 }
 
 // ParamsConfig is the config for off-chain params
@@ -105,11 +104,11 @@ type AdminConfig struct {
 // AWSConfig is the config for the AWS SDK
 type AWSConfig struct {
 	Region       string `mapstructure:"aws-region"`
-	S3Region     string `mapstructure:"aws-s3-region"`
-	S3Bucket     string `mapstructure:"aws-s3-bucket"`
 	Sender       string `mapstructure:"aws-ses-sender"`
 	AccessKey    string `mapstructure:"aws-access-key"`
 	AccessSecret string `mapstructure:"aws-access-secret"`
+	S3Region     string `mapstructure:"aws-s3-region"`
+	S3Bucket     string `mapstructure:"aws-s3-bucket"`
 }
 
 // SpotlightConfig is the config for the Spotlight service
@@ -131,25 +130,35 @@ type DripperWorkflowConfig struct {
 	Tags       []string `mapstructure:"tags"`
 }
 
+// LeaderboardConfig represents leaderboard configuration
+type LeaderboardConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+	// Interval is the interval in minutes for how often update leaderboard metrics
+	Interval int `mapstructure:"interval"`
+	// TopDisplaying is the number of users to show in the leaderboard
+	TopDisplaying int `mapstructure:"top-displaying"`
+}
+
 // Config contains all the config variables for the API server
 type Config struct {
-	ChainID      string `mapstructure:"chain-id"`
-	App          AppConfig
-	Cookie       CookieConfig
-	Database     DatabaseConfig
-	Flag         FlagConfig
-	Host         HostConfig
-	Push         PushConfig
-	Registrar    RegistrarConfig
+	ChainID     string `mapstructure:"chain-id"`
+	App         AppConfig
+	Cookie      CookieConfig
+	Database    DatabaseConfig
+	Flag        FlagConfig
+	Host        HostConfig
+	Push        PushConfig
+	Registrar   RegistrarConfig
 	RewardBroker RewardBrokerConfig
-	Twitter      TwitterConfig
-	Web          WebConfig
-	Community    CommunityConfig
-	Params       ParamsConfig
-	Admin        AdminConfig
-	AWS          AWSConfig
-	Spotlight    SpotlightConfig
-	Dripper      DripperConfig
+	Twitter     TwitterConfig
+	Web         WebConfig
+	Community   CommunityConfig
+	Params      ParamsConfig
+	Admin       AdminConfig
+	AWS         AWSConfig
+	Spotlight   SpotlightConfig
+	Dripper     DripperConfig
+	Leaderboard LeaderboardConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

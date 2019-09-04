@@ -2,6 +2,7 @@ package truapi
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -9,9 +10,15 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
@@ -110,7 +117,14 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error
 // CalibrateUser takes a twitter authenticated user and makes sure it has
 // been properly calibrated in the database with all proper keypairs
 func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
+	ctx := context.Background()
 	connectedAccount, err := ta.DBClient.ConnectedAccountByTypeAndID("twitter", fmt.Sprintf("%d", twitterUser.ID))
+	if err != nil {
+		return nil, err
+	}
+
+	// we'll make a local copy of their avatar photo to remove the dependency on twitter
+	avatarURL, err := cacheAvatarLocally(ta.APIContext, twitterUser.ProfileImageURL)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +139,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 				Bio:       twitterUser.Description,
 				Username:  twitterUser.ScreenName,
 				FullName:  twitterUser.Name,
-				AvatarURL: strings.Replace(twitterUser.ProfileImageURL, "_normal", "_bigger", 1),
+				AvatarURL: avatarURL,
 			},
 		}
 
@@ -163,7 +177,13 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 			if err != nil {
 				return nil, err
 			}
-			err = ta.DBClient.FollowCommunities(address.String(), ta.APIContext.Config.Community.DefaultFollowedCommunities)
+			// follow all communities by default
+			communities := ta.communitiesResolver(ctx)
+			communityIDs := make([]string, 0)
+			for _, community := range communities {
+				communityIDs = append(communityIDs, community.ID)
+			}
+			err = ta.DBClient.FollowCommunities(address.String(), communityIDs)
 			if err != nil {
 				return nil, err
 			}
@@ -178,13 +198,22 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 			}
 		}
 	} else {
+		user, err := ta.DBClient.UserByID(connectedAccount.UserID)
+		if err != nil {
+			return nil, err
+		}
+		user.AvatarURL = avatarURL
+		err = ta.DBClient.UpdateModel(user)
+		if err != nil {
+			return nil, err
+		}
 		// this user is already our user, so, we'll just update their meta fields to stay updated
 		connectedAccount.Meta = db.ConnectedAccountMeta{
 			Email:     twitterUser.Email,
 			Bio:       twitterUser.Description,
 			Username:  twitterUser.ScreenName,
 			FullName:  twitterUser.Name,
-			AvatarURL: strings.Replace(twitterUser.ProfileImageURL, "_normal", "_bigger", 1),
+			AvatarURL: avatarURL,
 		}
 		err = ta.DBClient.UpsertConnectedAccount(connectedAccount)
 		if err != nil {
@@ -235,4 +264,61 @@ func getTwitterUser(apiCtx truCtx.TruAPIContext, authToken string, authTokenSecr
 	}
 
 	return user, nil
+}
+
+func cacheAvatarLocally(apiCtx truCtx.TruAPIContext, avatarURL string) (string, error) {
+	avatarURL = strings.Replace(avatarURL, "_normal", "_400x400", 1)
+
+	httpClient := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	avatarResponse, err := httpClient.Get(avatarURL)
+	if err != nil {
+		return "", nil
+	}
+	defer avatarResponse.Body.Close()
+
+	filename, err := makeFileName(avatarResponse)
+	if err != nil {
+		return "", nil
+	}
+
+	session, err := session.NewSession(&aws.Config{
+		Region:      aws.String(apiCtx.Config.AWS.S3Region),
+		Credentials: credentials.NewStaticCredentials(apiCtx.Config.AWS.AccessKey, apiCtx.Config.AWS.AccessSecret, ""),
+	})
+	if err != nil {
+		return "", err
+	}
+	contentType := avatarResponse.Header.Get("Content-Type")
+
+	uploader := s3manager.NewUploader(session)
+	uploaded, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket:      aws.String(apiCtx.Config.AWS.S3Bucket),
+		Key:         aws.String(fmt.Sprintf("images/avatar-%s", filename)),
+		Body:        avatarResponse.Body,
+		ContentType: &contentType,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return uploaded.Location, nil
+
+}
+
+func makeFileName(response *http.Response) (string, error) {
+	random := make([]byte, 8)
+	_, err := rand.Read(random)
+	if err != nil {
+		return "", err
+	}
+
+	contentType := strings.Split(response.Header.Get("Content-Type"), "/")
+	if len(contentType) < 2 {
+		return "", nil
+	}
+
+	return fmt.Sprintf("%s-%d.%s", hex.EncodeToString(random), time.Now().Unix(), contentType[1]), nil
 }

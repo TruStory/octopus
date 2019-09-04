@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
 
@@ -72,8 +73,11 @@ type Queries interface {
 	UnreadNotificationEventsCountByAddress(addr string) (*NotificationsCountResponse, error)
 	UnseenNotificationEventsCountByAddress(addr string) (*NotificationsCountResponse, error)
 	FlaggedStoriesIDs(flagAdmin string, flagLimit int) ([]int64, error)
-	CommentsByArgumentID(argumentID int64) ([]Comment, error)
+	CommentsByArgumentID(argumentID uint64) ([]Comment, error)
+	CommentsByArgumentIDAndElementID(argumentID uint64, elementID uint64) ([]Comment, error)
 	CommentsByClaimID(claimID uint64) ([]Comment, error)
+	ClaimComments(claimID uint64) ([]Comment, error)
+	CommentByID(id int64) (*Comment, error)
 	QuestionsByClaimID(claimID uint64) ([]Question, error)
 	QuestionByID(ID int64) (*Question, error)
 	Invites() ([]Invite, error)
@@ -108,6 +112,11 @@ type Queries interface {
 	UserProfileByUsername(username string) (*UserProfile, error)
 	ClaimViewsStats(date time.Time) ([]ClaimViewsStats, error)
 	ClaimRepliesStats(date time.Time) ([]ClaimRepliesStats, error)
+	Leaderboard(since time.Time, sortBy string, limit int, excludedCommunities []string) ([]LeaderboardTopUser, error)
+	LastLeaderboardProcessedDate() (*LeaderboardProcessedDate, error)
+	FeedLeaderboardInTransaction(fn func(*pg.Tx) error) error
+	UpsertLeaderboardMetric(tx *pg.Tx, metric *LeaderboardUserMetric) error
+	UpsertLeaderboardProcessedDate(tx *pg.Tx, metric *LeaderboardProcessedDate) error
 
 	// deprecated, use UserProfileByAddress/UserProfileByUsername
 	TwitterProfileByAddress(addr string) (*TwitterProfile, error)

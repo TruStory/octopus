@@ -23,9 +23,8 @@ const (
 	// SessionDuration defines expiration time so we can track users that come back
 	SessionDuration time.Duration = time.Hour * 24 * 365
 
-	// AuthenticationExpiry is the period for which,
-	// the logged in user must be considered authenticated
-	AuthenticationExpiry int64 = 72 // in hours
+	// AuthenticatedSessionDuration defines expiration time for a logged in session
+	AuthenticatedSessionDuration time.Duration = 30 * 24 * time.Hour // 30 days
 )
 
 // AuthenticatedUser denotes the data structure of the data inside the encrypted cookie
@@ -47,7 +46,7 @@ func GetLoginCookie(apiCtx truCtx.TruAPIContext, user *db.User) (*http.Cookie, e
 		Path:     "/",
 		HttpOnly: true,
 		Value:    value,
-		Expires:  time.Now().Add(time.Duration(AuthenticationExpiry) * time.Hour),
+		Expires:  time.Now().Add(AuthenticatedSessionDuration),
 		Domain:   apiCtx.Config.Host.Name,
 	}
 
@@ -128,7 +127,7 @@ func isStale(user *AuthenticatedUser) bool {
 		// ...exists before in past...
 		Before(
 			// ...than the valid period.
-			time.Now().Add(time.Duration(-1*AuthenticationExpiry) * time.Hour))
+			time.Now().Add(-1 * AuthenticatedSessionDuration))
 }
 
 func getSecureCookieInstance(apiCtx truCtx.TruAPIContext) (*securecookie.SecureCookie, error) {

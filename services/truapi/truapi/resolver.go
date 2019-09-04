@@ -49,6 +49,14 @@ type queryByAddress struct {
 	ID string `graphql:"id"`
 }
 
+type queryCommentsParams struct {
+	ClaimID    *uint64 `graphql:"claimId"`
+	ArgumentID *uint64 `graphql:"argumentId"`
+	ElementID  *uint64 `graphql:"elementId"`
+	// deprecated in favor of ClaimID
+	ID uint64 `graphql:"id"`
+}
+
 type queryClaimArgumentParams struct {
 	ClaimID uint64         `graphql:"id,optional"`
 	Address *string        `graphql:"address,optional"`
@@ -568,7 +576,7 @@ func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q claim.Claim) 
 		return nil
 	}
 	stakes := ta.claimStakesResolver(ctx, q)
-	comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: q.ID})
+	comments, _ := ta.DBClient.CommentsByClaimID(q.ID)
 
 	// use map to prevent duplicate participants
 	participantsMap := make(map[string]string)
@@ -737,10 +745,19 @@ func (ta *TruAPI) appAccountSlashResolver(ctx context.Context, q staking.Argumen
 	return nil
 }
 
-func (ta *TruAPI) claimCommentsResolver(ctx context.Context, q queryByClaimID) []db.Comment {
-	comments, err := ta.DBClient.CommentsByClaimID(q.ID)
-	if err != nil {
-		fmt.Println("claimComments err: ", err)
+func (ta *TruAPI) commentsResolver(ctx context.Context, q queryCommentsParams) []db.Comment {
+	var comments []db.Comment
+	var err error
+	if q.ArgumentID == nil || q.ElementID == nil {
+		comments, err = ta.DBClient.ClaimComments(q.ID)
+		if err != nil {
+			fmt.Println("commentsResolver err: ", err)
+		}
+	} else {
+		comments, err = ta.DBClient.CommentsByArgumentIDAndElementID(*q.ArgumentID, *q.ElementID)
+		if err != nil {
+			fmt.Println("commentsResolver err: ", err)
+		}
 	}
 	return comments
 }

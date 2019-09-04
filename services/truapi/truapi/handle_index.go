@@ -25,6 +25,7 @@ const (
 	REGEX_MATCHES_CLAIM_ARGUMENT = 3
 	REGEX_MATCHES_CLAIM_COMMENT  = 3
 	REGEX_MATCHES_COMMUNITY      = 2
+	REGEX_MATCHES_PROFILE        = 2
 	REGEX_MATCHES_HIGHLIGHT      = 4
 )
 
@@ -33,6 +34,7 @@ var (
 	claimArgumentRegex          = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
 	claimCommentRegex           = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/?$")
 	communityRegex              = regexp.MustCompile("/community/([^/]+)")
+	profileRegex                = regexp.MustCompile("/profile/([a-z0-9]+)/?$")
 	claimArgumentHighlightRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/highlight/([0-9]+)/?$")
 )
 
@@ -130,6 +132,20 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 		return compile(index, *metaTags)
 	}
 
+	// profile/XXX
+	matches = profileRegex.FindStringSubmatch(route)
+	if len(matches) == REGEX_MATCHES_PROFILE {
+		// replace placeholder with profile details
+		address := matches[1]
+
+		metaTags, err := makeProfileMetaTags(ta, route, address)
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+
+		return compile(index, *metaTags)
+	}
+
 	// /claim/xxx/argument/xxx/highlight/xxx
 	matches = claimArgumentHighlightRegex.FindStringSubmatch(route)
 	if len(matches) == REGEX_MATCHES_HIGHLIGHT {
@@ -219,10 +235,12 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 		image = "https://s3-us-west-1.amazonaws.com/trustory/images/407a1236454a9a59.jpg"
 	} else if claimID == 1036 {
 		image = "https://s3-us-west-1.amazonaws.com/trustory/images/9316406a9a374444.jpg"
+	} else if claimID == 1135 {
+		image = "https://s3-us-west-1.amazonaws.com/trustory/images/a578421649897493.jpg"
 	}
 
 	description := fmt.Sprintf("%d participant%s, %s %s", totalParticipants, totalParticipantsPlural, totalStaked.Amount.Quo(sdk.NewInt(app.Shanev)), db.CoinDisplayName)
-	if claimID == 824 || claimID == 981 || claimID == 1036 {
+	if claimID == 824 || claimID == 981 || claimID == 1036 || claimID == 1135 {
 		description = ""
 	}
 
@@ -277,22 +295,18 @@ func makeClaimArgumentHighlightMetaTags(ta *TruAPI, route string, claimID uint64
 }
 
 func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentID int64) (*Tags, error) {
-	ctx := context.Background()
-	comments := ta.claimCommentsResolver(ctx, queryByClaimID{ID: claimID})
-	commentObj := db.Comment{}
-	for _, comment := range comments {
-		if comment.ID == commentID {
-			commentObj = comment
-		}
+	comment, err := ta.DBClient.CommentByID(commentID)
+	if err != nil {
+		return nil, err
 	}
-	creatorObj, err := ta.DBClient.UserByAddress(commentObj.Creator)
+	creatorObj, err := ta.DBClient.UserByAddress(comment.Creator)
 	if creatorObj == nil || err != nil {
 		// if error, return default
 		return nil, err
 	}
 	return &Tags{
 		Title:       fmt.Sprintf("%s posted a comment", "@"+creatorObj.Username),
-		Description: html.EscapeString(stripmd.Strip(commentObj.Body)),
+		Description: html.EscapeString(stripmd.Strip(comment.Body)),
 		Image:       fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v&comment_id=%v", ta.APIContext.Config.App.URL, claimID, commentID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
@@ -311,6 +325,22 @@ func makeCommunityMetaTags(ta *TruAPI, route string, communityID string) (*Tags,
 		Title:       fmt.Sprintf("%s Community on %s", community.Name, ta.APIContext.Config.App.Name),
 		Description: community.Description,
 		Image:       joinPath(previewsDirectory, fmt.Sprintf("%s.jpg", communityID)),
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
+	}, nil
+}
+
+// makes the profile meta tags
+func makeProfileMetaTags(ta *TruAPI, route string, address string) (*Tags, error) {
+	profileObj, err := ta.DBClient.UserByAddress(address)
+	if profileObj == nil || err != nil {
+		// if error, return default
+		return nil, err
+	}
+
+	return &Tags{
+		Title:       fmt.Sprintf("%s — TruStory", profileObj.FullName),
+		Description: profileObj.Bio,
+		Image:       profileObj.AvatarURL,
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

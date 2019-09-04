@@ -12,8 +12,25 @@ type Comment struct {
 	Creator    string `json:"creator"`
 }
 
-// CommentsByArgumentIDAndElementID finds comments by argument id
-func (c *Client) CommentsByArgumentIDAndElementID(argumentID uint64, elementID uint64) ([]Comment, error) {
+// ClaimLevelComments returns claim level comments, excluding argument level comments
+func (c *Client) ClaimLevelComments(claimID uint64) ([]Comment, error) {
+	comments := make([]Comment, 0)
+	err := c.Model(&comments).Where("claim_id = ?", claimID).
+		Where("argument_id is NULL").
+		Where("element_id is NULL").
+		Order("id ASC").Select()
+	if err != nil {
+		return nil, err
+	}
+	transformedComments, subErr := c.replaceAddressesWithProfileURLsInComments(comments)
+	if subErr != nil {
+		return nil, err
+	}
+	return transformedComments, nil
+}
+
+// ArgumentLevelComments returns argument level comments
+func (c *Client) ArgumentLevelComments(argumentID uint64, elementID uint64) ([]Comment, error) {
 	comments := make([]Comment, 0)
 	err := c.Model(&comments).
 		Where("argument_id = ?", argumentID).
@@ -29,41 +46,11 @@ func (c *Client) CommentsByArgumentIDAndElementID(argumentID uint64, elementID u
 	return transformedComments, nil
 }
 
-// CommentsByArgumentID finds comments by argument id
-func (c *Client) CommentsByArgumentID(argumentID uint64) ([]Comment, error) {
-	comments := make([]Comment, 0)
-	err := c.Model(&comments).Where("argument_id = ?", argumentID).Order("id ASC").Select()
-	if err != nil {
-		return nil, err
-	}
-	transformedComments, subErr := c.replaceAddressesWithProfileURLsInComments(comments)
-	if subErr != nil {
-		return nil, err
-	}
-	return transformedComments, nil
-}
-
-// CommentsByClaimID finds comments by claim id
+// CommentsByClaimID finds all comments pertaining to a specific claim, both claim level and argument level comments
+// useful when determining all participants on a claim
 func (c *Client) CommentsByClaimID(claimID uint64) ([]Comment, error) {
 	comments := make([]Comment, 0)
 	err := c.Model(&comments).Where("claim_id = ?", claimID).Order("id ASC").Select()
-	if err != nil {
-		return nil, err
-	}
-	transformedComments, subErr := c.replaceAddressesWithProfileURLsInComments(comments)
-	if subErr != nil {
-		return nil, err
-	}
-	return transformedComments, nil
-}
-
-// ClaimComments returns claim comments, excluding argument level comments
-func (c *Client) ClaimComments(claimID uint64) ([]Comment, error) {
-	comments := make([]Comment, 0)
-	err := c.Model(&comments).Where("claim_id = ?", claimID).
-		Where("argument_id is NULL").
-		Where("element_id is NULL").
-		Order("id ASC").Select()
 	if err != nil {
 		return nil, err
 	}
@@ -89,11 +76,11 @@ func (c *Client) AddComment(comment *Comment) error {
 	return nil
 }
 
-// CommentsParticipantsByArgumentID gets the list of users participating on a argument thread.
-func (c *Client) CommentsParticipantsByArgumentID(argumentID int64) ([]string, error) {
+// ClaimLevelCommentsParticipants gets the list of users participating on a claim thread.
+func (c *Client) ClaimLevelCommentsParticipants(claimID int64) ([]string, error) {
 	comments := make([]Comment, 0)
 	addresses := make([]string, 0)
-	err := c.Model(&comments).ColumnExpr("DISTINCT creator").Where("argument_id = ?", argumentID).Select()
+	err := c.Model(&comments).ColumnExpr("DISTINCT creator").Where("claim_id = ?", claimID).Select()
 	if err != nil {
 		return nil, err
 	}
@@ -103,11 +90,13 @@ func (c *Client) CommentsParticipantsByArgumentID(argumentID int64) ([]string, e
 	return addresses, nil
 }
 
-// CommentsParticipantsByClaimID gets the list of users participating on a claim thread.
-func (c *Client) CommentsParticipantsByClaimID(argumentID int64) ([]string, error) {
+// ArgumentLevelCommentsParticipants gets the list of users participating on a argument comment thread.
+func (c *Client) ArgumentLevelCommentsParticipants(argumentID int64, elementID int64) ([]string, error) {
 	comments := make([]Comment, 0)
 	addresses := make([]string, 0)
-	err := c.Model(&comments).ColumnExpr("DISTINCT creator").Where("claim_id = ?", argumentID).Select()
+	err := c.Model(&comments).ColumnExpr("DISTINCT creator").
+		Where("argument_id = ?", argumentID).
+		Where("element_id = ?", elementID).Select()
 	if err != nil {
 		return nil, err
 	}

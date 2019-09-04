@@ -50,9 +50,20 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			s.log.WithError(err).Errorf("could not retrieve comment for id [%d]\n", n.ID)
 			continue
 		}
-		participants, err := s.db.CommentsParticipantsByClaimID(c.ClaimID)
+		var participants []string
+		var notificationType db.NotificationType
+		var mentionType db.MentionType
+		if c.ArgumentID != 0 && c.ElementID != 0 {
+			participants, err = s.db.ArgumentLevelCommentsParticipants(c.ArgumentID, c.ElementID)
+			notificationType = db.NotificationArgumentCommentAction
+			mentionType = db.MentionArgumentComment
+		} else {
+			participants, err = s.db.ClaimLevelCommentsParticipants(c.ClaimID)
+			notificationType = db.NotificationCommentAction
+			mentionType = db.MentionComment
+		}
 		if err != nil {
-			s.log.WithError(err).Errorf("could not retrieve participants for comments claim_id[%d] argument_id[%d]\n", n.ClaimID, n.ArgumentID)
+			s.log.WithError(err).Errorf("could not retrieve participants for comments claim_id[%d] argument_id[%d] element_id[%d]\n", n.ClaimID, n.ArgumentID, n.ElementID)
 			continue
 		}
 
@@ -62,14 +73,17 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 		parsedComment, mentions := s.parseCosmosMentions(c.Body)
 		parsedComment = stripmd.Strip(parsedComment)
 		meta := db.NotificationMeta{
-			ClaimID:   &c.ClaimID,
-			CommentID: &n.ID,
+			ClaimID:    &c.ClaimID,
+			ArgumentID: &c.ArgumentID,
+			ElementID:  &c.ElementID,
+			CommentID:  &n.ID,
 		}
 		typeId := c.ClaimID
-		mentionType := db.MentionComment
 		for _, p := range mentions {
 			mentionMeta := db.NotificationMeta{
 				ClaimID:     &c.ClaimID,
+				ArgumentID:  &c.ArgumentID,
+				ElementID:   &c.ElementID,
 				CommentID:   &n.ID,
 				MentionType: &mentionType,
 			}
@@ -98,7 +112,7 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 				From:   &c.Creator,
 				To:     p,
 				TypeID: typeId,
-				Type:   db.NotificationCommentAction,
+				Type:   notificationType,
 				Msg:    fmt.Sprintf("added a Reply: %s", parsedComment),
 				Meta:   meta,
 				Action: "Added a new reply",
@@ -106,19 +120,34 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			}
 		}
 
-		// if claim creator was previously notified skip it
-		if _, ok := notified[n.ClaimCreator]; ok {
-			continue
+		// notify claim creator if not previously notified
+		if _, ok := notified[n.ClaimCreator]; !ok {
+			notifications <- &Notification{
+				From:   &c.Creator,
+				To:     n.ClaimCreator,
+				TypeID: typeId,
+				Type:   notificationType,
+				Msg:    fmt.Sprintf("added a Reply: %s", parsedComment),
+				Meta:   meta,
+				Action: "Added a new reply",
+				Trim:   true,
+			}
 		}
-		notifications <- &Notification{
-			From:   &c.Creator,
-			To:     n.ClaimCreator,
-			TypeID: typeId,
-			Type:   db.NotificationCommentAction,
-			Msg:    fmt.Sprintf("added a Reply: %s", parsedComment),
-			Meta:   meta,
-			Action: "Added a new reply",
-			Trim:   true,
+
+		// notify argument creator if not previously notified
+		if n.ArgumentCreator != "" {
+			if _, ok := notified[n.ArgumentCreator]; !ok {
+				notifications <- &Notification{
+					From:   &c.Creator,
+					To:     n.ArgumentCreator,
+					TypeID: typeId,
+					Type:   notificationType,
+					Msg:    fmt.Sprintf("added a Reply: %s", parsedComment),
+					Meta:   meta,
+					Action: "Added a new reply",
+					Trim:   true,
+				}
+			}
 		}
 
 	}

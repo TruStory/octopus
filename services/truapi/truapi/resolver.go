@@ -754,12 +754,12 @@ func (ta *TruAPI) commentsResolver(ctx context.Context, q queryCommentsParams) [
 		if q.ClaimID != nil && *q.ClaimID > 0 {
 			id = *q.ClaimID
 		}
-		comments, err = ta.DBClient.ClaimComments(id)
+		comments, err = ta.DBClient.ClaimLevelComments(id)
 		if err != nil {
 			fmt.Println("commentsResolver err: ", err)
 		}
 	} else {
-		comments, err = ta.DBClient.CommentsByArgumentIDAndElementID(*q.ArgumentID, *q.ElementID)
+		comments, err = ta.DBClient.ArgumentLevelComments(*q.ArgumentID, *q.ElementID)
 		if err != nil {
 			fmt.Println("commentsResolver err: ", err)
 		}

@@ -26,6 +26,14 @@ func (ta *TruAPI) runCommentNotificationSender(notifications <-chan CommentNotif
 			continue
 		}
 		n.ClaimCreator = claim.Creator.String()
+		if n.ArgumentID != 0 {
+			argument := ta.claimArgumentResolver(context.Background(), queryByArgumentID{ID: uint64(n.ArgumentID)})
+			if argument.ID == 0 {
+				fmt.Println("error retrieving argument id", n.ArgumentID)
+				continue
+			}
+			n.ArgumentCreator = argument.Creator.String()
+		}
 		b, err := json.Marshal(&n)
 		if err != nil {
 			fmt.Println("error encoding comment notification request", err)

@@ -29,20 +29,22 @@ const (
 	NotificationSlashed
 	NotificationJailed
 	NotificationUnjailed
+	NotificationArgumentCommentAction
 )
 
 var NotificationTypeName = []string{
-	NotificationStoryAction:    "Story Update",
-	NotificationArgumentAction: "Argument Update",
-	NotificationCommentAction:  "Reply Added",
-	NotificationMentionAction:  "Mentioned",
-	NotificationNewArgument:    "New Argument",
-	NotificationAgreeReceived:  "Agree received on Argument",
-	NotificationNotHelpful:     "Not Helpful received on Argument",
-	NotificationEarnedStake:    fmt.Sprintf("Earned %s", CoinDisplayName),
-	NotificationSlashed:        "Slashed",
-	NotificationJailed:         "Jailed",
-	NotificationUnjailed:       "Unjailed",
+	NotificationStoryAction:           "Story Update",
+	NotificationArgumentAction:        "Argument Update",
+	NotificationCommentAction:         "Reply Added",
+	NotificationMentionAction:         "Mentioned",
+	NotificationNewArgument:           "New Argument",
+	NotificationAgreeReceived:         "Agree received on Argument",
+	NotificationNotHelpful:            "Not Helpful received on Argument",
+	NotificationEarnedStake:           fmt.Sprintf("Earned %s", CoinDisplayName),
+	NotificationSlashed:               "Slashed",
+	NotificationJailed:                "Jailed",
+	NotificationUnjailed:              "Unjailed",
+	NotificationArgumentCommentAction: "Reply Added",
 }
 
 func (t NotificationType) String() string {
@@ -59,6 +61,7 @@ type MentionType int64
 const (
 	MentionArgument MentionType = iota
 	MentionComment
+	MentionArgumentComment
 )
 
 var MentionTypeName = []string{
@@ -77,6 +80,7 @@ func (t MentionType) String() string {
 type NotificationMeta struct {
 	ClaimID     *int64       `json:"claimId,omitempty" graphql:"claimId"`
 	ArgumentID  *int64       `json:"argumentId,omitempty" graphql:"argumentId"`
+	ElementID   *int64       `json:"elementId,omitempty" graphql:"elementId"`
 	StoryID     *int64       `json:"storyId,omitempty" graphql:"storyId"`
 	CommentID   *int64       `json:"commentId,omitempty" graphql:"commentId"`
 	MentionType *MentionType `json:"mentionType,omitempty" graphql:"mentionType"`

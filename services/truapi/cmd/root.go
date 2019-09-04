@@ -112,6 +112,7 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 				fmt.Println("Notification sender could not be started: ", err)
 				os.Exit(1)
 			}
+			truAPI.RunLeaderboardScheduler(apiCtx)
 
 			port := strconv.Itoa(apiCtx.Config.Host.Port)
 			log.Fatal(truAPI.ListenAndServe(net.JoinHostPort(apiCtx.Config.Host.Name, port)))

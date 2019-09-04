@@ -37,7 +37,8 @@ func (ta *TruAPI) filterFeedClaims(ctx context.Context, claims []claim.Claim, fi
 		for _, claim := range claims {
 			totalAmountStaked := claim.TotalBacked.Add(claim.TotalChallenged).Amount
 			totalStakers := claim.TotalStakers
-			totalComments := len(ta.claimCommentsResolver(ctx, queryByClaimID{ID: claim.ID}))
+			comments, _ := ta.DBClient.CommentsByClaimID(claim.ID)
+			totalComments := len(comments)
 			var backingChallengeDelta sdk.Int
 			if claim.TotalBacked.IsGTE(claim.TotalChallenged) {
 				backingChallengeDelta = claim.TotalBacked.Sub(claim.TotalChallenged).Amount

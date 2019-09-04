@@ -123,24 +123,34 @@ type DripperWorkflowConfig struct {
 	Tags       []string `mapstructure:"tags"`
 }
 
+// LeaderboardConfig represents leaderboard configuration
+type LeaderboardConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+	// Interval is the interval in minutes for how often update leaderboard metrics
+	Interval int `mapstructure:"interval"`
+	// TopDisplaying is the number of users to show in the leaderboard
+	TopDisplaying int `mapstructure:"top-displaying"`
+}
+
 // Config contains all the config variables for the API server
 type Config struct {
-	ChainID   string `mapstructure:"chain-id"`
-	App       AppConfig
-	Cookie    CookieConfig
-	Database  DatabaseConfig
-	Flag      FlagConfig
-	Host      HostConfig
-	Push      PushConfig
-	Registrar RegistrarConfig
-	Twitter   TwitterConfig
-	Web       WebConfig
-	Community CommunityConfig
-	Params    ParamsConfig
-	Admin     AdminConfig
-	AWS       AWSConfig
-	Spotlight SpotlightConfig
-	Dripper   DripperConfig
+	ChainID     string `mapstructure:"chain-id"`
+	App         AppConfig
+	Cookie      CookieConfig
+	Database    DatabaseConfig
+	Flag        FlagConfig
+	Host        HostConfig
+	Push        PushConfig
+	Registrar   RegistrarConfig
+	Twitter     TwitterConfig
+	Web         WebConfig
+	Community   CommunityConfig
+	Params      ParamsConfig
+	Admin       AdminConfig
+	AWS         AWSConfig
+	Spotlight   SpotlightConfig
+	Dripper     DripperConfig
+	Leaderboard LeaderboardConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

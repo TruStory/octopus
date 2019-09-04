@@ -7,12 +7,30 @@ type Comment struct {
 	ParentID   int64  `json:"parent_id"`
 	ClaimID    int64  `json:"claim_id"`
 	ArgumentID int64  `json:"argument_id"`
+	ElementID  int64  `json:"element_id"`
 	Body       string `json:"body"`
 	Creator    string `json:"creator"`
 }
 
+// CommentsByArgumentIDAndElementID finds comments by argument id
+func (c *Client) CommentsByArgumentIDAndElementID(argumentID uint64, elementID uint64) ([]Comment, error) {
+	comments := make([]Comment, 0)
+	err := c.Model(&comments).
+		Where("argument_id = ?", argumentID).
+		Where("element_id = ?", elementID).
+		Order("id ASC").Select()
+	if err != nil {
+		return nil, err
+	}
+	transformedComments, subErr := c.replaceAddressesWithProfileURLsInComments(comments)
+	if subErr != nil {
+		return nil, err
+	}
+	return transformedComments, nil
+}
+
 // CommentsByArgumentID finds comments by argument id
-func (c *Client) CommentsByArgumentID(argumentID int64) ([]Comment, error) {
+func (c *Client) CommentsByArgumentID(argumentID uint64) ([]Comment, error) {
 	comments := make([]Comment, 0)
 	err := c.Model(&comments).Where("argument_id = ?", argumentID).Order("id ASC").Select()
 	if err != nil {
@@ -29,6 +47,23 @@ func (c *Client) CommentsByArgumentID(argumentID int64) ([]Comment, error) {
 func (c *Client) CommentsByClaimID(claimID uint64) ([]Comment, error) {
 	comments := make([]Comment, 0)
 	err := c.Model(&comments).Where("claim_id = ?", claimID).Order("id ASC").Select()
+	if err != nil {
+		return nil, err
+	}
+	transformedComments, subErr := c.replaceAddressesWithProfileURLsInComments(comments)
+	if subErr != nil {
+		return nil, err
+	}
+	return transformedComments, nil
+}
+
+// ClaimComments returns claim comments, excluding argument level comments
+func (c *Client) ClaimComments(claimID uint64) ([]Comment, error) {
+	comments := make([]Comment, 0)
+	err := c.Model(&comments).Where("claim_id = ?", claimID).
+		Where("argument_id is NULL").
+		Where("element_id is NULL").
+		Order("id ASC").Select()
 	if err != nil {
 		return nil, err
 	}

@@ -136,7 +136,6 @@ func persistReferrer(apiCtx truCtx.TruAPIContext, success http.Handler) http.Han
 		referrerCode := req.FormValue("referrer")
 		http.SetCookie(w, cookies.GetReferrerCookie(apiCtx, referrerCode))
 		success.ServeHTTP(w, req.WithContext(ctx))
-		return
 	}
 	return http.HandlerFunc(fn)
 }

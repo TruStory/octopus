@@ -573,6 +573,7 @@ func (ta *TruAPI) claimStakesResolver(ctx context.Context, q claim.Claim) []stak
 func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q claim.Claim) []AppAccount {
 	loaders, ok := getDataLoaders(ctx)
 	if !ok {
+		fmt.Println("loaders not present")
 		return nil
 	}
 	stakes := ta.claimStakesResolver(ctx, q)

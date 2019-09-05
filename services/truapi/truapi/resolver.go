@@ -573,6 +573,7 @@ func (ta *TruAPI) claimStakesResolver(ctx context.Context, q claim.Claim) []stak
 func (ta *TruAPI) claimParticipantsResolver(ctx context.Context, q claim.Claim) []AppAccount {
 	loaders, ok := getDataLoaders(ctx)
 	if !ok {
+		fmt.Println("loaders not present")
 		return nil
 	}
 	stakes := ta.claimStakesResolver(ctx, q)
@@ -749,7 +750,11 @@ func (ta *TruAPI) commentsResolver(ctx context.Context, q queryCommentsParams) [
 	var comments []db.Comment
 	var err error
 	if q.ArgumentID == nil || q.ElementID == nil {
-		comments, err = ta.DBClient.ClaimComments(q.ID)
+		id := q.ID
+		if q.ClaimID != nil && *q.ClaimID > 0 {
+			id = *q.ClaimID
+		}
+		comments, err = ta.DBClient.ClaimComments(id)
 		if err != nil {
 			fmt.Println("commentsResolver err: ", err)
 		}

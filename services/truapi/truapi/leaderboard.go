@@ -62,7 +62,6 @@ func (l *LeaderboardStats) getUserStatsByCommunity(address, communityID string) 
 }
 
 func (ta *TruAPI) statsByDate(date time.Time) (*LeaderboardStats, error) {
-	ctx := ta.createContext(context.Background())
 	// Get all claims
 	claims := make([]claim.Claim, 0)
 	result, err := ta.Query(
@@ -105,7 +104,7 @@ func (ta *TruAPI) statsByDate(date time.Time) (*LeaderboardStats, error) {
 			ucs.Arguments++
 			argumentCreatorsMappings[argument.ID] = argument.Creator.String()
 		}
-		stakes := ta.claimStakesResolver(ctx, claim)
+		stakes := ta.claimStakesResolver(context.Background(), claim)
 		for _, stake := range stakes {
 			if !stake.CreatedTime.Before(date) {
 				continue
@@ -126,7 +125,7 @@ func (ta *TruAPI) statsByDate(date time.Time) (*LeaderboardStats, error) {
 		if user.Address == "" || !user.CreatedAt.Before(date) {
 			continue
 		}
-		transactions := ta.appAccountTransactionsResolver(ctx, queryByAddress{ID: user.Address})
+		transactions := ta.appAccountTransactionsResolver(context.Background(), queryByAddress{ID: user.Address})
 		for _, transaction := range transactions {
 			if !transaction.CreatedTime.Before(date) {
 				continue

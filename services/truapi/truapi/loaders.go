@@ -12,7 +12,6 @@ import (
 )
 
 func (ta *TruAPI) AppAccountLoader() *AppAccountLoader {
-	ctx := ta.createContext(context.Background())
 	config := AppAccountLoaderConfig{
 		Fetch: func(keys []string) ([]*AppAccount, []error) {
 			errors := make([]error, 0)
@@ -25,7 +24,7 @@ func (ta *TruAPI) AppAccountLoader() *AppAccountLoader {
 				}
 				addresses = append(addresses, address)
 			}
-			accounts, err := ta.appAccountsResolver(ctx, addresses)
+			accounts, err := ta.appAccountsResolver(context.Background(), addresses)
 			if err != nil {
 				errors = append(errors, err)
 				return nil, errors

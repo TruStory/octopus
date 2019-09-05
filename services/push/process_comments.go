@@ -122,6 +122,7 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 
 		// notify claim creator if not previously notified
 		if _, ok := notified[n.ClaimCreator]; !ok {
+			notified[n.ClaimCreator] = true
 			notifications <- &Notification{
 				From:   &c.Creator,
 				To:     n.ClaimCreator,

@@ -300,6 +300,10 @@ func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentI
 	if err != nil {
 		return nil, err
 	}
+	transformedBody, err := ta.DBClient.TranslateToUsersMentions(comment.Body)
+	if err != nil {
+		return nil, err
+	}
 	creatorObj, err := ta.DBClient.UserByAddress(comment.Creator)
 	if creatorObj == nil || err != nil {
 		// if error, return default
@@ -307,7 +311,7 @@ func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentI
 	}
 	return &Tags{
 		Title:       fmt.Sprintf("%s posted a comment", "@"+creatorObj.Username),
-		Description: html.EscapeString(stripmd.Strip(comment.Body)),
+		Description: html.EscapeString(stripmd.Strip(transformedBody)),
 		Image:       fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v&comment_id=%v", ta.APIContext.Config.App.URL, claimID, commentID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil

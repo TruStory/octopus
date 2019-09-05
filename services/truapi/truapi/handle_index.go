@@ -11,10 +11,11 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/TruStory/octopus/services/truapi/db"
 	app "github.com/TruStory/truchain/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stripmd "github.com/writeas/go-strip-markdown"
+
+	"github.com/TruStory/octopus/services/truapi/db"
 )
 
 const (
@@ -207,7 +208,7 @@ func joinPath(baseURL, route string) string {
 
 // meta tags for a claim
 func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) {
-	ctx := context.Background()
+	ctx := ta.createContext(context.Background())
 
 	claimObj := ta.claimResolver(ctx, queryByClaimID{ID: claimID})
 	claimImage := ta.claimImageResolver(ctx, claimObj)
@@ -253,7 +254,7 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 }
 
 func makeClaimArgumentMetaTags(ta *TruAPI, route string, claimID uint64, argumentID uint64) (*Tags, error) {
-	ctx := context.Background()
+	ctx := ta.createContext(context.Background())
 	argumentObj := ta.claimArgumentResolver(ctx, queryByArgumentID{ID: argumentID})
 	creatorObj, err := ta.DBClient.UserByAddress(argumentObj.Creator.String())
 	if creatorObj == nil || err != nil {
@@ -269,7 +270,7 @@ func makeClaimArgumentMetaTags(ta *TruAPI, route string, claimID uint64, argumen
 }
 
 func makeClaimArgumentHighlightMetaTags(ta *TruAPI, route string, claimID uint64, argumentID uint64, highlightID int64) (*Tags, error) {
-	ctx := context.Background()
+	ctx := ta.createContext(context.Background())
 	argumentObj := ta.claimArgumentResolver(ctx, queryByArgumentID{ID: argumentID})
 	creatorObj, err := ta.DBClient.UserByAddress(argumentObj.Creator.String())
 	if creatorObj == nil || err != nil {
@@ -314,7 +315,7 @@ func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentI
 
 // makes the community meta tags
 func makeCommunityMetaTags(ta *TruAPI, route string, communityID string) (*Tags, error) {
-	ctx := context.Background()
+	ctx := ta.createContext(context.Background())
 	community := ta.communityResolver(ctx, queryByCommunityID{CommunityID: communityID})
 	if community == nil {
 		return nil, errors.New("Community not found")

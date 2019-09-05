@@ -124,15 +124,18 @@ func WithUser(apiCtx truCtx.TruAPIContext) mux.MiddlewareFunc {
 	}
 }
 
+func (ta *TruAPI) createContext(ctx context.Context) context.Context {
+	loaders := &dataLoaders{
+		appAccountLoader:  ta.AppAccountLoader(),
+		userProfileLoader: ta.UserProfileLoader(),
+	}
+	return context.WithValue(ctx, dataLoadersContextKey, loaders)
+}
+
 func (ta *TruAPI) WithDataLoaders() mux.MiddlewareFunc {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			loaders := &dataLoaders{
-				appAccountLoader:  ta.AppAccountLoader(),
-				userProfileLoader: ta.UserProfileLoader(),
-			}
-			ctx := context.WithValue(r.Context(), dataLoadersContextKey, loaders)
-			h.ServeHTTP(w, r.WithContext(ctx))
+			h.ServeHTTP(w, r.WithContext(ta.createContext(r.Context())))
 		})
 	}
 }

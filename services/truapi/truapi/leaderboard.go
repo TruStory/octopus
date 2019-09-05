@@ -285,6 +285,7 @@ func (ta *TruAPI) processStats() error {
 		dateToProcess = dateToProcess.Add(time.Duration(24) * time.Hour)
 	}
 
+	log.Println("Running leaderboard for dates", start, now)
 	// calculating current day metrics
 	err = ta.leaderboardStatsBetween(start, now)
 	if err != nil {

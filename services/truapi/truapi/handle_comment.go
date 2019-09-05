@@ -61,6 +61,7 @@ func (ta *TruAPI) handleCreateComment(r *http.Request) chttp.Response {
 		ID:         comment.ID,
 		ClaimID:    comment.ClaimID,
 		ArgumentID: comment.ArgumentID,
+		ElementID:  comment.ElementID,
 		Creator:    comment.Creator,
 		Timestamp:  time.Now(),
 	})

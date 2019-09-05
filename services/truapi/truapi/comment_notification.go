@@ -20,12 +20,20 @@ func (ta *TruAPI) runCommentNotificationSender(notifications <-chan CommentNotif
 	url := fmt.Sprintf("%s/%s", strings.TrimRight(strings.TrimSpace(endpoint), "/"), "sendCommentNotification")
 
 	for n := range notifications {
-		claim := ta.claimResolver(context.Background(), queryByClaimID{ID: uint64(n.ClaimID)})
+		claim := ta.claimResolver(ta.createContext(context.Background()), queryByClaimID{ID: uint64(n.ClaimID)})
 		if claim.ID == 0 {
 			fmt.Println("error retrieving claim id", n.ClaimID)
 			continue
 		}
 		n.ClaimCreator = claim.Creator.String()
+		if n.ArgumentID != 0 {
+			argument := ta.claimArgumentResolver(ta.createContext(context.Background()), queryByArgumentID{ID: uint64(n.ArgumentID)})
+			if argument.ID == 0 {
+				fmt.Println("error retrieving argument id", n.ArgumentID)
+				continue
+			}
+			n.ArgumentCreator = argument.Creator.String()
+		}
 		b, err := json.Marshal(&n)
 		if err != nil {
 			fmt.Println("error encoding comment notification request", err)

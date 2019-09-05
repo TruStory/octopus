@@ -175,7 +175,6 @@ func BasicAuth(apiCtx truCtx.TruAPIContext, handler http.Handler) http.HandlerFu
 func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	sessionHandler := cookies.AnonymousSessionHandler(ta.APIContext)
 	ta.Use(sessionHandler)
-	ta.Use(ta.WithDataLoaders())
 
 	liveRedirectHandler := RedirectHandler(apiCtx.Config.App.LiveDebateURL, http.StatusFound)
 	ta.Handle("/live", liveRedirectHandler)
@@ -186,6 +185,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Use(handlers.CompressHandler)
 	api.Use(chttp.JSONResponseMiddleware)
 	api.Use(WithUser(ta.APIContext))
+	api.Use(ta.WithDataLoaders())
 	api.Handle("/ping", WrapHandler(ta.HandlePing))
 
 	api.Handle("/graphql", ta.GraphQLClient.Handler())

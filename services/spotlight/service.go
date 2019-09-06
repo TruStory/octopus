@@ -66,7 +66,7 @@ func NewService(port, endpoint string, jpeg bool, config truCtx.Config) *Service
 func (s *Service) Run() {
 	s.router.Handle("/claim/{id:[0-9]+}/spotlight", renderClaim(s))
 	s.router.Handle("/argument/{id:[0-9]+}/spotlight", renderArgument(s))
-	s.router.Handle("/claim/{claimID:[0-9]+}/comment/{id:[0-9]+}/spotlight", renderComment(s))
+	s.router.Handle("/comment/{id:[0-9]+}/spotlight", renderComment(s))
 	s.router.Handle("/highlight/{id:[0-9]+}/spotlight", renderHighlight(s))
 	http.Handle("/", s.router)
 	err := http.ListenAndServe(":"+s.port, nil)
@@ -166,16 +166,26 @@ func renderHighlight(s *Service) http.Handler {
 			http.Error(w, "Invalid highlight ID passed.", http.StatusInternalServerError)
 			return
 		}
-		if highlight.HighlightableType != "argument" {
-			// when more highlightable types come in, this will become a loop. until then, efficiency.
+		var user UserObject
+		if highlight.HighlightableType == "argument" {
+			argument, err := getArgument(s, highlight.HighlightableID)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Highlight URL Preview error, argument not found", http.StatusInternalServerError)
+				return
+			}
+			user = argument.ClaimArgument.Creator
+		} else if highlight.HighlightableType == "comment" {
+			comment, err := getComment(s, highlight.HighlightableID)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Highlight URL Preview error, comment not found", http.StatusInternalServerError)
+				return
+			}
+			user = comment.Creator
+		} else {
 			log.Println("invalid highlightable type")
 			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
-		argument, err := getArgument(s, highlight.HighlightableID)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, "Highlight URL Preview error, argument not found", http.StatusInternalServerError)
 			return
 		}
 
@@ -186,7 +196,7 @@ func renderHighlight(s *Service) http.Handler {
 			http.Error(w, "Highlight URL Preview error, svg file not found", http.StatusInternalServerError)
 			return
 		}
-		compiledPreview, err := compileHighlightPreview(rawPreview, highlight, argument.ClaimArgument)
+		compiledPreview, err := compileHighlightPreview(rawPreview, highlight, user)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Highlight URL Preview error, template compilation failed", http.StatusInternalServerError)
@@ -236,20 +246,19 @@ func renderArgument(s *Service) http.Handler {
 func renderComment(s *Service) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		claimID, err := strconv.ParseInt(vars["claimID"], 10, 64)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, "Invalid claim ID passed.", http.StatusBadRequest)
-			return
-		}
 		commentID, err := strconv.ParseInt(vars["id"], 10, 64)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Invalid comment ID passed.", http.StatusBadRequest)
 			return
 		}
-		comment, err := getComment(s, claimID, commentID)
+		comment, err := getComment(s, commentID)
 		if err != nil {
+			log.Println(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		if comment == nil {
 			log.Println(err)
 			http.Error(w, "", http.StatusInternalServerError)
 			return
@@ -263,7 +272,7 @@ func renderComment(s *Service) http.Handler {
 			return
 		}
 
-		compiledPreview, err := compileCommentPreview(rawPreview, comment)
+		compiledPreview, err := compileCommentPreview(rawPreview, *comment)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Comment URL Preview error: svg file not found", http.StatusInternalServerError)
@@ -321,7 +330,7 @@ func compileClaimPreview(raw []byte, claim ClaimObject) (string, error) {
 	return compiled.String(), nil
 }
 
-func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument ArgumentObject) (string, error) {
+func compileHighlightPreview(raw []byte, highlight *db.Highlight, user UserObject) (string, error) {
 	// BODY
 	bodyLines := wordWrap(highlight.Text, WORDS_PER_LINE_HIGHLIGHT)
 	// make sure to have minimum lines atleast
@@ -335,7 +344,7 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 
 	// base64-ing the avatar
 	// we need to fetch the image and convert it into base64 so that we can embed it in the SVG template.
-	avatarType, avatarBase64, err := imageURLToBase64(argument.Creator.UserProfile.AvatarURL)
+	avatarType, avatarBase64, err := imageURLToBase64(user.UserProfile.AvatarURL)
 	if err != nil {
 		return "", err
 	}
@@ -354,7 +363,7 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 		AvatarBase64 string
 	}{
 		BodyLines:    bodyLines,
-		User:         argument.Creator,
+		User:         user,
 		AvatarType:   avatarType,
 		AvatarBase64: avatarBase64,
 	}
@@ -543,23 +552,40 @@ func getArgument(s *Service, argumentID int64) (ArgumentByIDResponse, error) {
 	return graphqlRes, nil
 }
 
-func getComment(s *Service, claimID int64, commentID int64) (CommentObject, error) {
-	graphqlReq := graphql.NewRequest(CommentsByClaimIDQuery)
-
-	graphqlReq.Var("claimId", claimID)
-	var graphqlRes CommentsByClaimIDResponse
-	ctx := context.Background()
-	if err := s.graphqlClient.Run(ctx, graphqlReq, &graphqlRes); err != nil {
-		return CommentObject{}, err
+func getComment(s *Service, commentID int64) (*CommentObject, error) {
+	comment := &db.Comment{ID: commentID}
+	err := s.dbClient.Find(comment)
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	for _, comment := range graphqlRes.Claim.Comments {
-		if comment.ID == commentID {
-			return comment, nil
-		}
+	transformedBody, err := s.dbClient.TranslateToUsersMentions(comment.Body)
+	if err != nil {
+		return nil, err
 	}
 
-	return CommentObject{}, nil
+	creator, err := s.dbClient.UserProfileByAddress(comment.Creator)
+	if err != nil {
+		return nil, err
+	}
+
+	commentObj := &CommentObject{
+		ID:   comment.ID,
+		Body: transformedBody,
+		Creator: UserObject{
+			Address: comment.Creator,
+			UserProfile: UserProfileObject{
+				AvatarURL: creator.AvatarURL,
+				FullName:  creator.FullName,
+				Username:  creator.Username,
+			},
+		},
+	}
+
+	return commentObj, nil
 }
 
 func imageURLToBase64(url string) (string, string, error) {

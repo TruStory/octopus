@@ -314,7 +314,7 @@ func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentI
 	return &Tags{
 		Title:       fmt.Sprintf("%s posted a comment", "@"+creatorObj.Username),
 		Description: html.EscapeString(stripmd.Strip(transformedBody)),
-		Image:       fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v&comment_id=%v", ta.APIContext.Config.App.URL, claimID, commentID),
+		Image:       fmt.Sprintf("%s/api/v1/spotlight?comment_id=%v", ta.APIContext.Config.App.URL, commentID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

@@ -22,18 +22,20 @@ const (
 	defaultDescription = "TruStory is a social network to debate with skin in the game"
 	previewDirectory   = "communities/previews" // full url format: S3_URL/communities/previews/PREVIEW.jpeg
 
-	REGEX_MATCHES_CLAIM          = 2
-	REGEX_MATCHES_CLAIM_ARGUMENT = 3
-	REGEX_MATCHES_CLAIM_COMMENT  = 2
-	REGEX_MATCHES_COMMUNITY      = 2
-	REGEX_MATCHES_PROFILE        = 2
-	REGEX_MATCHES_HIGHLIGHT      = 4
+	REGEX_MATCHES_CLAIM            = 2
+	REGEX_MATCHES_CLAIM_ARGUMENT   = 3
+	REGEX_MATCHES_CLAIM_COMMENT    = 2
+	REGEX_MATCHES_ARGUMENT_COMMENT = 4
+	REGEX_MATCHES_COMMUNITY        = 2
+	REGEX_MATCHES_PROFILE          = 2
+	REGEX_MATCHES_HIGHLIGHT        = 4
 )
 
 var (
 	claimRegex                  = regexp.MustCompile("/claim/([0-9]+)/?$")
 	claimArgumentRegex          = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
 	claimCommentRegex           = regexp.MustCompile("/claim/[0-9]+/comment/([0-9]+)/?$")
+	argumentCommentRegex        = regexp.MustCompile("/claim/[0-9]+/argument/([0-9]+)/element/([0-9]+)/comment/([0-9]+)/?$")
 	communityRegex              = regexp.MustCompile("/community/([^/]+)")
 	profileRegex                = regexp.MustCompile("/profile/([a-z0-9]+)/?$")
 	claimArgumentHighlightRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/highlight/([0-9]+)/?$")
@@ -113,7 +115,23 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 		return compile(index, *metaTags)
 	}
 
-	// community/
+	// /claim/xxx/argument/xxx/element/xxx/comment/xxx
+	matches = argumentCommentRegex.FindStringSubmatch(route)
+	if len(matches) == REGEX_MATCHES_ARGUMENT_COMMENT {
+		commentID, err := strconv.ParseInt(matches[3], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+
+		metaTags, err := makeClaimCommentMetaTags(ta, route, commentID)
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		return compile(index, *metaTags)
+	}
+
+	// community/xxx
 	matches = communityRegex.FindStringSubmatch(route)
 	if len(matches) == REGEX_MATCHES_COMMUNITY {
 		// replace placeholder with community details

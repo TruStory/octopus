@@ -24,7 +24,7 @@ const (
 
 	REGEX_MATCHES_CLAIM          = 2
 	REGEX_MATCHES_CLAIM_ARGUMENT = 3
-	REGEX_MATCHES_CLAIM_COMMENT  = 3
+	REGEX_MATCHES_CLAIM_COMMENT  = 2
 	REGEX_MATCHES_COMMUNITY      = 2
 	REGEX_MATCHES_PROFILE        = 2
 	REGEX_MATCHES_HIGHLIGHT      = 4
@@ -33,7 +33,7 @@ const (
 var (
 	claimRegex                  = regexp.MustCompile("/claim/([0-9]+)/?$")
 	claimArgumentRegex          = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
-	claimCommentRegex           = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/?$")
+	claimCommentRegex           = regexp.MustCompile("/claim/[0-9]+/comment/([0-9]+)/?$")
 	communityRegex              = regexp.MustCompile("/community/([^/]+)")
 	profileRegex                = regexp.MustCompile("/profile/([a-z0-9]+)/?$")
 	claimArgumentHighlightRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/highlight/([0-9]+)/?$")
@@ -100,19 +100,13 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 	// /claim/xxx/comment/xxx
 	matches = claimCommentRegex.FindStringSubmatch(route)
 	if len(matches) == REGEX_MATCHES_CLAIM_COMMENT {
-		// replace placeholder with claim details, where claim id is in matches[1]
-		claimID, err := strconv.ParseUint(matches[1], 10, 64)
-		if err != nil {
-			// if error, return the default tags
-			return compile(index, makeDefaultMetaTags(ta, route))
-		}
-		commentID, err := strconv.ParseInt(matches[2], 10, 64)
+		commentID, err := strconv.ParseInt(matches[1], 10, 64)
 		if err != nil {
 			// if error, return the default tags
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
 
-		metaTags, err := makeClaimCommentMetaTags(ta, route, claimID, commentID)
+		metaTags, err := makeClaimCommentMetaTags(ta, route, commentID)
 		if err != nil {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
@@ -297,7 +291,7 @@ func makeClaimArgumentHighlightMetaTags(ta *TruAPI, route string, claimID uint64
 	}, nil
 }
 
-func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentID int64) (*Tags, error) {
+func makeClaimCommentMetaTags(ta *TruAPI, route string, commentID int64) (*Tags, error) {
 	comment, err := ta.DBClient.CommentByID(commentID)
 	if err != nil {
 		return nil, err

@@ -162,7 +162,8 @@ func renderHighlight(s *Service) http.Handler {
 			return
 		}
 		var user UserObject
-		if highlight.HighlightableType == "argument" {
+		switch highlight.HighlightableType {
+		case "argument":
 			argument, err := getArgument(s, highlight.HighlightableID)
 			if err != nil {
 				log.Println(err)
@@ -170,7 +171,7 @@ func renderHighlight(s *Service) http.Handler {
 				return
 			}
 			user = argument.ClaimArgument.Creator
-		} else if highlight.HighlightableType == "comment" {
+		case "comment":
 			comment, err := getComment(s, highlight.HighlightableID)
 			if err != nil {
 				log.Println(err)
@@ -178,7 +179,7 @@ func renderHighlight(s *Service) http.Handler {
 				return
 			}
 			user = comment.Creator
-		} else {
+		default:
 			log.Println("invalid highlightable type")
 			http.Error(w, "", http.StatusInternalServerError)
 			return
@@ -308,53 +309,31 @@ func compileClaimPreview(raw []byte, claim ClaimObject) string {
 	}
 
 	return string(compiled)
-
-	// // base64-ing the avatar
-	// // we need to fetch the image and convert it into base64 so that we can embed it in the SVG template.
-	// avatarType, avatarBase64, err := imageURLToBase64(claim.Creator.UserProfile.AvatarURL)
-	// if err != nil {
-	// 	return "", err
-	// }
-
-	// // compiling the template
-	// var compiled bytes.Buffer
-	// tmpl, err := template.New("claim").Parse(string(raw))
-	// if err != nil {
-	// 	return "", err
-	// }
-
-	// vars := struct {
-	// 	BodyLines    []string
-	// 	User         UserObject
-	// 	AvatarType   string
-	// 	AvatarBase64 string
-	// }{
-	// 	BodyLines:    bodyLines,
-	// 	User:         claim.Creator,
-	// 	AvatarType:   avatarType,
-	// 	AvatarBase64: avatarBase64,
-	// }
-
-	// err = tmpl.Execute(&compiled, vars)
-	// if err != nil {
-	// 	return "", err
-	// }
-
-	// return compiled.String(), nil
 }
 
 func compileHighlightPreview(raw []byte, highlight *db.Highlight, user UserObject) (string, error) {
+	return compilePreview(raw, highlight.Text, WORDS_PER_LINE_HIGHLIGHT, BODY_LINES_HIGHLIGHT, user)
+}
+
+func compileArgumentPreview(raw []byte, argument ArgumentObject) (string, error) {
+	return compilePreview(raw, argument.Summary, WORDS_PER_LINE_ARGUMENT, BODY_LINES_COMMENT, argument.Creator)
+}
+
+func compileCommentPreview(raw []byte, comment CommentObject) (string, error) {
+	return compilePreview(raw, comment.Body, WORDS_PER_LINE_COMMENT, BODY_LINES_COMMENT, comment.Creator)
+}
+
+func compilePreview(raw []byte, body string, wordsPerLine, numLines int, user UserObject) (string, error) {
 	// BODY
-	bodyLines := wordWrap(highlight.Text, WORDS_PER_LINE_HIGHLIGHT)
+	bodyLines := wordWrap(body, wordsPerLine)
 	// make sure to have minimum lines atleast
-	if len(bodyLines) < BODY_LINES_HIGHLIGHT {
-		for i := len(bodyLines); i < BODY_LINES_HIGHLIGHT; i++ {
+	if len(bodyLines) < numLines {
+		for i := len(bodyLines); i < numLines; i++ {
 			bodyLines = append(bodyLines, "")
 		}
-	} else if len(bodyLines) > BODY_LINES_HIGHLIGHT {
-		bodyLines[BODY_LINES_HIGHLIGHT-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
+	} else if len(bodyLines) > numLines {
+		bodyLines[numLines-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
 	}
-
 	// base64-ing the avatar
 	// we need to fetch the image and convert it into base64 so that we can embed it in the SVG template.
 	avatarType, avatarBase64, err := imageURLToBase64(user.UserProfile.AvatarURL)
@@ -377,96 +356,6 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, user UserObjec
 	}{
 		BodyLines:    bodyLines,
 		User:         user,
-		AvatarType:   avatarType,
-		AvatarBase64: avatarBase64,
-	}
-
-	err = tmpl.Execute(&compiled, vars)
-	if err != nil {
-		return "", err
-	}
-
-	return compiled.String(), nil
-}
-
-func compileArgumentPreview(raw []byte, argument ArgumentObject) (string, error) {
-	// BODY
-	bodyLines := wordWrap(argument.Summary, WORDS_PER_LINE_ARGUMENT)
-	// make sure to have minimum lines atleast
-	if len(bodyLines) < BODY_LINES_ARGUMENT {
-		for i := len(bodyLines); i < BODY_LINES_ARGUMENT; i++ {
-			bodyLines = append(bodyLines, "")
-		}
-	} else if len(bodyLines) > BODY_LINES_ARGUMENT {
-		bodyLines[BODY_LINES_ARGUMENT-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
-	}
-	// base64-ing the avatar
-	// we need to fetch the image and convert it into base64 so that we can embed it in the SVG template.
-	avatarType, avatarBase64, err := imageURLToBase64(argument.Creator.UserProfile.AvatarURL)
-	if err != nil {
-		return "", err
-	}
-
-	// compiling the template
-	var compiled bytes.Buffer
-	tmpl, err := template.New("highlight").Parse(string(raw))
-	if err != nil {
-		return "", err
-	}
-
-	vars := struct {
-		BodyLines    []string
-		User         UserObject
-		AvatarType   string
-		AvatarBase64 string
-	}{
-		BodyLines:    bodyLines,
-		User:         argument.Creator,
-		AvatarType:   avatarType,
-		AvatarBase64: avatarBase64,
-	}
-
-	err = tmpl.Execute(&compiled, vars)
-	if err != nil {
-		return "", err
-	}
-
-	return compiled.String(), nil
-}
-
-func compileCommentPreview(raw []byte, comment CommentObject) (string, error) {
-	// BODY
-	bodyLines := wordWrap(comment.Body, WORDS_PER_LINE_COMMENT)
-	// make sure to have minimum lines atleast
-	if len(bodyLines) < BODY_LINES_COMMENT {
-		for i := len(bodyLines); i < BODY_LINES_COMMENT; i++ {
-			bodyLines = append(bodyLines, "")
-		}
-	} else if len(bodyLines) > BODY_LINES_COMMENT {
-		bodyLines[BODY_LINES_COMMENT-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
-	}
-	// base64-ing the avatar
-	// we need to fetch the image and convert it into base64 so that we can embed it in the SVG template.
-	avatarType, avatarBase64, err := imageURLToBase64(comment.Creator.UserProfile.AvatarURL)
-	if err != nil {
-		return "", err
-	}
-
-	// compiling the template
-	var compiled bytes.Buffer
-	tmpl, err := template.New("highlight").Parse(string(raw))
-	if err != nil {
-		return "", err
-	}
-
-	vars := struct {
-		BodyLines    []string
-		User         UserObject
-		AvatarType   string
-		AvatarBase64 string
-	}{
-		BodyLines:    bodyLines,
-		User:         comment.Creator,
 		AvatarType:   avatarType,
 		AvatarBase64: avatarBase64,
 	}

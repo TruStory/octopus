@@ -225,7 +225,7 @@ func (c *Client) SetUserMeta(id int64, meta *UserMeta) error {
 }
 
 // RegisterUser signs up a new user
-func (c *Client) RegisterUser(user *User, referrerCode string) error {
+func (c *Client) RegisterUser(user *User, referrerCode, defaultAvatarURL string) error {
 	salt, err := generateCryptoSafeRandomBytes(16)
 	if err != nil {
 		return err
@@ -239,6 +239,7 @@ func (c *Client) RegisterUser(user *User, referrerCode string) error {
 		return err
 	}
 
+	user.AvatarURL = defaultAvatarURL
 	user.Password = string(hashedPassword)
 	user.Token = hex.EncodeToString(token)
 	user.ApprovedAt = time.Now()
@@ -718,7 +719,7 @@ func (c *Client) UserProfileByAddress(addr string) (*UserProfile, error) {
 }
 
 // UsersByAddress fetches a list of users by address
-func (c *Client) UsersByAddress(addresses []string) ([]User, error) {	
+func (c *Client) UsersByAddress(addresses []string) ([]User, error) {
 	users := make([]User, 0)
 	err := c.Model(&users).WhereIn("address in (?)", pg.In(addresses)).Select()
 	if err == pg.ErrNoRows {

@@ -33,9 +33,9 @@ import (
 var regexMention = regexp.MustCompile("(cosmos|tru)([a-z0-9]{4})[a-z0-9]{31}([a-z0-9]{4})")
 
 const (
-	WORDS_PER_LINE_CLAIM     = 7
-	WORDS_PER_LINE_ARGUMENT  = 7
-	WORDS_PER_LINE_COMMENT   = 7
+	WORDS_PER_LINE_CLAIM     = 10
+	WORDS_PER_LINE_ARGUMENT  = 10
+	WORDS_PER_LINE_COMMENT   = 10
 	WORDS_PER_LINE_HIGHLIGHT = 10
 
 	MAX_CHARS_PER_LINE = 40
@@ -256,14 +256,19 @@ func renderComment(s *Service) http.Handler {
 		}
 
 		box := packr.New("Templates", "./templates")
-		rawPreview, err := box.Find("comment.svg")
+		rawPreview, err := box.Find("highlight.svg")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Comment URL Preview error: svg file not found", http.StatusInternalServerError)
 			return
 		}
 
-		compiledPreview := compileCommentPreview(rawPreview, comment)
+		compiledPreview, err := compileCommentPreview(rawPreview, comment)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Comment URL Preview error: svg file not found", http.StatusInternalServerError)
+			return
+		}
 		render(compiledPreview, w, s.jpeg)
 	}
 
@@ -407,7 +412,7 @@ func compileArgumentPreview(raw []byte, argument ArgumentObject) (string, error)
 	return compiled.String(), nil
 }
 
-func compileCommentPreview(raw []byte, comment CommentObject) string {
+func compileCommentPreview(raw []byte, comment CommentObject) (string, error) {
 	// BODY
 	bodyLines := wordWrap(comment.Body, WORDS_PER_LINE_COMMENT)
 	// make sure to have minimum lines atleast
@@ -418,14 +423,38 @@ func compileCommentPreview(raw []byte, comment CommentObject) string {
 	} else if len(bodyLines) > BODY_LINES_COMMENT {
 		bodyLines[BODY_LINES_COMMENT-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
 	}
-	compiled := bytes.Replace(raw, []byte("$PLACEHOLDER__BODY_LINE_1"), []byte(bodyLines[0]), -1)
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_2"), []byte(bodyLines[1]), -1)
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_3"), []byte(bodyLines[2]), -1)
+	// base64-ing the avatar
+	// we need to fetch the image and convert it into base64 so that we can embed it in the SVG template.
+	avatarType, avatarBase64, err := imageURLToBase64(comment.Creator.UserProfile.AvatarURL)
+	if err != nil {
+		return "", err
+	}
 
-	// CREATED BY
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+comment.Creator.UserProfile.Username), -1)
+	// compiling the template
+	var compiled bytes.Buffer
+	tmpl, err := template.New("highlight").Parse(string(raw))
+	if err != nil {
+		return "", err
+	}
 
-	return string(compiled)
+	vars := struct {
+		BodyLines    []string
+		User         UserObject
+		AvatarType   string
+		AvatarBase64 string
+	}{
+		BodyLines:    bodyLines,
+		User:         comment.Creator,
+		AvatarType:   avatarType,
+		AvatarBase64: avatarBase64,
+	}
+
+	err = tmpl.Execute(&compiled, vars)
+	if err != nil {
+		return "", err
+	}
+
+	return compiled.String(), nil
 }
 
 func wordWrap(body string, defaultWordsPerLine int) []string {

@@ -20,6 +20,9 @@ import (
 // InvitedUserDefaultName is the default name given to the invited user
 const InvitedUserDefaultName = "<invited user>"
 
+// DefaultAvatarURL is the default avatar for the new users
+const DefaultAvatarURL = "https://trustory.s3-us-west-1.amazonaws.com/images/tru-avatar.jpg"
+
 // User is the user on the TruStory platform
 type User struct {
 	Timestamps
@@ -239,6 +242,7 @@ func (c *Client) RegisterUser(user *User, referrerCode string) error {
 		return err
 	}
 
+	user.AvatarURL = DefaultAvatarURL
 	user.Password = string(hashedPassword)
 	user.Token = hex.EncodeToString(token)
 	user.ApprovedAt = time.Now()
@@ -718,7 +722,7 @@ func (c *Client) UserProfileByAddress(addr string) (*UserProfile, error) {
 }
 
 // UsersByAddress fetches a list of users by address
-func (c *Client) UsersByAddress(addresses []string) ([]User, error) {	
+func (c *Client) UsersByAddress(addresses []string) ([]User, error) {
 	users := make([]User, 0)
 	err := c.Model(&users).WhereIn("address in (?)", pg.In(addresses)).Select()
 	if err == pg.ErrNoRows {

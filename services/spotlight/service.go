@@ -34,15 +34,15 @@ var regexMention = regexp.MustCompile("(cosmos|tru)([a-z0-9]{4})[a-z0-9]{31}([a-
 
 const (
 	WORDS_PER_LINE_CLAIM     = 7
-	WORDS_PER_LINE_ARGUMENT  = 7
-	WORDS_PER_LINE_COMMENT   = 7
+	WORDS_PER_LINE_ARGUMENT  = 10
+	WORDS_PER_LINE_COMMENT   = 10
 	WORDS_PER_LINE_HIGHLIGHT = 10
 
 	MAX_CHARS_PER_LINE = 40
 
 	BODY_LINES_CLAIM     = 3
-	BODY_LINES_ARGUMENT  = 3
-	BODY_LINES_COMMENT   = 3
+	BODY_LINES_ARGUMENT  = 4
+	BODY_LINES_COMMENT   = 4
 	BODY_LINES_HIGHLIGHT = 4
 )
 
@@ -66,7 +66,7 @@ func NewService(port, endpoint string, jpeg bool, config truCtx.Config) *Service
 func (s *Service) Run() {
 	s.router.Handle("/claim/{id:[0-9]+}/spotlight", renderClaim(s))
 	s.router.Handle("/argument/{id:[0-9]+}/spotlight", renderArgument(s))
-	s.router.Handle("/claim/{claimID:[0-9]+}/comment/{id:[0-9]+}/spotlight", renderComment(s))
+	s.router.Handle("/comment/{id:[0-9]+}/spotlight", renderComment(s))
 	s.router.Handle("/highlight/{id:[0-9]+}/spotlight", renderHighlight(s))
 	http.Handle("/", s.router)
 	err := http.ListenAndServe(":"+s.port, nil)
@@ -161,16 +161,27 @@ func renderHighlight(s *Service) http.Handler {
 			http.Error(w, "Invalid highlight ID passed.", http.StatusInternalServerError)
 			return
 		}
-		if highlight.HighlightableType != "argument" {
-			// when more highlightable types come in, this will become a loop. until then, efficiency.
+		var user UserObject
+		switch highlight.HighlightableType {
+		case "argument":
+			argument, err := getArgument(s, highlight.HighlightableID)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Highlight URL Preview error, argument not found", http.StatusInternalServerError)
+				return
+			}
+			user = argument.ClaimArgument.Creator
+		case "comment":
+			comment, err := getComment(s, highlight.HighlightableID)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Highlight URL Preview error, comment not found", http.StatusInternalServerError)
+				return
+			}
+			user = comment.Creator
+		default:
 			log.Println("invalid highlightable type")
 			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
-		argument, err := getArgument(s, highlight.HighlightableID)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, "Highlight URL Preview error, argument not found", http.StatusInternalServerError)
 			return
 		}
 
@@ -181,7 +192,7 @@ func renderHighlight(s *Service) http.Handler {
 			http.Error(w, "Highlight URL Preview error, svg file not found", http.StatusInternalServerError)
 			return
 		}
-		compiledPreview, err := compileHighlightPreview(rawPreview, highlight, argument.ClaimArgument)
+		compiledPreview, err := compileHighlightPreview(rawPreview, highlight, user)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Highlight URL Preview error, template compilation failed", http.StatusInternalServerError)
@@ -209,14 +220,19 @@ func renderArgument(s *Service) http.Handler {
 		}
 
 		box := packr.New("Templates", "./templates")
-		rawPreview, err := box.Find("argument.svg")
+		rawPreview, err := box.Find("highlight.svg")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Argument URL Preview error: svg file not found", http.StatusInternalServerError)
 			return
 		}
 
-		compiledPreview := compileArgumentPreview(rawPreview, data.ClaimArgument)
+		compiledPreview, err := compileArgumentPreview(rawPreview, data.ClaimArgument)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Argument URL Preview error: svg file not found", http.StatusInternalServerError)
+			return
+		}
 		render(compiledPreview, w, s.jpeg)
 	}
 
@@ -226,34 +242,38 @@ func renderArgument(s *Service) http.Handler {
 func renderComment(s *Service) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		claimID, err := strconv.ParseInt(vars["claimID"], 10, 64)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, "Invalid claim ID passed.", http.StatusBadRequest)
-			return
-		}
 		commentID, err := strconv.ParseInt(vars["id"], 10, 64)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Invalid comment ID passed.", http.StatusBadRequest)
 			return
 		}
-		comment, err := getComment(s, claimID, commentID)
+		comment, err := getComment(s, commentID)
 		if err != nil {
+			log.Println(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		if comment == nil {
 			log.Println(err)
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 
 		box := packr.New("Templates", "./templates")
-		rawPreview, err := box.Find("comment.svg")
+		rawPreview, err := box.Find("highlight.svg")
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "Comment URL Preview error: svg file not found", http.StatusInternalServerError)
 			return
 		}
 
-		compiledPreview := compileCommentPreview(rawPreview, comment)
+		compiledPreview, err := compileCommentPreview(rawPreview, *comment)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Comment URL Preview error: svg file not found", http.StatusInternalServerError)
+			return
+		}
 		render(compiledPreview, w, s.jpeg)
 	}
 
@@ -291,34 +311,35 @@ func compileClaimPreview(raw []byte, claim ClaimObject) string {
 	return string(compiled)
 }
 
-func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument ArgumentObject) (string, error) {
+func compileHighlightPreview(raw []byte, highlight *db.Highlight, user UserObject) (string, error) {
+	return compilePreview(raw, highlight.Text, WORDS_PER_LINE_HIGHLIGHT, BODY_LINES_HIGHLIGHT, user)
+}
+
+func compileArgumentPreview(raw []byte, argument ArgumentObject) (string, error) {
+	return compilePreview(raw, argument.Summary, WORDS_PER_LINE_ARGUMENT, BODY_LINES_COMMENT, argument.Creator)
+}
+
+func compileCommentPreview(raw []byte, comment CommentObject) (string, error) {
+	return compilePreview(raw, comment.Body, WORDS_PER_LINE_COMMENT, BODY_LINES_COMMENT, comment.Creator)
+}
+
+func compilePreview(raw []byte, body string, wordsPerLine, numLines int, user UserObject) (string, error) {
 	// BODY
-	bodyLines := wordWrap(highlight.Text, WORDS_PER_LINE_HIGHLIGHT)
+	bodyLines := wordWrap(body, wordsPerLine)
 	// make sure to have minimum lines atleast
-	if len(bodyLines) < BODY_LINES_HIGHLIGHT {
-		for i := len(bodyLines); i < BODY_LINES_HIGHLIGHT; i++ {
+	if len(bodyLines) < numLines {
+		for i := len(bodyLines); i < numLines; i++ {
 			bodyLines = append(bodyLines, "")
 		}
-	} else if len(bodyLines) > BODY_LINES_HIGHLIGHT {
-		bodyLines[BODY_LINES_HIGHLIGHT-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
+	} else if len(bodyLines) > numLines {
+		bodyLines[numLines-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
 	}
-
 	// base64-ing the avatar
 	// we need to fetch the image and convert it into base64 so that we can embed it in the SVG template.
-	avatarURL := strings.Replace(argument.Creator.UserProfile.AvatarURL, "_bigger", "_200x200", 1)
-	avatarResponse, err := (&http.Client{
-		Timeout: time.Second * 5,
-	}).Get(avatarURL)
+	avatarType, avatarBase64, err := imageURLToBase64(user.UserProfile.AvatarURL)
 	if err != nil {
 		return "", err
 	}
-	defer avatarResponse.Body.Close()
-
-	avatar, err := ioutil.ReadAll(avatarResponse.Body)
-	if err != nil {
-		return "", err
-	}
-	avatarBase64 := base64.StdEncoding.EncodeToString(avatar)
 
 	// compiling the template
 	var compiled bytes.Buffer
@@ -329,15 +350,13 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 
 	vars := struct {
 		BodyLines    []string
-		Highlight    *db.Highlight
-		Argument     ArgumentObject
+		User         UserObject
 		AvatarType   string
 		AvatarBase64 string
 	}{
 		BodyLines:    bodyLines,
-		Highlight:    highlight,
-		Argument:     argument,
-		AvatarType:   avatarResponse.Header.Get("Content-Type"),
+		User:         user,
+		AvatarType:   avatarType,
 		AvatarBase64: avatarBase64,
 	}
 
@@ -347,51 +366,6 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 	}
 
 	return compiled.String(), nil
-}
-
-func compileArgumentPreview(raw []byte, argument ArgumentObject) string {
-	// BODY
-	bodyLines := wordWrap(argument.Summary, WORDS_PER_LINE_ARGUMENT)
-	// make sure to have minimum lines atleast
-	if len(bodyLines) < BODY_LINES_ARGUMENT {
-		for i := len(bodyLines); i < BODY_LINES_ARGUMENT; i++ {
-			bodyLines = append(bodyLines, "")
-		}
-	} else if len(bodyLines) > BODY_LINES_ARGUMENT {
-		bodyLines[BODY_LINES_ARGUMENT-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
-	}
-	compiled := bytes.Replace(raw, []byte("$PLACEHOLDER__BODY_LINE_1"), []byte(bodyLines[0]), -1)
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_2"), []byte(bodyLines[1]), -1)
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_3"), []byte(bodyLines[2]), -1)
-
-	// AGREE COUNT
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__AGREE_COUNT"), []byte(strconv.Itoa(argument.UpvotedCount)), -1)
-
-	// CREATED BY
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+argument.Creator.UserProfile.Username), -1)
-
-	return string(compiled)
-}
-
-func compileCommentPreview(raw []byte, comment CommentObject) string {
-	// BODY
-	bodyLines := wordWrap(comment.Body, WORDS_PER_LINE_COMMENT)
-	// make sure to have minimum lines atleast
-	if len(bodyLines) < BODY_LINES_COMMENT {
-		for i := len(bodyLines); i < BODY_LINES_COMMENT; i++ {
-			bodyLines = append(bodyLines, "")
-		}
-	} else if len(bodyLines) > BODY_LINES_COMMENT {
-		bodyLines[BODY_LINES_COMMENT-1] += "..." // ellipsis if the entire body couldn't be contained in this preview
-	}
-	compiled := bytes.Replace(raw, []byte("$PLACEHOLDER__BODY_LINE_1"), []byte(bodyLines[0]), -1)
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_2"), []byte(bodyLines[1]), -1)
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__BODY_LINE_3"), []byte(bodyLines[2]), -1)
-
-	// CREATED BY
-	compiled = bytes.Replace(compiled, []byte("$PLACEHOLDER__CREATOR"), []byte("@"+comment.Creator.UserProfile.Username), -1)
-
-	return string(compiled)
 }
 
 func wordWrap(body string, defaultWordsPerLine int) []string {
@@ -480,21 +454,53 @@ func getArgument(s *Service, argumentID int64) (ArgumentByIDResponse, error) {
 	return graphqlRes, nil
 }
 
-func getComment(s *Service, claimID int64, commentID int64) (CommentObject, error) {
-	graphqlReq := graphql.NewRequest(CommentsByClaimIDQuery)
-
-	graphqlReq.Var("claimId", claimID)
-	var graphqlRes CommentsByClaimIDResponse
-	ctx := context.Background()
-	if err := s.graphqlClient.Run(ctx, graphqlReq, &graphqlRes); err != nil {
-		return CommentObject{}, err
+func getComment(s *Service, commentID int64) (*CommentObject, error) {
+	comment := &db.Comment{ID: commentID}
+	err := s.dbClient.Find(comment)
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	for _, comment := range graphqlRes.Claim.Comments {
-		if comment.ID == commentID {
-			return comment, nil
-		}
+	transformedBody, err := s.dbClient.TranslateToUsersMentions(comment.Body)
+	if err != nil {
+		return nil, err
 	}
 
-	return CommentObject{}, nil
+	creator, err := s.dbClient.UserProfileByAddress(comment.Creator)
+	if err != nil {
+		return nil, err
+	}
+
+	commentObj := &CommentObject{
+		ID:   comment.ID,
+		Body: transformedBody,
+		Creator: UserObject{
+			Address: comment.Creator,
+			UserProfile: UserProfileObject{
+				AvatarURL: creator.AvatarURL,
+				FullName:  creator.FullName,
+				Username:  creator.Username,
+			},
+		},
+	}
+
+	return commentObj, nil
+}
+
+func imageURLToBase64(url string) (string, string, error) {
+	response, err := (&http.Client{
+		Timeout: time.Second * 5,
+	}).Get(url)
+	if err != nil {
+		return "", "", err
+	}
+
+	avatar, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return "", "", err
+	}
+	return response.Header.Get("Content-Type"), base64.StdEncoding.EncodeToString(avatar), nil
 }

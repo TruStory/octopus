@@ -238,10 +238,12 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 		image = "https://s3-us-west-1.amazonaws.com/trustory/images/9316406a9a374444.jpg"
 	} else if claimID == 1135 {
 		image = "https://s3-us-west-1.amazonaws.com/trustory/images/a578421649897493.jpg"
+	} else if claimID == 1197 {
+		image = "https://s3-us-west-1.amazonaws.com/trustory/images/80997a56808a974.jpg"
 	}
 
 	description := fmt.Sprintf("%d participant%s, %s %s", totalParticipants, totalParticipantsPlural, totalStaked.Amount.Quo(sdk.NewInt(app.Shanev)), db.CoinDisplayName)
-	if claimID == 824 || claimID == 981 || claimID == 1036 || claimID == 1135 {
+	if claimID == 824 || claimID == 981 || claimID == 1036 || claimID == 1135 || claimID == 1197 {
 		description = ""
 	}
 
@@ -300,6 +302,10 @@ func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentI
 	if err != nil {
 		return nil, err
 	}
+	transformedBody, err := ta.DBClient.TranslateToUsersMentions(comment.Body)
+	if err != nil {
+		return nil, err
+	}
 	creatorObj, err := ta.DBClient.UserByAddress(comment.Creator)
 	if creatorObj == nil || err != nil {
 		// if error, return default
@@ -307,7 +313,7 @@ func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentI
 	}
 	return &Tags{
 		Title:       fmt.Sprintf("%s posted a comment", "@"+creatorObj.Username),
-		Description: html.EscapeString(stripmd.Strip(comment.Body)),
+		Description: html.EscapeString(stripmd.Strip(transformedBody)),
 		Image:       fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v&comment_id=%v", ta.APIContext.Config.App.URL, claimID, commentID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil

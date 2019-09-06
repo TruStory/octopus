@@ -433,6 +433,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"source": func(ctx context.Context, q claim.Claim) string { return q.Source.String() },
 		"image":  ta.claimImageResolver,
+		"video":  ta.claimVideoResolver,
 		"argumentCount": func(ctx context.Context, q claim.Claim) int {
 			return len(ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID}))
 		},
@@ -447,6 +448,9 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"creator": func(ctx context.Context, q claim.Claim) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
+		},
+		"commentCount": func(ctx context.Context, q claim.Claim) int {
+			return len(ta.commentsResolver(ctx, queryCommentsParams{ClaimID: &q.ID}))
 		},
 
 		// deprecated

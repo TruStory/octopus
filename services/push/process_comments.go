@@ -120,24 +120,25 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			}
 		}
 
-		// notify claim creator if not previously notified
-		if _, ok := notified[n.ClaimCreator]; !ok {
-			notified[n.ClaimCreator] = true
-			notifications <- &Notification{
-				From:   &c.Creator,
-				To:     n.ClaimCreator,
-				TypeID: typeId,
-				Type:   notificationType,
-				Msg:    fmt.Sprintf("added a Reply: %s", parsedComment),
-				Meta:   meta,
-				Action: "Added a new reply",
-				Trim:   true,
+		if n.ArgumentCreator == "" {
+			// notify claim creator if claim level comment
+			if _, ok := notified[n.ClaimCreator]; !ok {
+				notified[n.ClaimCreator] = true
+				notifications <- &Notification{
+					From:   &c.Creator,
+					To:     n.ClaimCreator,
+					TypeID: typeId,
+					Type:   notificationType,
+					Msg:    fmt.Sprintf("added a Reply: %s", parsedComment),
+					Meta:   meta,
+					Action: "Added a new reply",
+					Trim:   true,
+				}
 			}
-		}
-
-		// notify argument creator if not previously notified
-		if n.ArgumentCreator != "" {
+		} else {
+			// notify argument creator if argument level comment
 			if _, ok := notified[n.ArgumentCreator]; !ok {
+				notified[n.ArgumentCreator] = true
 				notifications <- &Notification{
 					From:   &c.Creator,
 					To:     n.ArgumentCreator,

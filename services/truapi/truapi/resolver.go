@@ -1094,6 +1094,14 @@ func (ta *TruAPI) claimImageResolver(ctx context.Context, q claim.Claim) string 
 	return claimImageURL
 }
 
+func (ta *TruAPI) claimVideoResolver(ctx context.Context, q claim.Claim) *string {
+	claimVideoURL, err := ta.DBClient.ClaimVideoURL(q.ID)
+	if err == nil && claimVideoURL != "" {
+		return &claimVideoURL
+	}
+	return nil
+}
+
 func (ta *TruAPI) settingsResolver(_ context.Context) Settings {
 	queryRoute := path.Join(account.QuerierRoute, account.QueryParams)
 	res, err := ta.Query(queryRoute, struct{}{}, account.ModuleCodec)

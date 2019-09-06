@@ -448,6 +448,9 @@ func (ta *TruAPI) RegisterResolvers() {
 		"creator": func(ctx context.Context, q claim.Claim) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
 		},
+		"commentCount": func(ctx context.Context, q claim.Claim) int {
+			return len(ta.commentsResolver(ctx, queryCommentsParams{ClaimID: &q.ID}))
+		},
 
 		// deprecated
 		"sourceUrlPreview": ta.claimImageResolver,

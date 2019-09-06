@@ -433,6 +433,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"source": func(ctx context.Context, q claim.Claim) string { return q.Source.String() },
 		"image":  ta.claimImageResolver,
+		"video":  ta.claimImageResolver,
 		"argumentCount": func(ctx context.Context, q claim.Claim) int {
 			return len(ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID}))
 		},

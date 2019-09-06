@@ -20,9 +20,6 @@ import (
 // InvitedUserDefaultName is the default name given to the invited user
 const InvitedUserDefaultName = "<invited user>"
 
-// DefaultAvatarURL is the default avatar for the new users
-const DefaultAvatarURL = "https://trustory.s3-us-west-1.amazonaws.com/images/tru-avatar.jpg"
-
 // User is the user on the TruStory platform
 type User struct {
 	Timestamps
@@ -228,7 +225,7 @@ func (c *Client) SetUserMeta(id int64, meta *UserMeta) error {
 }
 
 // RegisterUser signs up a new user
-func (c *Client) RegisterUser(user *User, referrerCode string) error {
+func (c *Client) RegisterUser(user *User, referrerCode, defaultAvatarURL string) error {
 	salt, err := generateCryptoSafeRandomBytes(16)
 	if err != nil {
 		return err
@@ -242,7 +239,7 @@ func (c *Client) RegisterUser(user *User, referrerCode string) error {
 		return err
 	}
 
-	user.AvatarURL = DefaultAvatarURL
+	user.AvatarURL = defaultAvatarURL
 	user.Password = string(hashedPassword)
 	user.Token = hex.EncodeToString(token)
 	user.ApprovedAt = time.Now()

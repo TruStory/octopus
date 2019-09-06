@@ -305,20 +305,10 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 
 	// base64-ing the avatar
 	// we need to fetch the image and convert it into base64 so that we can embed it in the SVG template.
-	avatarURL := strings.Replace(argument.Creator.UserProfile.AvatarURL, "_bigger", "_200x200", 1)
-	avatarResponse, err := (&http.Client{
-		Timeout: time.Second * 5,
-	}).Get(avatarURL)
+	avatarType, avatarBase64, err := imageURLToBase64(argument.Creator.UserProfile.AvatarURL)
 	if err != nil {
 		return "", err
 	}
-	defer avatarResponse.Body.Close()
-
-	avatar, err := ioutil.ReadAll(avatarResponse.Body)
-	if err != nil {
-		return "", err
-	}
-	avatarBase64 := base64.StdEncoding.EncodeToString(avatar)
 
 	// compiling the template
 	var compiled bytes.Buffer
@@ -337,7 +327,7 @@ func compileHighlightPreview(raw []byte, highlight *db.Highlight, argument Argum
 		BodyLines:    bodyLines,
 		Highlight:    highlight,
 		Argument:     argument,
-		AvatarType:   avatarResponse.Header.Get("Content-Type"),
+		AvatarType:   avatarType,
 		AvatarBase64: avatarBase64,
 	}
 
@@ -497,4 +487,19 @@ func getComment(s *Service, claimID int64, commentID int64) (CommentObject, erro
 	}
 
 	return CommentObject{}, nil
+}
+
+func imageURLToBase64(url string) (string, string, error) {
+	response, err := (&http.Client{
+		Timeout: time.Second * 5,
+	}).Get(url)
+	if err != nil {
+		return "", "", err
+	}
+
+	avatar, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return "", "", err
+	}
+	return response.Header.Get("Content-Type"), base64.StdEncoding.EncodeToString(avatar), nil
 }

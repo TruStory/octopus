@@ -116,10 +116,7 @@ func (s *service) processUnjailedAccounts(data []byte, notifications chan<- *Not
 }
 
 func (s *service) processUnjailedAccount(data []byte, notifications chan<- *Notification) {
-	// TODO: convert account string
-	// does this work?
 	acc := string(data)
-
 	notifications <- &Notification{
 		To:     acc,
 		Msg:    "Hooray you got out of jail!",
@@ -129,21 +126,22 @@ func (s *service) processUnjailedAccount(data []byte, notifications chan<- *Noti
 }
 
 func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notifications chan<- *Notification) {
-
-	//for _, tag := range blockEvt.ResultEndBlock.Tags {
-	//	switch k := string(tag.Key); k {
-	//	case "expired-stakes":
-	//		s.processExpiredStakes(tag.Value, notifications)
-	//	case "unjailed-accounts":
-	//		s.processUnjailedAccounts(tag.Value, notifications)
-	//	}
-	//}
-
 	for _, event := range blockEvt.ResultEndBlock.Events {
-		for _, attr := range event.GetAttributes() {
-			switch k := string(attr.Key); k {
-			case "unjailed-account":
-				s.processUnjailedAccount(attr.Value, notifications)
+		fmt.Println(event.String())
+		switch eventType := event.Type; eventType {
+		case account.ModuleName:
+			for _, attr := range event.GetAttributes() {
+				switch k := string(attr.Key); k {
+				case account.AttributeKeyUser:
+					s.processUnjailedAccount(attr.Value, notifications)
+				}
+			}
+		case staking.ModuleName:
+			for _, attr := range event.GetAttributes() {
+				switch k := string(attr.Key); k {
+				case staking.AttributeKeyExpiredStakes:
+					s.processExpiredStakes(attr.Value, notifications)
+				}
 			}
 		}
 	}

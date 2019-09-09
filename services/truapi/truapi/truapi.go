@@ -328,6 +328,8 @@ func (ta *TruAPI) RegisterResolvers() {
 		"url": func(_ context.Context, q url.URL) string { return q.String() },
 	})
 
+	ta.GraphQLClient.RegisterQueryResolver("referredAppAccounts", ta.referredAppAccountsResolver)
+
 	ta.GraphQLClient.RegisterQueryResolver("appAccount", ta.appAccountResolver)
 	ta.GraphQLClient.RegisterObjectResolver("AppAccount", AppAccount{}, map[string]interface{}{
 		"id": func(_ context.Context, q AppAccount) string { return q.Address },
@@ -357,6 +359,14 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"userProfile": func(ctx context.Context, q AppAccount) *db.UserProfile {
 			return ta.userProfileResolver(ctx, q.Address)
+		},
+		"userJourney": func(ctx context.Context, q AppAccount) []db.UserJourneyStep {
+			user := ta.userResolver(ctx, q.Address)
+			if user == nil {
+				return []db.UserJourneyStep{}
+			}
+
+			return user.Meta.Journey
 		},
 		// deprecated, use "userProfile" instead
 		"twitterProfile": func(ctx context.Context, q AppAccount) db.TwitterProfile {

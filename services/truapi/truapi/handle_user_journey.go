@@ -73,7 +73,7 @@ func (ta *TruAPI) HandleUserJourney(w http.ResponseWriter, r *http.Request) {
 func isStepCompleted(ta *TruAPI, step db.UserJourneyStep, user *db.User) (bool, error) {
 	switch step {
 	case db.JourneyStepSignedUp:
-		return true, nil
+		return user.Address != "", nil
 	case db.JourneyStepOneArgument:
 		return isOneArgumentStepComplete(ta, user)
 	case db.JourneyStepFiveAgrees:

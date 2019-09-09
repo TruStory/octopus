@@ -100,8 +100,8 @@ type Queries interface {
 	UserByAddress(address string) (*User, error)
 	UserByConnectedAccountTypeAndID(accountType, accountID string) (*User, error)
 	IsTwitterUser(userID int64) bool
-	InvitedUsers() ([]User, error)
-	InvitedUsersByID(referrerID int64) ([]User, error)
+	ReferredUsers() ([]User, error)
+	ReferredUsersByID(referrerID int64) ([]User, error)
 	UnusedResetTokensByUser(userID int64) ([]PasswordResetToken, error)
 	UnusedResetTokenByUserAndToken(userID int64, token string) (*PasswordResetToken, error)
 	ConnectedAccountsByUserID(userID int64) ([]ConnectedAccount, error)

@@ -22,6 +22,7 @@ type UserResponse struct {
 	UserID      int64                `json:"userId"`
 	Address     string               `json:"address"`
 	Bio         string               `json:"bio"`
+	InvitesLeft int64                `json:"invitesLeft"`
 	UserMeta    db.UserMeta          `json:"userMeta"`
 	UserProfile *UserProfileResponse `json:"userProfile"`
 }
@@ -374,10 +375,11 @@ func createUserResponse(user *db.User) UserResponse {
 	largeURI = strings.Replace(largeURI, "http://", "https://", 1)
 
 	return UserResponse{
-		UserID:   user.ID,
-		Address:  user.Address,
-		Bio:      user.Bio,
-		UserMeta: user.Meta,
+		UserID:      user.ID,
+		Address:     user.Address,
+		Bio:         user.Bio,
+		InvitesLeft: user.InvitesLeft,
+		UserMeta:    user.Meta,
 		UserProfile: &UserProfileResponse{
 			Bio:       user.Bio,
 			AvatarURL: largeURI,

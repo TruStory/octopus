@@ -179,6 +179,16 @@ func (ta *TruAPI) userProfileResolver(ctx context.Context, addr string) *db.User
 	return profile
 }
 
+func (ta *TruAPI) userResolver(ctx context.Context, addr string) *db.User {
+	user, err := ta.DBClient.UserByAddress(addr)
+	if err != nil {
+		fmt.Println("userResolver err: ", err)
+		return nil
+	}
+
+	return user
+}
+
 func (ta *TruAPI) earnedBalanceResolver(ctx context.Context, q queryByAddress) sdk.Coin {
 	earnedCoins := ta.earnedStakeResolver(ctx, q)
 	balance := sdk.ZeroInt()
@@ -1476,6 +1486,49 @@ func (ta *TruAPI) invitesResolver(ctx context.Context) []db.Invite {
 		panic(err)
 	}
 	return invites
+}
+
+func (ta *TruAPI) referredAppAccountsResolver(ctx context.Context) []AppAccount {
+	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
+	if !ok {
+		return make([]AppAccount, 0)
+	}
+
+	userProfile, err := ta.DBClient.UserProfileByAddress(user.Address)
+	if err != nil {
+		fmt.Println("referredAppAccountsResolver err: ", err)
+		return make([]AppAccount, 0)
+	}
+
+	var users []db.User
+
+	// TODO: pull this in from an ENV
+	if strings.EqualFold(userProfile.Username, "lilrushishah") ||
+		strings.EqualFold(userProfile.Username, "patel0phone") ||
+		strings.EqualFold(userProfile.Username, "iam_preethi") ||
+		strings.EqualFold(userProfile.Username, "truted2") ||
+		strings.EqualFold(userProfile.Username, "mohitmamoria") ||
+		strings.EqualFold(userProfile.Username, "shanev") {
+		users, err = ta.DBClient.ReferredUsers()
+		if err != nil {
+			fmt.Println("referredAppAccountsResolver err: ", err)
+			return make([]AppAccount, 0)
+		}
+	} else {
+		users, err = ta.DBClient.ReferredUsersByID(user.ID)
+		if err != nil {
+			fmt.Println("referredAppAccountsResolver err: ", err)
+			return make([]AppAccount, 0)
+		}
+	}
+
+	appAccounts := make([]AppAccount, 0)
+	for _, user := range users {
+		if user.Address != "" {
+			appAccounts = append(appAccounts, *ta.appAccountResolver(ctx, queryByAddress{ID: user.Address}))
+		}
+	}
+	return appAccounts
 }
 
 func (ta *TruAPI) followsCommunity(ctx context.Context, q queryByCommunityID) bool {

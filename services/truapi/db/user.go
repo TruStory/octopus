@@ -34,6 +34,7 @@ type User struct {
 	Bio                 string     `json:"bio"`
 	AvatarURL           string     `json:"avatar_url"`
 	Address             string     `json:"address"`
+	InvitesLeft         int64      `json:"invites_left"`
 	Password            string     `json:"-" graphql:"-"`
 	ReferredBy          int64      `json:"referred_by"`
 	Token               string     `json:"-" graphql:"-"`
@@ -554,32 +555,32 @@ func (c *Client) UnblacklistUser(id int64) error {
 	return nil
 }
 
-// InvitedUsers returns all the users who are invited
-func (c *Client) InvitedUsers() ([]User, error) {
-	var invitedUsers = make([]User, 0)
-	err := c.Model(&invitedUsers).
+// ReferredUsers returns all the users who are invited
+func (c *Client) ReferredUsers() ([]User, error) {
+	var referredUsers = make([]User, 0)
+	err := c.Model(&referredUsers).
 		Where("referred_by IS NOT NULL").
 		Where("deleted_at IS NULL").
 		Select()
 	if err != nil {
-		return invitedUsers, err
+		return referredUsers, err
 	}
 
-	return invitedUsers, nil
+	return referredUsers, nil
 }
 
-// InvitedUsersByID returns all the users who are invited by a particular address
-func (c *Client) InvitedUsersByID(referrerID int64) ([]User, error) {
-	var invitedUsers = make([]User, 0)
-	err := c.Model(&invitedUsers).
+// ReferredUsersByID returns all the users who are invited by a particular user
+func (c *Client) ReferredUsersByID(referrerID int64) ([]User, error) {
+	var referredUsers = make([]User, 0)
+	err := c.Model(&referredUsers).
 		Where("deleted_at IS NULL").
 		Where("referred_by = ?", referrerID).
 		Select()
 	if err != nil {
-		return invitedUsers, err
+		return referredUsers, err
 	}
 
-	return invitedUsers, nil
+	return referredUsers, nil
 }
 
 // AddUserViaConnectedAccount adds a new user using a new connected account

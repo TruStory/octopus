@@ -11,7 +11,7 @@
     {{if index .BodyLines 3}}<tspan x="105" y="790.07">{{ index .BodyLines 3 }}</tspan>{{end}}
 </text>
 <circle cx="150" cy="958.625" r="45" fill="url(#pattern0)"/>
-<text fill="black" xml:space="preserve" style="white-space: pre" font-family="Roboto" font-size="52.5" font-weight="100" letter-spacing="0em"><tspan x="232.5" y="974.694">@{{ .Argument.Creator.UserProfile.Username }}</tspan></text>
+<text fill="black" xml:space="preserve" style="white-space: pre" font-family="Roboto" font-size="52.5" font-weight="100" letter-spacing="0em"><tspan x="232.5" y="974.694">@{{ .User.UserProfile.Username }}</tspan></text>
 <path d="M1697.42 966.963C1696.71 963.902 1696.36 960.725 1696.36 957.432C1696.46 933.686 1715.98 914.81 1739.98 915.274C1763.35 915.714 1782.12 934.729 1781.89 958.012C1781.65 980.807 1762.95 999.474 1739.91 999.868C1733.18 999.984 1726.81 998.57 1721.11 995.949C1717.71 994.373 1713.75 994.628 1710.45 996.39C1707.05 998.199 1703.23 999.103 1700.02 999.521C1696.78 999.984 1694.18 996.923 1695.24 993.862C1699.9 980.25 1697.42 966.963 1697.42 966.963Z" fill="#E4E1F0"/>
 <mask id="path-9-outside-1" maskUnits="userSpaceOnUse" x="1714.12" y="877.125" width="115" height="112" fill="black">
 <rect fill="white" x="1714.12" y="877.125" width="115" height="112"/>

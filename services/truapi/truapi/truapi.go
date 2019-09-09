@@ -444,6 +444,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"source": func(ctx context.Context, q claim.Claim) string { return q.Source.String() },
 		"image":  ta.claimImageResolver,
+		"video":  ta.claimVideoResolver,
 		"argumentCount": func(ctx context.Context, q claim.Claim) int {
 			return len(ta.claimArgumentsResolver(ctx, queryClaimArgumentParams{ClaimID: q.ID}))
 		},
@@ -458,6 +459,9 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"creator": func(ctx context.Context, q claim.Claim) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator.String()})
+		},
+		"commentCount": func(ctx context.Context, q claim.Claim) int {
+			return len(ta.commentsResolver(ctx, queryCommentsParams{ClaimID: &q.ID}))
 		},
 
 		// deprecated
@@ -506,6 +510,7 @@ func (ta *TruAPI) RegisterResolvers() {
 		"parentId":   func(_ context.Context, q db.Comment) int64 { return q.ParentID },
 		"claimId":    func(_ context.Context, q db.Comment) int64 { return q.ClaimID },
 		"argumentId": func(_ context.Context, q db.Comment) int64 { return q.ArgumentID },
+		"elementId":  func(_ context.Context, q db.Comment) int64 { return q.ElementID },
 		"body":       func(_ context.Context, q db.Comment) string { return q.Body },
 		"creator": func(ctx context.Context, q db.Comment) *AppAccount {
 			return ta.appAccountResolver(ctx, queryByAddress{ID: q.Creator})

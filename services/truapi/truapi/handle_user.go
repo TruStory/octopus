@@ -154,7 +154,7 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		Username: request.Username,
 	}
 
-	err = ta.DBClient.RegisterUser(user, request.ReferredBy)
+	err = ta.DBClient.RegisterUser(user, request.ReferredBy, ta.APIContext.Config.Defaults.AvatarURL)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return

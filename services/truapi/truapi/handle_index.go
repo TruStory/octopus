@@ -22,18 +22,20 @@ const (
 	defaultDescription = "TruStory is a social network to debate with skin in the game"
 	previewDirectory   = "communities/previews" // full url format: S3_URL/communities/previews/PREVIEW.jpeg
 
-	REGEX_MATCHES_CLAIM          = 2
-	REGEX_MATCHES_CLAIM_ARGUMENT = 3
-	REGEX_MATCHES_CLAIM_COMMENT  = 3
-	REGEX_MATCHES_COMMUNITY      = 2
-	REGEX_MATCHES_PROFILE        = 2
-	REGEX_MATCHES_HIGHLIGHT      = 4
+	REGEX_MATCHES_CLAIM            = 2
+	REGEX_MATCHES_CLAIM_ARGUMENT   = 3
+	REGEX_MATCHES_CLAIM_COMMENT    = 2
+	REGEX_MATCHES_ARGUMENT_COMMENT = 4
+	REGEX_MATCHES_COMMUNITY        = 2
+	REGEX_MATCHES_PROFILE          = 2
+	REGEX_MATCHES_HIGHLIGHT        = 4
 )
 
 var (
 	claimRegex                  = regexp.MustCompile("/claim/([0-9]+)/?$")
 	claimArgumentRegex          = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
-	claimCommentRegex           = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/?$")
+	claimCommentRegex           = regexp.MustCompile("/claim/[0-9]+/comment/([0-9]+)/?$")
+	argumentCommentRegex        = regexp.MustCompile("/claim/[0-9]+/argument/([0-9]+)/element/([0-9]+)/comment/([0-9]+)/?$")
 	communityRegex              = regexp.MustCompile("/community/([^/]+)")
 	profileRegex                = regexp.MustCompile("/profile/([a-z0-9]+)/?$")
 	claimArgumentHighlightRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/highlight/([0-9]+)/?$")
@@ -100,26 +102,36 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 	// /claim/xxx/comment/xxx
 	matches = claimCommentRegex.FindStringSubmatch(route)
 	if len(matches) == REGEX_MATCHES_CLAIM_COMMENT {
-		// replace placeholder with claim details, where claim id is in matches[1]
-		claimID, err := strconv.ParseUint(matches[1], 10, 64)
-		if err != nil {
-			// if error, return the default tags
-			return compile(index, makeDefaultMetaTags(ta, route))
-		}
-		commentID, err := strconv.ParseInt(matches[2], 10, 64)
+		commentID, err := strconv.ParseInt(matches[1], 10, 64)
 		if err != nil {
 			// if error, return the default tags
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
 
-		metaTags, err := makeClaimCommentMetaTags(ta, route, claimID, commentID)
+		metaTags, err := makeClaimCommentMetaTags(ta, route, commentID)
 		if err != nil {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
 		return compile(index, *metaTags)
 	}
 
-	// community/
+	// /claim/xxx/argument/xxx/element/xxx/comment/xxx
+	matches = argumentCommentRegex.FindStringSubmatch(route)
+	if len(matches) == REGEX_MATCHES_ARGUMENT_COMMENT {
+		commentID, err := strconv.ParseInt(matches[3], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+
+		metaTags, err := makeClaimCommentMetaTags(ta, route, commentID)
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		return compile(index, *metaTags)
+	}
+
+	// community/xxx
 	matches = communityRegex.FindStringSubmatch(route)
 	if len(matches) == REGEX_MATCHES_COMMUNITY {
 		// replace placeholder with community details
@@ -297,7 +309,7 @@ func makeClaimArgumentHighlightMetaTags(ta *TruAPI, route string, claimID uint64
 	}, nil
 }
 
-func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentID int64) (*Tags, error) {
+func makeClaimCommentMetaTags(ta *TruAPI, route string, commentID int64) (*Tags, error) {
 	comment, err := ta.DBClient.CommentByID(commentID)
 	if err != nil {
 		return nil, err
@@ -314,7 +326,7 @@ func makeClaimCommentMetaTags(ta *TruAPI, route string, claimID uint64, commentI
 	return &Tags{
 		Title:       fmt.Sprintf("%s posted a comment", "@"+creatorObj.Username),
 		Description: html.EscapeString(stripmd.Strip(transformedBody)),
-		Image:       fmt.Sprintf("%s/api/v1/spotlight?claim_id=%v&comment_id=%v", ta.APIContext.Config.App.URL, claimID, commentID),
+		Image:       fmt.Sprintf("%s/api/v1/spotlight?comment_id=%v", ta.APIContext.Config.App.URL, commentID),
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

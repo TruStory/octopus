@@ -46,17 +46,17 @@ func (ta *TruAPI) HandleUserJourney(w http.ResponseWriter, r *http.Request) {
 	}
 
 	steps := make(map[db.UserJourneyStep]bool)
-	steps[db.JourneyStepSignedUp], err = isStepCompleted(ta, db.JourneyStepSignedUp, user)
+	steps[db.JourneyStepSignedUp], err = ta.isStepCompleted(r.Context(), db.JourneyStepSignedUp, user)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
-	steps[db.JourneyStepOneArgument], err = isStepCompleted(ta, db.JourneyStepOneArgument, user)
+	steps[db.JourneyStepOneArgument], err = ta.isStepCompleted(r.Context(), db.JourneyStepOneArgument, user)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
-	steps[db.JourneyStepFiveAgrees], err = isStepCompleted(ta, db.JourneyStepFiveAgrees, user)
+	steps[db.JourneyStepFiveAgrees], err = ta.isStepCompleted(r.Context(), db.JourneyStepFiveAgrees, user)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
@@ -70,27 +70,32 @@ func (ta *TruAPI) HandleUserJourney(w http.ResponseWriter, r *http.Request) {
 	render.Response(w, r, response, http.StatusOK)
 }
 
-func isStepCompleted(ta *TruAPI, step db.UserJourneyStep, user *db.User) (bool, error) {
+func (ta *TruAPI) isStepCompleted(ctx context.Context, step db.UserJourneyStep, user *db.User) (bool, error) {
 	switch step {
 	case db.JourneyStepSignedUp:
 		return user.Address != "", nil
 	case db.JourneyStepOneArgument:
-		return isOneArgumentStepComplete(ta, user)
+		return ta.isOneArgumentStepComplete(ctx, user)
 	case db.JourneyStepFiveAgrees:
-		return isFiveAgreesStepComplete(ta, user)
+		return ta.isFiveAgreesStepComplete(ctx, user)
 	}
 
 	return false, errors.New("invalid journey step")
 }
 
-func isOneArgumentStepComplete(ta *TruAPI, user *db.User) (bool, error) {
-	ctx := context.Background()
+func (ta *TruAPI) isSignedUpStepComplete(ctx context.Context, user *db.User) (bool, error) {
+	// if an address is assigned to the user, it means,
+	// the user is active, i.e. verified email if signed up via email,
+	// or signed up via twitter
+	return user.Address != "", nil
+}
+
+func (ta *TruAPI) isOneArgumentStepComplete(ctx context.Context, user *db.User) (bool, error) {
 	arguments := ta.appAccountArgumentsResolver(ctx, queryByAddress{ID: user.Address})
 	return len(arguments) > 1, nil
 }
 
-func isFiveAgreesStepComplete(ta *TruAPI, user *db.User) (bool, error) {
-	ctx := context.Background()
+func (ta *TruAPI) isFiveAgreesStepComplete(ctx context.Context, user *db.User) (bool, error) {
 	agrees := ta.agreesResolver(ctx, queryByAddress{ID: user.Address})
 	return len(agrees) > 5, nil
 }

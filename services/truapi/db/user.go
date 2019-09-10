@@ -181,7 +181,7 @@ func (c *Client) GetAuthenticatedUser(identifier, password string) (*User, error
 		return nil, err
 	}
 	if user == nil {
-		return nil, errors.New("no such user found")
+		return nil, errors.New("No such user found")
 	}
 
 	if !user.BlacklistedAt.IsZero() {
@@ -190,7 +190,7 @@ func (c *Client) GetAuthenticatedUser(identifier, password string) (*User, error
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return nil, errors.New("no such user found")
+		return nil, errors.New("Oops! Invalid credentials provided")
 	}
 
 	return user, nil
@@ -718,7 +718,7 @@ func (c *Client) UserProfileByAddress(addr string) (*UserProfile, error) {
 }
 
 // UsersByAddress fetches a list of users by address
-func (c *Client) UsersByAddress(addresses []string) ([]User, error) {	
+func (c *Client) UsersByAddress(addresses []string) ([]User, error) {
 	users := make([]User, 0)
 	err := c.Model(&users).WhereIn("address in (?)", pg.In(addresses)).Select()
 	if err == pg.ErrNoRows {

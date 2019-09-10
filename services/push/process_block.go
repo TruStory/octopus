@@ -115,16 +115,6 @@ func (s *service) processUnjailedAccounts(data []byte, notifications chan<- *Not
 	}
 }
 
-func (s *service) processUnjailedAccount(data []byte, notifications chan<- *Notification) {
-	acc := string(data)
-	notifications <- &Notification{
-		To:     acc,
-		Msg:    "Hooray you got out of jail!",
-		Type:   db.NotificationUnjailed,
-		Action: "Unjailed",
-	}
-}
-
 func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notifications chan<- *Notification) {
 	for _, event := range blockEvt.ResultEndBlock.Events {
 		fmt.Println(event.String())
@@ -133,7 +123,7 @@ func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notificati
 			for _, attr := range event.GetAttributes() {
 				switch k := string(attr.Key); k {
 				case account.AttributeKeyUser:
-					s.processUnjailedAccount(attr.Value, notifications)
+					s.processUnjailedAccounts(attr.Value, notifications)
 				}
 			}
 		case staking.ModuleName:

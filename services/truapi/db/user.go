@@ -787,6 +787,11 @@ func (c *Client) GrantInvites(id int64, count int) error {
 		return err
 	}
 
+	_, err = c.RecordRewardLedgerEntry(id, RewardLedgerEntryDirectionCredit, int64(count), RewardLedgerEntryCurrencyInvite)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -804,6 +809,11 @@ func (c *Client) ConsumeInvite(id int64) (bool, error) {
 
 	if result.RowsAffected() == 0 {
 		return false, nil
+	}
+
+	_, err = c.RecordRewardLedgerEntry(id, RewardLedgerEntryDirectionDebit, 1, RewardLedgerEntryCurrencyInvite)
+	if err != nil {
+		return false, err
 	}
 
 	return true, nil

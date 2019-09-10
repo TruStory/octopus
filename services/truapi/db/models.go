@@ -61,6 +61,7 @@ type Mutations interface {
 	ConsumeInvite(id int64) (bool, error)
 	UsersWithIncompleteJourney() ([]User, error)
 	UpdateUserJourney(id int64, journey []UserJourneyStep) error
+	RecordRewardLedgerEntry(userID int64, direction RewardLedgerEntryDirection, amount int64, currency RewardLedgerEntryCurrency) (*RewardLedgerEntry, error)
 }
 
 // Queries read from the database

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/TruStory/octopus/services/truapi/db"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
@@ -43,6 +45,11 @@ func (ta *TruAPI) HandleGift(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = ta.SendGiftToAddress(user.Address, amount)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+	_, err = ta.DBClient.RecordRewardLedgerEntry(user.ID, db.RewardLedgerEntryDirectionCredit, amount.Amount.Int64(), db.RewardLedgerEntryCurrencyTru)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return

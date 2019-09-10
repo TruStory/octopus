@@ -61,6 +61,7 @@ func main() {
 		}
 		// if there are not new steps done by the user, we are done here
 		if len(user.Meta.Journey) == len(currentJourney) {
+			fmt.Printf("no progress made. ❗️\n")
 			// moving on to the next one
 			continue
 		}

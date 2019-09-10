@@ -22,7 +22,7 @@ Copy the development cert into a location such as `./certs` and set `GORUSH_IOS_
 ```
 GORUSH_IOS_ENABLED=true
 GORUSH_IOS_KEY_TYPE=p12
-GORUSH_IOS_KEY_PATH=./certs/development_io.trustory.app.devnet.p12
+GORUSH_IOS_KEY_PATH=./certs/development_app_trustory.io.p12
 GORUSH_IOS_PASSWORD=password
 GORUSH_IOS_PRODUCTION=false
 ```

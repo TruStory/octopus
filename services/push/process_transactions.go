@@ -83,7 +83,6 @@ func (s *service) processArgumentCreated(data []byte, notifications chan<- *Noti
 			Action: "New Argument",
 		}
 	}
-	s.log.Info("sent notifications..")
 }
 
 func (s *service) processUpvote(data []byte, notifications chan<- *Notification) {
@@ -113,13 +112,10 @@ func (s *service) processUpvote(data []byte, notifications chan<- *Notification)
 		Meta:   meta,
 		Action: "Agree Received",
 	}
-
-	fmt.Println("sent notification...!!!" + stake.String())
 }
 
 func getTagValue(key string, events []abci.Event) ([]byte, bool) {
 	for _, event := range events {
-		//fmt.Println(event.String())
 		for _, attr := range event.GetAttributes() {
 			if string(attr.Key) == key {
 				return attr.Value, true
@@ -177,9 +173,6 @@ func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
 }
 
 func (s *service) processSlash(data []byte, events []abci.Event, notifications chan<- *Notification) {
-
-	fmt.Println("process slash...!!!")
-
 	slash := slashing.Slash{}
 	err := slashing.ModuleCodec.UnmarshalJSON(data, &slash)
 	if err != nil {
@@ -212,7 +205,6 @@ func (s *service) processSlash(data []byte, events []abci.Event, notifications c
 	b, ok := getTagValue("slash-results", events)
 	minSlashCount, _ := getTagValue("min-slash-count", events)
 	count := string(minSlashCount)
-	fmt.Println("slash count " + count)
 	if ok {
 		punishResults := make([]slashing.PunishmentResult, 0)
 		err := json.Unmarshal(b, &punishResults)
@@ -223,19 +215,14 @@ func (s *service) processSlash(data []byte, events []abci.Event, notifications c
 		if err == nil {
 			s.notifySlashes(punishResults, notifications, meta, int64(slash.ArgumentID), count)
 		}
-		fmt.Println("sent slash notification...!!!")
-	} else {
-		fmt.Println("NOT OK")
 	}
 }
 
 func (s *service) processTxEvent(evt types.EventDataTx, notifications chan<- *Notification) {
-	//fmt.Println(evt.Result.String())
 	for _, event := range evt.Result.Events {
 		fmt.Println("event: " + event.String())
 		if event.Type == sdk.EventTypeMessage {
 			for _, attr := range event.GetAttributes() {
-				//fmt.Println(attr.String())
 				if string(attr.Key) == sdk.AttributeKeyAction {
 					switch v := string(attr.Value); v {
 					case staking.TypeMsgSubmitArgument:

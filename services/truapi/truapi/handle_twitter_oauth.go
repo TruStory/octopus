@@ -134,10 +134,8 @@ func persistReferrer(apiCtx truCtx.TruAPIContext, success http.Handler) http.Han
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 		referrerCode := req.FormValue("referrer")
-		existingCookie, err := cookies.GetReferrerFromCookie(req)
-		if existingCookie == "" || err != nil {
-			// if there's no existing cookie, or, some error occured reading it,
-			// we'll set a new one.
+
+		if referrerCode != "" {
 			http.SetCookie(w, cookies.GetReferrerCookie(apiCtx, referrerCode))
 			success.ServeHTTP(w, req.WithContext(ctx))
 		}

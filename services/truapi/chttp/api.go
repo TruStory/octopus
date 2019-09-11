@@ -174,10 +174,6 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	if err != nil {
 		return
 	}
-	//err = cliCtx.EnsureAccountExistsFromAddr(registrarAddr)
-	//if err != nil {
-	//	return
-	//}
 	sk, err := StdKey(algo, k)
 	if err != nil {
 		return
@@ -188,13 +184,6 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 		return
 	}
 
-	// build and sign the transaction
-	//seq, err := cliCtx.GetAccountSequence(registrarAddr)
-	//if err != nil {
-	//	return
-	//}
-
-	//txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 	txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})

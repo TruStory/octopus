@@ -102,7 +102,6 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 				panic(err)
 			}
 
-			//cliCtx := sdkContext.NewCLIContext().WithCodec(codec).WithAccountDecoder(codec)
 			cliCtx := sdkContext.NewCLIContext().WithCodec(codec)
 			apiCtx := context.NewTruAPIContext(&cliCtx, config)
 			truAPI := truapi.NewTruAPI(apiCtx)

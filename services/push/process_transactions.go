@@ -202,8 +202,8 @@ func (s *service) processSlash(data []byte, events []abci.Event, notifications c
 		Action: "Not Helpful received on an Argument",
 	}
 
-	b, ok := getTagValue("slash-results", events)
-	minSlashCount, _ := getTagValue("min-slash-count", events)
+	b, ok := getTagValue(slashing.AttributeKeySlashResults, events)
+	minSlashCount, _ := getTagValue(slashing.AttributeKeyMinSlashCountKey, events)
 	count := string(minSlashCount)
 	if ok {
 		punishResults := make([]slashing.PunishmentResult, 0)
@@ -220,7 +220,6 @@ func (s *service) processSlash(data []byte, events []abci.Event, notifications c
 
 func (s *service) processTxEvent(evt types.EventDataTx, notifications chan<- *Notification) {
 	for _, event := range evt.Result.Events {
-		fmt.Println("event: " + event.String())
 		if event.Type == sdk.EventTypeMessage {
 			for _, attr := range event.GetAttributes() {
 				if string(attr.Key) == sdk.AttributeKeyAction {

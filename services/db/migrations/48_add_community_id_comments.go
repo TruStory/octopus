@@ -12,7 +12,7 @@ import (
 func init() {
 	migrations.MustRegisterTx(func(db migrations.DB) error {
 		fmt.Println("adding community_id column to comments...")
-		_, err := db.Exec(`ALTER TABLE comments ADD COLUMN  community_id VARCHAR(75)`)
+		_, err := db.Exec(`ALTER TABLE comments ADD COLUMN community_id VARCHAR(75)`)
 		if err != nil {
 			return err
 		}

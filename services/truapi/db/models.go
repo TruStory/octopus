@@ -85,6 +85,7 @@ type Queries interface {
 	TranslateToUsersMentions(body string) (string, error)
 	InitialStakeBalanceByAddress(address string) (*InitialStakeBalance, error)
 	OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error)
+	OpenedArgumentsSummary(date time.Time) ([]UserOpenedArgumentsSummary, error)
 	ClaimOfTheDayIDByCommunityID(communityID string) (int64, error)
 	ClaimImageURL(claimID uint64) (string, error)
 	ClaimVideoURL(claimID uint64) (string, error)
@@ -113,6 +114,7 @@ type Queries interface {
 	FeedLeaderboardInTransaction(fn func(*pg.Tx) error) error
 	UpsertLeaderboardMetric(tx *pg.Tx, metric *LeaderboardUserMetric) error
 	UpsertLeaderboardProcessedDate(tx *pg.Tx, metric *LeaderboardProcessedDate) error
+	UserRepliesStats(date time.Time) ([]UserRepliesStats, error)
 
 	// deprecated, use UserProfileByAddress/UserProfileByUsername
 	TwitterProfileByAddress(addr string) (*TwitterProfile, error)

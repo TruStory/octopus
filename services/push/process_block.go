@@ -119,17 +119,15 @@ func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notificati
 	for _, event := range blockEvt.ResultEndBlock.Events {
 		fmt.Println(event.String())
 		switch eventType := event.Type; eventType {
-		case account.ModuleName:
+		case account.EventTypeUnjailedAccount:
 			for _, attr := range event.GetAttributes() {
-				switch k := string(attr.Key); k {
-				case account.AttributeKeyUser:
+				if string(attr.Key) == account.AttributeKeyUser {
 					s.processUnjailedAccounts(attr.Value, notifications)
 				}
 			}
-		case staking.ModuleName:
+		case staking.EventTypeInterestRewardPaid:
 			for _, attr := range event.GetAttributes() {
-				switch k := string(attr.Key); k {
-				case staking.AttributeKeyExpiredStakes:
+				if string(attr.Key) == staking.AttributeKeyExpiredStakes {
 					s.processExpiredStakes(attr.Value, notifications)
 				}
 			}

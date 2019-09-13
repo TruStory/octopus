@@ -57,17 +57,21 @@ type ClaimRepliesStats struct {
 func (c *Client) OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error) {
 	openedClaimsSummary := make([]UserOpenedClaimsSummary, 0)
 	query := `
-		SELECT address, meta->>'communityId' community_id,  
-			COUNT(meta->'claimId') opened_claims ,
-			COUNT(DISTINCT meta->'claimId') unique_opened_claims
-		FROM track_events 
-		WHERE
-			created_at < ?
-			AND event = 'claim_opened'
-			AND address is not null 
-			AND meta->'communityId' is not null 
-			AND meta->'claimId' is not null 
-		GROUP BY address, meta->>'communityId';
+	SELECT m.address, m.community_id, sum(m.opened_claims) opened_claims, sum(m.unique_opened_claims) unique_opened_claims
+	FROM (
+	SELECT date(created_at) created_at, address, meta->>'communityId' community_id,  
+		COUNT(meta->'claimId') opened_claims ,
+		COUNT(DISTINCT meta->'claimId') unique_opened_claims
+	FROM track_events 
+	WHERE
+		created_at < ?
+		AND event = 'claim_opened'
+		AND address is not null 
+		AND address != '' 
+		AND meta->'communityId' is not null 
+		AND meta->'claimId' is not null 
+	GROUP BY DATE(created_at), address, meta->>'communityId') AS m
+	GROUP  by m.address, m.community_id
 	`
 	_, err := c.Query(&openedClaimsSummary, query, date)
 	if err != nil {
@@ -79,17 +83,34 @@ func (c *Client) OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary,
 func (c *Client) OpenedArgumentsSummary(date time.Time) ([]UserOpenedArgumentsSummary, error) {
 	openedArgumentsSummary := make([]UserOpenedArgumentsSummary, 0)
 	query := `
-		SELECT address, meta->>'communityId' community_id,  
-			COUNT(meta->'argumentId') opened_arguments ,
-			COUNT(DISTINCT meta->'argumentId') unique_opened_arguments
-		FROM track_events 
-		WHERE
-			created_at < ?
-			AND event = 'argument_opened'
-			AND address is not null 
-			AND meta->'communityId' is not null 
-			AND meta->'argumentId' is not null 
-		GROUP BY address, meta->>'communityId';
+	SELECT
+	m.address,
+	m.community_id,
+	sum(m.opened_arguments) opened_arguments,
+	sum(m.unique_opened_arguments) unique_opened_arguments
+    FROM (
+        	SELECT
+                date(created_at) created_at,
+                address,
+                meta ->> 'communityId' community_id,
+                COUNT(meta -> 'argumentId') opened_arguments,
+                COUNT(DISTINCT meta -> 'argumentId') unique_opened_arguments
+        	FROM
+			    track_events
+        	WHERE
+    	        created_at < ?
+      	        AND event = 'argument_opened'
+				AND address IS NOT NULL
+				AND address != '' 
+      	        AND meta -> 'communityId' IS NOT NULL
+              	AND meta -> 'argumentId' IS NOT NULL
+        	GROUP BY
+  	        	DATE(created_at),
+  	        	address,
+   	        	meta ->> 'communityId') AS m
+    GROUP BY
+       	m.address,
+       	m.community_id
 	`
 	_, err := c.Query(&openedArgumentsSummary, query, date)
 	if err != nil {

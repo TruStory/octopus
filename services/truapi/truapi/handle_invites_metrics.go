@@ -15,7 +15,7 @@ import (
 type InvitesMetricsResponse struct {
 	InvitesUnlocked                  int64     `json:"invites_unlocked"`
 	InvitesUnlocked24Hours           int64     `json:"invites_unlocked_24h"`
-	InvitesUnlocked7Days             int64     `json:"invite_unlocked_7d"`
+	InvitesUnlocked7Days             int64     `json:"invites_unlocked_7d"`
 	InvitesUsedPercentage            float64   `json:"invites_used_percentage"`
 	UsersCompletedSignedUp           int64     `json:"users_completed_signed_up"`
 	UsersCompletedOneArgument        int64     `json:"users_completed_one_argument"`

@@ -37,7 +37,7 @@ type Mutations interface {
 	AddUser(user *User) error
 	ApproveUserByID(id int64) error
 	RejectUserByID(id int64) error
-	RegisterUser(user *User, referrerCode string) error
+	RegisterUser(user *User, referrerCode, defaultAvatarURL string) error
 	BlacklistUser(id int64) error
 	UnblacklistUser(id int64) error
 	VerifyUser(id int64, token string) error
@@ -87,6 +87,7 @@ type Queries interface {
 	OpenedClaimsSummary(date time.Time) ([]UserOpenedClaimsSummary, error)
 	ClaimOfTheDayIDByCommunityID(communityID string) (int64, error)
 	ClaimImageURL(claimID uint64) (string, error)
+	ClaimVideoURL(claimID uint64) (string, error)
 	VerifiedUserByID(id int64) (*User, error)
 	GetAuthenticatedUser(identifier, password string) (*User, error)
 	UserByID(ID int64) (*User, error)

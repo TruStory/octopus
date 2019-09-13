@@ -38,3 +38,7 @@ make
 # Start the TruAPI light client
 ./bin/truapid start --home ~/.octopus --chain-id truchain
 ```
+
+#### Migrating DB
+
+`make db_migrate`

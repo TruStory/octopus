@@ -48,27 +48,6 @@ const ArgumentByIDQuery = `
 	}
 `
 
-// CommentsByClaimIDQuery fetches comments of a given claim
-const CommentsByClaimIDQuery = `
-  query ClaimQuery($claimId: ID!) {
-	claim(id: $claimId) {
-		id
-		comments {
-			id
-			body
-			creator {
-				address
-				userProfile {
-					avatarURL
-					fullName
-					username
-				}
-			}
-		}
-	}
-}
-`
-
 // CommunityObject defines the schema of a category
 type CommunityObject struct {
 	ID   string `json:"id"`
@@ -137,9 +116,4 @@ type ClaimByIDResponse struct {
 // ArgumentByIDResponse defines the JSON response
 type ArgumentByIDResponse struct {
 	ClaimArgument ArgumentObject `json:"claimArgument"`
-}
-
-// CommentsByClaimIDResponse defines the JSON response
-type CommentsByClaimIDResponse struct {
-	Claim ClaimObject `json:"claim"`
 }

@@ -181,11 +181,11 @@ func (c *Client) GetAuthenticatedUser(identifier, password string) (*User, error
 		return nil, err
 	}
 	if user == nil {
-		return nil, errors.New("No such user found")
+		return nil, errors.New("Invalid username, email or password")
 	}
 
 	if !user.BlacklistedAt.IsZero() {
-		return nil, errors.New("the user is blacklisted and cannot be authenticated")
+		return nil, errors.New("The user is blacklisted and cannot be authenticated")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))

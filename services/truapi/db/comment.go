@@ -1,15 +1,18 @@
 package db
 
+import "time"
+
 // Comment represents a comment in the DB
 type Comment struct {
 	Timestamps
-	ID         int64  `json:"id"`
-	ParentID   int64  `json:"parent_id"`
-	ClaimID    int64  `json:"claim_id"`
-	ArgumentID int64  `json:"argument_id"`
-	ElementID  int64  `json:"element_id"`
-	Body       string `json:"body"`
-	Creator    string `json:"creator"`
+	ID          int64  `json:"id"`
+	ParentID    int64  `json:"parent_id"`
+	ClaimID     int64  `json:"claim_id"`
+	ArgumentID  int64  `json:"argument_id"`
+	ElementID   int64  `json:"element_id"`
+	Body        string `json:"body"`
+	Creator     string `json:"creator"`
+	CommunityID string `json:"community_id"`
 }
 
 // ClaimLevelComments returns claim level comments, excluding argument level comments
@@ -128,4 +131,34 @@ func (c *Client) replaceAddressesWithProfileURLsInComments(comments []Comment) (
 		transformedComments = append(transformedComments, transformedComment)
 	}
 	return transformedComments, nil
+}
+
+// UserRepliesStats represets stats about user comments.
+type UserRepliesStats struct {
+	Address     string
+	CommunityID string
+	Replies     int64
+}
+
+func (c *Client) UserRepliesStats(date time.Time) ([]UserRepliesStats, error) {
+	userRepliesStats := make([]UserRepliesStats, 0)
+	query := `
+				SELECT
+					creator address,
+					community_id,
+					count(id) replies
+				FROM
+					comments
+				WHERE
+					created_at < ?
+				GROUP BY
+					creator,
+					community_id
+				`
+
+	_, err := c.Query(&userRepliesStats, query, date)
+	if err != nil {
+		return nil, err
+	}
+	return userRepliesStats, nil
 }

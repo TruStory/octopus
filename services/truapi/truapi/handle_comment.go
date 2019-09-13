@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/TruStory/octopus/services/truapi/chttp"
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
+	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
 // AddCommentRequest represents the JSON request for adding a comment
@@ -20,42 +20,46 @@ type AddCommentRequest struct {
 }
 
 // HandleComment handles requests for comments
-func (ta *TruAPI) HandleComment(r *http.Request) chttp.Response {
+func (ta *TruAPI) HandleComment(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		return ta.handleCreateComment(r)
+		ta.handleCreateComment(w, r)
 	default:
-		return chttp.SimpleErrorResponse(404, Err404ResourceNotFound)
+		render.Error(w, r, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func (ta *TruAPI) handleCreateComment(r *http.Request) chttp.Response {
+func (ta *TruAPI) handleCreateComment(w http.ResponseWriter, r *http.Request) {
 	request := &AddCommentRequest{}
 	err := json.NewDecoder(r.Body).Decode(request)
 	if err != nil {
-		return chttp.SimpleErrorResponse(400, err)
+		render.Error(w, r, "Error parsing request", http.StatusBadRequest)
+		return
 	}
 
 	user, ok := r.Context().Value(userContextKey).(*cookies.AuthenticatedUser)
 	if !ok || user == nil {
-		return chttp.SimpleErrorResponse(401, Err401NotAuthenticated)
+		render.Error(w, r, Err401NotAuthenticated.Error(), http.StatusUnauthorized)
+		return
 	}
-
+	claim := ta.claimResolver(r.Context(), queryByClaimID{ID: uint64(request.ClaimID)})
+	if claim.ID == 0 {
+		render.Error(w, r, "Invalid claim", http.StatusBadRequest)
+		return
+	}
 	comment := &db.Comment{
-		ParentID:   request.ParentID,
-		ClaimID:    request.ClaimID,
-		ArgumentID: request.ArgumentID,
-		ElementID:  request.ElementID,
-		Body:       request.Body,
-		Creator:    user.Address,
+		ParentID:    request.ParentID,
+		ClaimID:     request.ClaimID,
+		CommunityID: claim.CommunityID,
+		ArgumentID:  request.ArgumentID,
+		ElementID:   request.ElementID,
+		Body:        request.Body,
+		Creator:     user.Address,
 	}
 	err = ta.DBClient.AddComment(comment)
 	if err != nil {
-		return chttp.SimpleErrorResponse(500, err)
-	}
-	respBytes, err := json.Marshal(comment)
-	if err != nil {
-		return chttp.SimpleErrorResponse(500, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	ta.sendCommentNotification(CommentNotificationRequest{
 		ID:         comment.ID,
@@ -65,5 +69,5 @@ func (ta *TruAPI) handleCreateComment(r *http.Request) chttp.Response {
 		Creator:    comment.Creator,
 		Timestamp:  time.Now(),
 	})
-	return chttp.SimpleResponse(200, respBytes)
+	render.JSON(w, r, comment, http.StatusOK)
 }

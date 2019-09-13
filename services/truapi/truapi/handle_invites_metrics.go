@@ -11,17 +11,28 @@ import (
 	"github.com/TruStory/octopus/services/truapi/db"
 )
 
+type metricUser struct {
+	ID               int64                `json:"id"`
+	ReferrerUsername string               `json:"referrer_username"`
+	ReferredEmail    string               `json:"referrer_email"`
+	FullName         string               `json:"full_name"`
+	Username         string               `json:"username"`
+	Email            string               `json:"email"`
+	InvitesLeft      int64                `json:"invites_left"`
+	JourneyCompleted []db.UserJourneyStep `json:"journey_completed"`
+}
+
 // InvitesMetricsResponse represents the invites metrics
 type InvitesMetricsResponse struct {
-	InvitesUnlocked                  int64     `json:"invites_unlocked"`
-	InvitesUnlocked24Hours           int64     `json:"invites_unlocked_24h"`
-	InvitesUnlocked7Days             int64     `json:"invites_unlocked_7d"`
-	InvitesUsedPercentage            float64   `json:"invites_used_percentage"`
-	UsersCompletedSignedUp           int64     `json:"users_completed_signed_up"`
-	UsersCompletedOneArgument        int64     `json:"users_completed_one_argument"`
-	UsersCompletedGivenOneAgree      int64     `json:"users_completed_given_one_agree"`
-	UsersCompletedReceivedFiveAgrees int64     `json:"users_completed_received_five_agrees"`
-	Users                            []db.User `json:"users"`
+	InvitesUnlocked                  int64        `json:"invites_unlocked"`
+	InvitesUnlocked24Hours           int64        `json:"invites_unlocked_24h"`
+	InvitesUnlocked7Days             int64        `json:"invites_unlocked_7d"`
+	InvitesUsedPercentage            float64      `json:"invites_used_percentage"`
+	UsersCompletedSignedUp           int64        `json:"users_completed_signed_up"`
+	UsersCompletedOneArgument        int64        `json:"users_completed_one_argument"`
+	UsersCompletedGivenOneAgree      int64        `json:"users_completed_given_one_agree"`
+	UsersCompletedReceivedFiveAgrees int64        `json:"users_completed_received_five_agrees"`
+	Users                            []metricUser `json:"users"`
 }
 
 // HandleInvitesMetrics returns the metrics for the invites system
@@ -133,7 +144,29 @@ func (ta *TruAPI) HandleInvitesMetrics(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	metrics.Users = users
+	for _, user := range users {
+		mUser := metricUser{
+			ID:               user.ID,
+			FullName:         user.FullName,
+			Username:         user.Username,
+			Email:            user.Email,
+			InvitesLeft:      user.InvitesLeft,
+			JourneyCompleted: user.Meta.Journey,
+		}
+
+		if user.ReferredBy != 0 {
+			referrer, err := client.UserByID(user.ReferredBy)
+			if err != nil {
+				render.Error(w, r, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			mUser.ReferrerUsername = referrer.Username
+			mUser.ReferredEmail = referrer.Email
+		}
+
+		metrics.Users = append(metrics.Users, mUser)
+	}
 
 	render.Response(w, r, metrics, http.StatusOK)
 }

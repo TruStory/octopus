@@ -25,7 +25,10 @@ SELECT
 	d1.reward_not_helpful - IFNULL(d0.reward_not_helpful,0) reward_not_helpful,
 	d1.interest_slashed - IFNULL(d0.interest_slashed,0) interest_slashed,
 	d1.stake_slashed - IFNULL(d0.stake_slashed,0) stake_slashed,
-	d1.pending_stake - IFNULL(d0.stake_slashed,0) pending_stake
+	d1.pending_stake - IFNULL(d0.stake_slashed,0) pending_stake,
+	d1.replies - IFNULL(d0.replies, 0) replies,
+	d1.arguments_opened - IFNULL(d0.arguments_opened, 0) arguments_opened,
+	d1.unique_arguments_opened - IFNULL(d0.unique_arguments_opened, 0) unique_arguments_opened
 FROM (
   SELECT
     *

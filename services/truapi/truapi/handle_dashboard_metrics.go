@@ -19,7 +19,7 @@ import (
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
-const metricsVersion = "20190813-01"
+const metricsVersion = "20190911-01"
 
 type UserCommunityMetrics struct {
 	Claims                  int
@@ -37,6 +37,9 @@ type UserCommunityMetrics struct {
 	StakeSlashed            sdk.Coin
 	ClaimsOpened            int64
 	UniqueClaimsOpened      int64
+	ArgumentsOpened         int64
+	UniqueArgumentsOpened   int64
+	Replies                 int64
 	EarnedCoin              sdk.Coin
 	PendingStake            sdk.Coin
 }
@@ -232,6 +235,12 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 		exported.TransactionInterestArgumentCreation,
 		exported.TransactionInterestUpvoteReceived,
 		exported.TransactionInterestUpvoteGiven,
+		// slashing
+		exported.TransactionInterestArgumentCreationSlashed,
+		exported.TransactionInterestUpvoteReceivedSlashed,
+		exported.TransactionInterestUpvoteGivenSlashed,
+		exported.TransactionStakeCreatorSlashed,
+		exported.TransactionStakeCuratorSlashed,
 	}
 	w.Header().Add("Content-Type", "text/csv")
 	csvw := csv.NewWriter(w)
@@ -242,6 +251,8 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 		"staked", "staked_arguments", "staked_agrees",
 		"interest_argument_creation", "interest_agree_received", "interest_agree_given", "reward_not_helpful",
 		"interest_slashed", "stake_slashed", "pending_stake",
+		"replies",
+		"arguments_opened", "unique_arguments_opened",
 	}
 	err = csvw.Write(header)
 	if err != nil {
@@ -255,6 +266,29 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 		userMetrics := chainMetrics.getUserCommunityMetric(userOpenedClaims.Address, userOpenedClaims.CommunityID)
 		userMetrics.ClaimsOpened = userOpenedClaims.OpenedClaims
 		userMetrics.UniqueClaimsOpened = userOpenedClaims.UniqueOpenedClaims
+	}
+
+	openedArguments, err := ta.DBClient.OpenedArgumentsSummary(beforeDate)
+	if err != nil {
+		fmt.Println(err)
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	for _, userOpenedArguments := range openedArguments {
+		userMetrics := chainMetrics.getUserCommunityMetric(userOpenedArguments.Address, userOpenedArguments.CommunityID)
+		userMetrics.ArgumentsOpened = userOpenedArguments.OpenedArguments
+		userMetrics.UniqueArgumentsOpened = userOpenedArguments.UniqueOpenedArguments
+	}
+
+	replies, err := ta.DBClient.UserRepliesStats(beforeDate)
+	if err != nil {
+		fmt.Println(err)
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	for _, userReplies := range replies {
+		userMetrics := chainMetrics.getUserCommunityMetric(userReplies.Address, userReplies.CommunityID)
+		userMetrics.Replies = userReplies.Replies
 	}
 	for _, user := range users {
 		if user.Address == "" || !user.CreatedAt.Before(beforeDate) {
@@ -295,6 +329,19 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 				ucm.EarnedCoin = sdk.NewCoin(transaction.CommunityID, ucm.EarnedCoin.Amount.Add(transaction.Amount.Amount))
 			case exported.TransactionCuratorReward:
 				ucm.CuratorReward = ucm.CuratorReward.Add(transaction.Amount)
+			case exported.TransactionInterestArgumentCreationSlashed:
+				ucm.InterestSlashed = ucm.InterestSlashed.Add(transaction.Amount)
+				ucm.EarnedCoin = sdk.NewCoin(transaction.CommunityID, ucm.EarnedCoin.Amount.Sub(transaction.Amount.Amount))
+			case exported.TransactionInterestUpvoteReceivedSlashed:
+				ucm.InterestSlashed = ucm.InterestSlashed.Add(transaction.Amount)
+				ucm.EarnedCoin = sdk.NewCoin(transaction.CommunityID, ucm.EarnedCoin.Amount.Sub(transaction.Amount.Amount))
+			case exported.TransactionInterestUpvoteGivenSlashed:
+				ucm.InterestSlashed = ucm.InterestSlashed.Add(transaction.Amount)
+				ucm.EarnedCoin = sdk.NewCoin(transaction.CommunityID, ucm.EarnedCoin.Amount.Sub(transaction.Amount.Amount))
+			case exported.TransactionStakeCreatorSlashed:
+				ucm.StakeSlashed = ucm.StakeSlashed.Add(transaction.Amount)
+			case exported.TransactionStakeCuratorSlashed:
+				ucm.StakeSlashed = ucm.StakeSlashed.Add(transaction.Amount)
 			}
 
 		}
@@ -324,11 +371,16 @@ func (ta *TruAPI) HandleUsersMetrics(w http.ResponseWriter, r *http.Request) {
 			record = append(record, m.InterestArgumentCreated.Amount.String())
 			record = append(record, m.InterestAgreeReceived.Amount.String())
 			record = append(record, m.InterestAgreeGiven.Amount.String())
-			record = append(record, fmt.Sprintf("%d", 0))
+			record = append(record, m.CuratorReward.Amount.String())
 			// "interest_slashed", "stake_slashed", "at_stake"
-			record = append(record, fmt.Sprintf("%d", 0))
-			record = append(record, fmt.Sprintf("%d", 0))
+			record = append(record, m.InterestSlashed.Amount.String())
+			record = append(record, m.StakeSlashed.Amount.String())
 			record = append(record, m.PendingStake.Amount.String())
+			// "replies"
+			record = append(record, fmt.Sprintf("%d", m.Replies))
+			// "arguments_opened", "unique_arguments_opened"
+			record = append(record, fmt.Sprintf("%d", m.ArgumentsOpened))
+			record = append(record, fmt.Sprintf("%d", m.UniqueArgumentsOpened))
 			err = csvw.Write(record)
 			if err != nil {
 				render.Error(w, r, err.Error(), http.StatusInternalServerError)

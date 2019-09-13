@@ -301,7 +301,7 @@ func main() {
 		FullTimestamp: true,
 	})
 	gorushHTTPAddress := getEnv("GORUSH_ADDRESS", "http://localhost:9000/api/push")
-	topic := getEnv("NOTIFICATION_TOPIC", "io.trustory.app.devnet")
+	topic := getEnv("NOTIFICATION_TOPIC", "app.trustory.io")
 	graphqlEndpoint := mustEnv("PUSHD_GRAPHQL_ENDPOINT")
 
 	config := truCtx.Config{

@@ -1,6 +1,7 @@
 package truapi
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,8 @@ import (
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
+	"github.com/TruStory/truchain/x/claim"
+	"github.com/TruStory/truchain/x/staking"
 )
 
 // HandleUnsigned takes a `HandleUnsignedRequest` and returns a `HandleUnsignedResponse`
@@ -55,6 +58,27 @@ func (ta *TruAPI) HandleUnsigned(r *http.Request) chttp.Response {
 	}
 
 	resBytes, _ := json.Marshal(res)
+
+	data, err := hex.DecodeString(res.Data)
+	if err == nil {
+		if txr.MsgTypes[0] == "MsgSubmitArgument" {
+			argument := new(staking.Argument)
+			err = staking.ModuleCodec.UnmarshalJSON(data, argument)
+			if err == nil {
+				permalink := fmt.Sprintf("%s/claim/%d/argument/%d", ta.APIContext.Config.App.URL, argument.ClaimID, argument.ID)
+				payload := []byte(fmt.Sprintf(`{"text":"*New argument posted:*\n\n\"_%s_\"\n\n%s"}`, argument.Body, permalink))
+				ta.sendToSlack(payload)
+			}
+		} else if txr.MsgTypes[0] == "MsgCreateClaim" {
+			c := new(claim.Claim)
+			err = claim.ModuleCodec.UnmarshalJSON(data, c)
+			if err == nil {
+				permalink := fmt.Sprintf("%s/claim/%d", ta.APIContext.Config.App.URL, c.ID)
+				payload := []byte(fmt.Sprintf(`{"text":"*New claim posted:*\n\n\"_%s_\"\n\n%s"}`, c.Body, permalink))
+				ta.sendToSlack(payload)
+			}
+		}
+	}
 
 	return chttp.SimpleResponse(200, resBytes)
 }

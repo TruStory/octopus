@@ -108,7 +108,7 @@ func (s *service) processUnjailedAccount(data []byte, notifications chan<- *Noti
 
 func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notifications chan<- *Notification) {
 	for _, event := range blockEvt.ResultEndBlock.Events {
-		fmt.Println(event.String())
+		s.log.Debug(event.String())
 		switch eventType := event.Type; eventType {
 		case account.EventTypeUnjailedAccount:
 			for _, attr := range event.GetAttributes() {

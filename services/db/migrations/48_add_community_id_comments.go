@@ -17,7 +17,7 @@ func init() {
 			return err
 		}
 		httpCli := &http.Client{
-			Timeout: time.Second * 30,
+			Timeout: time.Second * 180,
 		}
 		date := time.Now().Add(time.Hour * 24)
 		url := fmt.Sprintf("https://beta.trustory.io/api/v1/metrics/claims?date=%s", date.Format("2006-01-02"))

@@ -1,7 +1,9 @@
 package truapi
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -65,5 +67,25 @@ func (ta *TruAPI) handleCreateComment(r *http.Request) chttp.Response {
 		Creator:    comment.Creator,
 		Timestamp:  time.Now(),
 	})
+
+	// Send new comment post to Slack
+	permalink := fmt.Sprintf("%s/claim/%d", ta.APIContext.Config.App.URL, comment.ClaimID)
+	if comment.ArgumentID != 0 && comment.ElementID != 0 {
+		permalink = fmt.Sprintf("%s/argument/%d/element/%d", permalink, comment.ArgumentID, comment.ElementID)
+	}
+	permalink = fmt.Sprintf("%s/comment/%d", permalink, comment.ID)
+
+	// preparing the request
+	var jsonStr = []byte(fmt.Sprintf(`{"text":"*New coment posted:*\n\n\"_%s_\"\n\n%s"}`, comment.Body, permalink))
+	slackRequest, err := http.NewRequest("POST", ta.APIContext.Config.App.SlackWebhook, bytes.NewBuffer(jsonStr))
+	if err == nil {
+		slackRequest.Header.Add("Content-Type", "application/json")
+
+		// processing the request
+		ta.httpClient.Do(slackRequest)
+	} else {
+		fmt.Println(err)
+	}
+
 	return chttp.SimpleResponse(200, respBytes)
 }

@@ -97,21 +97,12 @@ func (s *service) processExpiredStakes(data []byte, notifications chan<- *Notifi
 	}
 }
 
-func (s *service) processUnjailedAccounts(data []byte, notifications chan<- *Notification) {
-	unjailed := make([]string, 0)
-	err := account.ModuleCodec.UnmarshalJSON(data, &unjailed)
-	if err != nil {
-		s.log.WithError(err).Error("error decoding unjailed accounts")
-		return
-	}
-
-	for _, acc := range unjailed {
-		notifications <- &Notification{
-			To:     acc,
-			Msg:    "Hooray you got out of jail!",
-			Type:   db.NotificationUnjailed,
-			Action: "Unjailed",
-		}
+func (s *service) processUnjailedAccount(data []byte, notifications chan<- *Notification) {
+	notifications <- &Notification{
+		To:     string(data),
+		Msg:    "Hooray you got out of jail!",
+		Type:   db.NotificationUnjailed,
+		Action: "Unjailed",
 	}
 }
 
@@ -122,7 +113,7 @@ func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notificati
 		case account.EventTypeUnjailedAccount:
 			for _, attr := range event.GetAttributes() {
 				if string(attr.Key) == account.AttributeKeyUser {
-					s.processUnjailedAccounts(attr.Value, notifications)
+					s.processUnjailedAccount(attr.Value, notifications)
 				}
 			}
 		case staking.EventTypeInterestRewardPaid:

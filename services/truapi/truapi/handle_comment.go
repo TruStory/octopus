@@ -82,7 +82,7 @@ func (ta *TruAPI) handleCreateComment(r *http.Request) chttp.Response {
 		slackRequest.Header.Add("Content-Type", "application/json")
 
 		// processing the request
-		ta.httpClient.Do(slackRequest)
+		_, _ = ta.httpClient.Do(slackRequest)
 	} else {
 		fmt.Println(err)
 	}

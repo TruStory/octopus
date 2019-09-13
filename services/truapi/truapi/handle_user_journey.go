@@ -96,6 +96,17 @@ func (ta *TruAPI) isOneArgumentStepComplete(ctx context.Context, user *db.User) 
 }
 
 func (ta *TruAPI) isFiveAgreesStepComplete(ctx context.Context, user *db.User) (bool, error) {
-	agrees := ta.agreesResolver(ctx, queryByAddress{ID: user.Address})
-	return len(agrees) > 5, nil
+	arguments := ta.appAccountArgumentsResolver(ctx, queryByAddress{ID: user.Address})
+
+	agreesReceived := 0
+	for _, argument := range arguments {
+		agreesReceived += argument.UpvotedCount
+
+		// bailing out of the loop, as soon as we get the counter to 5
+		if agreesReceived >= 5 {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

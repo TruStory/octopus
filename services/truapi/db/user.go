@@ -21,7 +21,7 @@ import (
 const InvitedUserDefaultName = "<invited user>"
 
 // StepsToCompleteJourney denotes the number of steps one user has to complete to be considered active
-const StepsToCompleteJourney = 3 // signup, write an argument, receive five agrees
+const StepsToCompleteJourney = 4 // signup, write an argument, receive five agrees, give an agree
 
 // User is the user on the TruStory platform
 type User struct {
@@ -58,9 +58,10 @@ type UserMeta struct {
 type UserJourneyStep string
 
 const (
-	JourneyStepSignedUp    UserJourneyStep = "signed_up"
-	JourneyStepOneArgument UserJourneyStep = "one_argument"
-	JourneyStepFiveAgrees  UserJourneyStep = "five_agrees"
+	JourneyStepSignedUp          UserJourneyStep = "signed_up"
+	JourneyStepOneArgument       UserJourneyStep = "one_argument"
+	JourneyStepGivenOneAgree     UserJourneyStep = "given_one_agree"
+	JourneyStepReceiveFiveAgrees UserJourneyStep = "received_five_agrees"
 )
 
 // UserProfile contains the fields that make up the user profile

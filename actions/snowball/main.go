@@ -14,16 +14,23 @@ import (
 	"github.com/TruStory/octopus/services/truapi/db"
 )
 
+var allSteps = [...]db.UserJourneyStep{
+	db.JourneyStepSignedUp,
+	db.JourneyStepOneArgument,
+	db.JourneyStepGivenOneAgree,
+	db.JourneyStepReceiveFiveAgrees,
+}
+
 var requiredSteps = [...]db.UserJourneyStep{
 	db.JourneyStepSignedUp,
 	db.JourneyStepOneArgument,
-	db.JourneyStepFiveAgrees,
+	db.JourneyStepReceiveFiveAgrees,
 }
 
 var rewardForStep = map[db.UserJourneyStep]string{
-	db.JourneyStepSignedUp:    mustEnv("REWARD_STEP_SIGNUP"),
-	db.JourneyStepOneArgument: mustEnv("REWARD_STEP_ONE_ARGUMENT"),
-	db.JourneyStepFiveAgrees:  mustEnv("REWARD_STEP_FIVE_AGREES"),
+	db.JourneyStepSignedUp:          mustEnv("REWARD_STEP_SIGNUP"),
+	db.JourneyStepOneArgument:       mustEnv("REWARD_STEP_ONE_ARGUMENT"),
+	db.JourneyStepReceiveFiveAgrees: mustEnv("REWARD_STEP_FIVE_AGREES"),
 }
 
 func main() {
@@ -68,10 +75,10 @@ func main() {
 		additionalStepsCompleted := additionalStepsCompleted(currentJourney, user.Meta.Journey)
 
 		// check if they are eligible to be given their first set of invites
-		eligible := userHasBecomeEligible(currentJourney)
+		eligible := userHasBecomeEligible(user.Meta.Journey, currentJourney)
 		if !eligible {
 			// no invites to be given yet
-			fmt.Printf("not yet eligible for invites. ❌\n")
+			fmt.Printf("was already eligible or not yet eligible for invites. ❌\n")
 		} else {
 			// award the first set of invites
 			fmt.Printf("has become eligible for invites. ✅\n")
@@ -112,7 +119,12 @@ func main() {
 		}
 
 		for _, step := range additionalStepsCompleted {
-			reward := rewardForStep[step]
+			reward, exists := rewardForStep[step]
+			if !exists {
+				// if no reward is present for this step,
+				// move on to the next one...
+				continue
+			}
 			fmt.Printf("\tRewarding referrer (%s) them with %s because %s is completed...", referrer.Username, reward, step)
 			err = sendReward(*referrer, reward)
 			if err != nil {
@@ -150,7 +162,7 @@ func getCurrentJourney(user db.User) (journey []db.UserJourneyStep, err error) {
 		return
 	}
 
-	for _, step := range requiredSteps {
+	for _, step := range allSteps {
 		if userJourney.Data.Steps[step] {
 			journey = append(journey, step)
 		}
@@ -159,15 +171,25 @@ func getCurrentJourney(user db.User) (journey []db.UserJourneyStep, err error) {
 	return
 }
 
-func userHasBecomeEligible(journey []db.UserJourneyStep) bool {
+func userHasBecomeEligible(previous, current []db.UserJourneyStep) bool {
+	previouslyEligible := true
+	currentlyEligble := true
 	for _, step := range requiredSteps {
 		// if any step is not completed, the user is not eligible
-		if !containsStep(journey, step) {
-			return false
+		if !containsStep(previous, step) {
+			previouslyEligible = false
 		}
 	}
 
-	return true
+	for _, step := range requiredSteps {
+		// if any step is not completed, the user is not eligible
+		if !containsStep(current, step) {
+			currentlyEligble = false
+		}
+	}
+
+	// must not be already previously eligible, but become currently eligible
+	return !previouslyEligible && currentlyEligble
 }
 
 func sendReward(user db.User, amount string) error {

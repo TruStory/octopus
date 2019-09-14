@@ -19,8 +19,7 @@ func init() {
 		httpCli := &http.Client{
 			Timeout: time.Second * 180,
 		}
-		date := time.Now().Add(time.Hour * 24)
-		url := fmt.Sprintf("https://beta.trustory.io/api/v1/metrics/claims?date=%s", date.Format("2006-01-02"))
+		url := fmt.Sprintf("https://trustory.s3.us-west-1.amazonaws.com/assets/claims.csv")
 		fmt.Println("Fetching claims from", url)
 		resp, err := httpCli.Get(url)
 		if err != nil {

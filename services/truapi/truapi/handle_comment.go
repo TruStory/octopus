@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/db"
@@ -84,7 +85,7 @@ func (ta *TruAPI) handleCreateComment(w http.ResponseWriter, r *http.Request) {
 	twitterProfile, err := ta.DBClient.TwitterProfileByAddress(comment.Creator)
 	if err == nil {
 		// preparing the request
-		payload := fmt.Sprintf("*New comment posted by %s:*\n\n\"%s\"\n\n<%s>", twitterProfile.Username, body, permalink)
+		payload := fmt.Sprintf("*New comment posted by %s:*\n\n>%s\n\n<%s>", twitterProfile.Username, strings.Replace(body, "\n", "\n>", -1), permalink)
 		ta.sendToSlack(payload)
 	}
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/TruStory/octopus/services/truapi/chttp"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
@@ -72,7 +73,7 @@ func (ta *TruAPI) HandleUnsigned(r *http.Request) chttp.Response {
 				}
 				twitterProfile, err := ta.DBClient.TwitterProfileByAddress(argument.Creator.String())
 				if err == nil {
-					payload := fmt.Sprintf("*New argument posted by %s:*\n\n\"TLDR: %s\n\n%s\"\n\n<%s>", twitterProfile.Username, argument.Summary, body, permalink)
+					payload := fmt.Sprintf("*New argument posted by %s:*\n\n>TLDR: %s\n>%s\n\n<%s>", twitterProfile.Username, strings.Replace(argument.Summary, "\n", "\n>", -1), strings.Replace(body, "\n", "\n>", -1), permalink)
 					ta.sendToSlack(payload)
 				}
 			}
@@ -83,7 +84,7 @@ func (ta *TruAPI) HandleUnsigned(r *http.Request) chttp.Response {
 				permalink := fmt.Sprintf("%s/claim/%d", ta.APIContext.Config.App.URL, c.ID)
 				twitterProfile, err := ta.DBClient.TwitterProfileByAddress(c.Creator.String())
 				if err == nil {
-					payload := fmt.Sprintf("*New claim posted by %s:*\n\n\"%s\"\n\n<%s>", twitterProfile.Username, c.Body, permalink)
+					payload := fmt.Sprintf("*New claim posted by %s:*\n\n>%s\n\n<%s>", twitterProfile.Username, strings.Replace(c.Body, "\n", "\n>", -1), permalink)
 					ta.sendToSlack(payload)
 				}
 			}

@@ -65,7 +65,11 @@ func (ta *TruAPI) handleUpdateNotificationEvent(r *http.Request) chttp.Response 
 		return chttp.SimpleErrorResponse(401, err)
 	}
 
-	notificationEvent.Read = *request.Read
+	if *request.Read {
+		notificationEvent.Read = true
+	} 
+
+	notificationEvent.Seen = true
 	err = ta.DBClient.UpdateModel(notificationEvent)
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
@@ -81,6 +85,11 @@ func markAllAsRead(ta *TruAPI, r *http.Request) chttp.Response {
 	}
 
 	err = ta.DBClient.MarkAllNotificationEventsAsReadByAddress(user.Address)
+	if err != nil {
+		return chttp.SimpleErrorResponse(500, Err500InternalServerError)
+	}
+
+	err = ta.DBClient.MarkAllNotificationEventsAsSeenByAddress(user.Address)
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, Err500InternalServerError)
 	}

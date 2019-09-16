@@ -241,5 +241,10 @@ func (c *Client) MarkArgumentNotificationAsRead(addr string, claimID int64, argu
 		Set("read = ?", true).
 		Set("seen = ?", true).
 		Update()
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

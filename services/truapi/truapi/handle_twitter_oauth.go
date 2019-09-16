@@ -54,7 +54,7 @@ func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 // OAuthLoginHandler handles Twitter login requests by obtaining a request token and
 // redirecting to the authorization URL.
 func OAuthLoginHandler(apiCtx truCtx.TruAPIContext, config *oauth1.Config, failure http.Handler) http.Handler {
-	// oauth1.LoginHandler -> oauth1.AuthRedirectHandler
+	// persistReferrer -> oauth1.LoginHandler -> oauth1.AuthRedirectHandler
 	authRedirectSuccess := oauth1Login.AuthRedirectHandler(config, failure)
 	loginSuccess := oauth1Login.LoginHandler(config, authRedirectSuccess, failure)
 	return persistReferrer(apiCtx, loginSuccess)

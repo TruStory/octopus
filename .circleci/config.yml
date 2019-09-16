@@ -207,18 +207,19 @@ workflows:
             branches:
               only:
                 - master
-      - deploy:
+      - migrate:
           requires:
-            - build
             - test_migrations
           filters:
             branches:
               only:
                 - master
                 - develop
-      - migrate:
+      - deploy:
           requires:
+            - build
             - test_migrations
+            - migrate
           filters:
             branches:
               only:

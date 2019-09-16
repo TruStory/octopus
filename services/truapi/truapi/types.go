@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/TruStory/truchain/x/bank"
+	"github.com/TruStory/truchain/x/claim"
+	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 
@@ -75,6 +77,18 @@ func (f LeaderboardDateFilter) Value() time.Duration {
 		return LeaderboardDateRangeMapping[LeaderboardDateFilterLastWeek]
 	}
 	return LeaderboardDateRangeMapping[f]
+}
+
+// ArgumentCreatedResponse represents truchain transaction response for creating an argument
+type ArgumentCreatedResponse struct {
+	Type  string           `json:"type"`
+	Value staking.Argument `json:"value"`
+}
+
+// ClaimCreatedResponse represents truchain transaction response for creating a claim
+type ClaimCreatedResponse struct {
+	Type  string      `json:"type"`
+	Value claim.Claim `json:"value"`
 }
 
 // CommentNotificationRequest is the payload sent to pushd for sending notifications.

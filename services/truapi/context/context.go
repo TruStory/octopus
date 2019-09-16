@@ -13,6 +13,7 @@ type AppConfig struct {
 	S3AssetsURL      string `mapstructure:"s3-assets-url"`
 	MixpanelToken    string `mapstructure:"mixpanel-token"`
 	LiveDebateURL    string `mapstructure:"live-debate-url"`
+	SlackWebhook     string `mapstructure:"slack-webhook"`
 }
 
 // CookieConfig is the config for the cookie

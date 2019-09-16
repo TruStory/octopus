@@ -240,31 +240,15 @@ func makeClaimMetaTags(ta *TruAPI, route string, claimID uint64) (*Tags, error) 
 		totalParticipantsPlural = ""
 	}
 
-	// HACK: video debate thumbnails
-	image := claimImage
-	if claimID == 824 {
-		image = "https://s3-us-west-1.amazonaws.com/trustory/images/22405a4351507698.jpg"
-	} else if claimID == 981 {
-		image = "https://s3-us-west-1.amazonaws.com/trustory/images/407a1236454a9a59.jpg"
-	} else if claimID == 995 {
-		image = "https://s3-us-west-1.amazonaws.com/trustory/images/95157a0231559474.jpg"
-	} else if claimID == 1036 {
-		image = "https://s3-us-west-1.amazonaws.com/trustory/images/9316406a9a374444.jpg"
-	} else if claimID == 1135 {
-		image = "https://s3-us-west-1.amazonaws.com/trustory/images/a578421649897493.jpg"
-	} else if claimID == 1197 {
-		image = "https://s3-us-west-1.amazonaws.com/trustory/images/80997a56808a974.jpg"
-	}
-
 	description := fmt.Sprintf("%d participant%s, %s %s", totalParticipants, totalParticipantsPlural, totalStaked.Amount.Quo(sdk.NewInt(app.Shanev)), db.CoinDisplayName)
-	if claimID == 824 || claimID == 981 || claimID == 995 || claimID == 1036 || claimID == 1135 || claimID == 1197 {
+	if claimObj.CommunityID == "livedebates" {
 		description = ""
 	}
 
 	return &Tags{
 		Title:       html.EscapeString(claimObj.Body),
 		Description: description,
-		Image:       image,
+		Image:       claimImage,
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),
 	}, nil
 }

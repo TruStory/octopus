@@ -200,6 +200,20 @@ func (c *Client) MarkThreadNotificationsAsRead(addr string, claimID int64) error
 	if err != nil {
 		return err
 	}
+
+	_, err = c.Model(notificationEvent).
+		Where("notification_event.address = ?", addr).
+		Where("notification_event.type = ?", NotificationMentionAction).
+		Where("(notification_event.meta->>'claimId')::integer = ?", claimID).
+		Where("(notification_event.meta->>'mentionType')::integer = 1").
+		Set("read = ?", true).
+		Set("seen = ?", true).
+		Update()
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -217,5 +231,15 @@ func (c *Client) MarkArgumentNotificationAsRead(addr string, claimID int64, argu
 	if err != nil {
 		return err
 	}
+
+	_, err = c.Model(notificationEvent).
+		Where("notification_event.address = ?", addr).
+		Where("notification_event.type = ?", NotificationMentionAction).
+		Where("(notification_event.meta->>'claimId')::integer = ?", claimID).
+		Where("(notification_event.meta->>'argumentId')::integer = ?", argumentID).
+		Where("(notification_event.meta->>'mentionType')::integer = 0").
+		Set("read = ?", true).
+		Set("seen = ?", true).
+		Update()
 	return nil
 }

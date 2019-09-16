@@ -65,8 +65,9 @@ const (
 )
 
 var MentionTypeName = []string{
-	MentionArgument: "in an Argument",
-	MentionComment:  "in a Reply",
+	MentionArgument:        "in an Argument",
+	MentionComment:         "in a Reply",
+	MentionArgumentComment: "in a Reply",
 }
 
 func (t MentionType) String() string {
@@ -205,7 +206,7 @@ func (c *Client) MarkThreadNotificationsAsRead(addr string, claimID int64) error
 		Where("notification_event.address = ?", addr).
 		Where("notification_event.type = ?", NotificationMentionAction).
 		Where("(notification_event.meta->>'claimId')::integer = ?", claimID).
-		Where("(notification_event.meta->>'mentionType')::integer = 1").
+		Where("(notification_event.meta->>'mentionType')::integer = ?", MentionComment).
 		Set("read = ?", true).
 		Set("seen = ?", true).
 		Update()
@@ -237,7 +238,7 @@ func (c *Client) MarkArgumentNotificationAsRead(addr string, claimID int64, argu
 		Where("notification_event.type = ?", NotificationMentionAction).
 		Where("(notification_event.meta->>'claimId')::integer = ?", claimID).
 		Where("(notification_event.meta->>'argumentId')::integer = ?", argumentID).
-		Where("(notification_event.meta->>'mentionType')::integer = 0").
+		Where("(notification_event.meta->>'mentionType')::integer = ?", MentionArgument).
 		Set("read = ?", true).
 		Set("seen = ?", true).
 		Update()

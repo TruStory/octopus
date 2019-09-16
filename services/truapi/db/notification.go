@@ -162,6 +162,7 @@ func (c *Client) MarkAllNotificationEventsAsReadByAddress(addr string) error {
 		Where("notification_event.address = ?", addr).
 		Where("read is NULL or read is FALSE").
 		Set("read = ?", true).
+		Set("seen = ?", true).
 		Update()
 	if err != nil {
 		return err
@@ -194,6 +195,7 @@ func (c *Client) MarkThreadNotificationsAsRead(addr string, claimID int64) error
 		Where("notification_event.type = ?", NotificationCommentAction).
 		Where("(notification_event.meta->>'claimId')::integer = ?", claimID).
 		Set("read = ?", true).
+		Set("seen = ?", true).
 		Update()
 	if err != nil {
 		return err
@@ -210,6 +212,7 @@ func (c *Client) MarkArgumentNotificationAsRead(addr string, claimID int64, argu
 		Where("(notification_event.meta->>'claimId')::integer = ?", claimID).
 		Where("(notification_event.meta->>'argumentId')::integer = ?", argumentID).
 		Set("read = ?", true).
+		Set("seen = ?", true).
 		Update()
 	if err != nil {
 		return err

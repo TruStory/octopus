@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/truchain/x/claim"
@@ -57,8 +56,4 @@ func (ta *TruAPI) sendCommentToSlack(comment db.Comment) {
 	}
 	permalink = fmt.Sprintf("%s/comment/%d", permalink, comment.ID)
 	ta.sendToSlack(permalink)
-}
-
-func blockquote(text string) string {
-	return strings.Replace(text, "\n", "\n>", -1)
 }

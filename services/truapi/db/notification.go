@@ -188,8 +188,8 @@ func (c *Client) MarkAllNotificationEventsAsSeenByAddress(addr string) error {
 	return nil
 }
 
-// MarkThreadNotificationsAsRead mark previous notification replies of the same thread as read.
-func (c *Client) MarkThreadNotificationsAsRead(addr string, claimID int64) error {
+// MarkCommentThreadNotificationsAsRead mark previous notification replies of the same comment thread as read.
+func (c *Client) MarkCommentThreadNotificationsAsRead(addr string, claimID int64) error {
 	notificationEvent := new(NotificationEvent)
 	_, err := c.Model(notificationEvent).
 		Where("notification_event.address = ?", addr).
@@ -207,6 +207,40 @@ func (c *Client) MarkThreadNotificationsAsRead(addr string, claimID int64) error
 		Where("notification_event.type = ?", NotificationMentionAction).
 		Where("(notification_event.meta->>'claimId')::integer = ?", claimID).
 		Where("(notification_event.meta->>'mentionType')::integer = ?", MentionComment).
+		Set("read = ?", true).
+		Set("seen = ?", true).
+		Update()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MarkArgumentCommentThreadNotificationsAsRead mark previous notification replies of the same argument comment thread as read.
+func (c *Client) MarkArgumentCommentThreadNotificationsAsRead(addr string, claimID int64, argumentID int64, elementID int64) error {
+	notificationEvent := new(NotificationEvent)
+	_, err := c.Model(notificationEvent).
+		Where("notification_event.address = ?", addr).
+		Where("notification_event.type = ?", NotificationArgumentCommentAction).
+		Where("(notification_event.meta->>'claimId')::integer = ?", claimID).
+		Where("(notification_event.meta->>'argumentId')::integer = ?", argumentID).
+		Where("(notification_event.meta->>'elementId')::integer = ?", elementID).
+		Set("read = ?", true).
+		Set("seen = ?", true).
+		Update()
+	if err != nil {
+		return err
+	}
+
+	_, err = c.Model(notificationEvent).
+		Where("notification_event.address = ?", addr).
+		Where("notification_event.type = ?", NotificationMentionAction).
+		Where("(notification_event.meta->>'claimId')::integer = ?", claimID).
+		Where("(notification_event.meta->>'argumentId')::integer = ?", argumentID).
+		Where("(notification_event.meta->>'elementId')::integer = ?", elementID).
+		Where("(notification_event.meta->>'mentionType')::integer = ?", MentionArgumentComment).
 		Set("read = ?", true).
 		Set("seen = ?", true).
 		Update()

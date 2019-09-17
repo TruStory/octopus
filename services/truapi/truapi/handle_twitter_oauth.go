@@ -137,8 +137,8 @@ func persistReferrer(apiCtx truCtx.TruAPIContext, success http.Handler) http.Han
 
 		if referrerCode != "" {
 			http.SetCookie(w, cookies.GetReferrerCookie(apiCtx, referrerCode))
-			success.ServeHTTP(w, req.WithContext(ctx))
 		}
+		success.ServeHTTP(w, req.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
 }

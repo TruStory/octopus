@@ -21,7 +21,6 @@ import (
 	"github.com/TruStory/truchain/x/slashing"
 	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/dghubble/gologin/twitter"
 	"github.com/dghubble/oauth1"
 	twitterOAuth1 "github.com/dghubble/oauth1/twitter"
 	"github.com/gorilla/handlers"
@@ -209,6 +208,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/metrics/users", ta.HandleUsersMetrics)
 	api.HandleFunc("/metrics/claims", ta.HandleClaimMetrics)
 	api.HandleFunc("/metrics/auth", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleAuthMetrics)))
+	api.HandleFunc("/metrics/invites", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleInvitesMetrics)))
 	api.Handle("/track/", http.HandlerFunc(ta.HandleTrackEvent))
 	api.Handle("/claim_of_the_day", WrapHandler(ta.HandleClaimOfTheDayID))
 	api.Handle("/claim/image", WrapHandler(ta.HandleClaimImage))
@@ -220,6 +220,8 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/users/validate/email", ta.HandleUniqueEmailUtility)
 	api.HandleFunc("/users/authentication", ta.HandleUserAuthentication)
 	api.HandleFunc("/users/onboard", ta.HandleUserOnboard)
+	api.HandleFunc("/users/journey", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleUserJourney)))
+	api.HandleFunc("/gift", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleGift)))
 	api.Handle("/communities/follow", http.HandlerFunc(ta.handleFollowCommunities)).Methods(http.MethodPost)
 	api.Handle("/communities/unfollow/{communityID}",
 		http.HandlerFunc(ta.handleUnfollowCommunity)).Methods(http.MethodDelete)
@@ -276,7 +278,7 @@ func (ta *TruAPI) RegisterOAuthRoutes(apiCtx truCtx.TruAPIContext) {
 		Endpoint:       twitterOAuth1.AuthorizeEndpoint,
 	}
 
-	ta.Handle("/auth-twitter", twitter.LoginHandler(oauth1Config, nil))
+	ta.Handle("/auth-twitter", OAuthLoginHandler(apiCtx, oauth1Config, nil))
 	ta.Handle("/auth-twitter-callback", HandleOAuthSuccess(oauth1Config, IssueSession(apiCtx, ta), HandleOAuthFailure(ta)))
 	ta.Handle("/auth-logout", Logout(apiCtx))
 }
@@ -328,6 +330,8 @@ func (ta *TruAPI) RegisterResolvers() {
 		"url": func(_ context.Context, q url.URL) string { return q.String() },
 	})
 
+	ta.GraphQLClient.RegisterQueryResolver("referredAppAccounts", ta.referredAppAccountsResolver)
+
 	ta.GraphQLClient.RegisterQueryResolver("appAccount", ta.appAccountResolver)
 	ta.GraphQLClient.RegisterObjectResolver("AppAccount", AppAccount{}, map[string]interface{}{
 		"id": func(_ context.Context, q AppAccount) string { return q.Address },
@@ -357,6 +361,14 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"userProfile": func(ctx context.Context, q AppAccount) *db.UserProfile {
 			return ta.userProfileResolver(ctx, q.Address)
+		},
+		"userJourney": func(ctx context.Context, q AppAccount) []db.UserJourneyStep {
+			user := ta.userResolver(ctx, q.Address)
+			if user == nil {
+				return []db.UserJourneyStep{}
+			}
+
+			return user.Meta.Journey
 		},
 		// deprecated, use "userProfile" instead
 		"twitterProfile": func(ctx context.Context, q AppAccount) db.TwitterProfile {

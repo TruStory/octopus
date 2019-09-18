@@ -20,6 +20,9 @@ import (
 // InvitedUserDefaultName is the default name given to the invited user
 const InvitedUserDefaultName = "<invited user>"
 
+// StepsToCompleteJourney denotes the number of steps one user has to complete to be considered active
+const StepsToCompleteJourney = 4 // signup, write an argument, receive five agrees, give an agree
+
 // User is the user on the TruStory platform
 type User struct {
 	Timestamps
@@ -31,6 +34,7 @@ type User struct {
 	Bio                 string     `json:"bio"`
 	AvatarURL           string     `json:"avatar_url"`
 	Address             string     `json:"address"`
+	InvitesLeft         int64      `json:"invites_left"`
 	Password            string     `json:"-" graphql:"-"`
 	ReferredBy          int64      `json:"referred_by"`
 	Token               string     `json:"-" graphql:"-"`
@@ -44,10 +48,21 @@ type User struct {
 
 // UserMeta holds user meta data
 type UserMeta struct {
-	OnboardFollowCommunities *bool `json:"onboardFollowCommunities,omitempty"`
-	OnboardCarousel          *bool `json:"onboardCarousel,omitempty"`
-	OnboardContextual        *bool `json:"onboardContextual,omitempty"`
+	OnboardFollowCommunities *bool             `json:"onboardFollowCommunities,omitempty"`
+	OnboardCarousel          *bool             `json:"onboardCarousel,omitempty"`
+	OnboardContextual        *bool             `json:"onboardContextual,omitempty"`
+	Journey                  []UserJourneyStep `json:"journey,omitempty"`
 }
+
+// UserJourneyStep is a step in the entire journey
+type UserJourneyStep string
+
+const (
+	JourneyStepSignedUp          UserJourneyStep = "signed_up"
+	JourneyStepOneArgument       UserJourneyStep = "one_argument"
+	JourneyStepGivenOneAgree     UserJourneyStep = "given_one_agree"
+	JourneyStepReceiveFiveAgrees UserJourneyStep = "received_five_agrees"
+)
 
 // UserProfile contains the fields that make up the user profile
 type UserProfile struct {
@@ -249,7 +264,14 @@ func (c *Client) RegisterUser(user *User, referrerCode, defaultAvatarURL string)
 		return err
 	}
 	if referrer != nil {
-		user.ReferredBy = referrer.ID
+		consumed, err := c.ConsumeInvite(referrer.ID)
+		if err != nil {
+			return err
+		}
+
+		if consumed {
+			user.ReferredBy = referrer.ID
+		}
 	}
 
 	err = c.AddUser(user)
@@ -535,36 +557,36 @@ func (c *Client) UnblacklistUser(id int64) error {
 	return nil
 }
 
-// InvitedUsers returns all the users who are invited
-func (c *Client) InvitedUsers() ([]User, error) {
-	var invitedUsers = make([]User, 0)
-	err := c.Model(&invitedUsers).
+// ReferredUsers returns all the users who are invited
+func (c *Client) ReferredUsers() ([]User, error) {
+	var referredUsers = make([]User, 0)
+	err := c.Model(&referredUsers).
 		Where("referred_by IS NOT NULL").
 		Where("deleted_at IS NULL").
 		Select()
 	if err != nil {
-		return invitedUsers, err
+		return referredUsers, err
 	}
 
-	return invitedUsers, nil
+	return referredUsers, nil
 }
 
-// InvitedUsersByID returns all the users who are invited by a particular address
-func (c *Client) InvitedUsersByID(referrerID int64) ([]User, error) {
-	var invitedUsers = make([]User, 0)
-	err := c.Model(&invitedUsers).
+// ReferredUsersByID returns all the users who are invited by a particular user
+func (c *Client) ReferredUsersByID(referrerID int64) ([]User, error) {
+	var referredUsers = make([]User, 0)
+	err := c.Model(&referredUsers).
 		Where("deleted_at IS NULL").
 		Where("referred_by = ?", referrerID).
 		Select()
 	if err != nil {
-		return invitedUsers, err
+		return referredUsers, err
 	}
 
-	return invitedUsers, nil
+	return referredUsers, nil
 }
 
 // AddUserViaConnectedAccount adds a new user using a new connected account
-func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) (*User, error) {
+func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount, referrerCode string) (*User, error) {
 	// a.) check if their email address is associated with an existing account.
 	// if yes, merge them with that account
 	if connectedAccount.Meta.Email != "" {
@@ -605,16 +627,17 @@ func (c *Client) AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) 
 	}
 
 	// setting referrer, if any
-	invite, err := c.InvitesByFriendEmail(user.Email)
+	referrer, err := c.UserByAddress(referrerCode)
 	if err != nil {
 		return nil, err
 	}
-	if invite != nil {
-		referrer, err := c.UserByAddress(invite.Creator)
+	if referrer != nil {
+		consumed, err := c.ConsumeInvite(referrer.ID)
 		if err != nil {
 			return nil, err
 		}
-		if referrer != nil {
+
+		if consumed {
 			user.ReferredBy = referrer.ID
 		}
 	}
@@ -751,6 +774,81 @@ func (c *Client) UserProfileByUsername(username string) (*UserProfile, error) {
 	}
 
 	return userProfile, nil
+}
+
+// GrantInvites grants the given number of invites to the user
+func (c *Client) GrantInvites(id int64, count int) error {
+	user := new(User)
+	_, err := c.Model(user).
+		Where("id = ?", id).
+		Set("invites_left = invites_left + ?", count).
+		Update()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = c.RecordRewardLedgerEntry(id, RewardLedgerEntryDirectionCredit, int64(count), RewardLedgerEntryCurrencyInvite)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ConsumeInvite consumes one invite, if available
+func (c *Client) ConsumeInvite(id int64) (bool, error) {
+	user := new(User)
+	result, err := c.Model(user).
+		Where("id = ?", id).
+		Where("invites_left > 0"). // must have atleast one invite left to be consumed
+		Set("invites_left = invites_left - 1").
+		Update()
+	if err != nil {
+		return false, err
+	}
+
+	if result.RowsAffected() == 0 {
+		return false, nil
+	}
+
+	_, err = c.RecordRewardLedgerEntry(id, RewardLedgerEntryDirectionDebit, 1, RewardLedgerEntryCurrencyInvite)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// UsersWithIncompleteJourney returns all the users who have not yet completed their journey
+func (c *Client) UsersWithIncompleteJourney() ([]User, error) {
+	var users = make([]User, 0)
+	err := c.Model(&users).
+		Where("meta ? 'journey' = false").
+		WhereOr("jsonb_array_length(meta->'journey') < ?", StepsToCompleteJourney).
+		Select()
+	if err != nil {
+		return users, err
+	}
+
+	return users, nil
+}
+
+// UpdateUserJourney updates the user journey
+func (c *Client) UpdateUserJourney(id int64, journey []UserJourneyStep) error {
+	user, err := c.UserByID(id)
+	if err != nil {
+		return err
+	}
+	meta := user.Meta
+	meta.Journey = journey
+
+	err = c.SetUserMeta(id, &meta)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getHashedPassword(password string) (string, error) {

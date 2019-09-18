@@ -11,6 +11,7 @@ import (
 
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/account"
+	"github.com/TruStory/truchain/x/bank"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -190,6 +191,63 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 
 	// build and sign the transaction
 	seq, err := cliCtx.GetAccountSequence(registrarAddr)
+	if err != nil {
+		return
+	}
+
+	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
+	if err != nil {
+		return
+	}
+
+	// broadcast to a Tendermint node
+	res, err = cliCtx.WithBroadcastMode(client.BroadcastBlock).BroadcastTx(txBytes)
+	if err != nil {
+		return
+	}
+	fmt.Println(res)
+
+	return res, nil
+}
+
+// SendGiftToAddress sends gift coins to any user
+func (a *API) SendGiftToAddress(address string, amount sdk.Coin) error {
+	recipient, err := sdk.AccAddressFromBech32(address)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.signAndBroadcastGiftTx(recipient, amount)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin) (res sdk.TxResponse, err error) {
+	cliCtx := a.apiCtx
+	config := cliCtx.Config.RewardBroker
+
+	brokerAddr, err := sdk.AccAddressFromBech32(config.Addr)
+	if err != nil {
+		return
+	}
+	err = cliCtx.EnsureAccountExistsFromAddr(brokerAddr)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	msg := bank.NewMsgSendGift(brokerAddr, recipient, amount)
+	err = msg.ValidateBasic()
+	if err != nil {
+		return
+	}
+
+	// build and sign the transaction
+	seq, err := cliCtx.GetAccountSequence(brokerAddr)
 	if err != nil {
 		return
 	}

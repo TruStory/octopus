@@ -101,7 +101,7 @@ func (ta *TruAPI) HandleRegistration(w http.ResponseWriter, r *http.Request) {
 
 // RegisterTwitterUser registers a new twitter user
 func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
-	user, err := CalibrateUser(ta, twitterUser)
+	user, err := CalibrateUser(ta, twitterUser, "")
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error
 
 // CalibrateUser takes a twitter authenticated user and makes sure it has
 // been properly calibrated in the database with all proper keypairs
-func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
+func CalibrateUser(ta *TruAPI, twitterUser *twitter.User, referrerCode string) (*db.User, error) {
 	ctx := context.Background()
 	connectedAccount, err := ta.DBClient.ConnectedAccountByTypeAndID("twitter", fmt.Sprintf("%d", twitterUser.ID))
 	if err != nil {
@@ -143,7 +143,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
 			},
 		}
 
-		user, err := ta.DBClient.AddUserViaConnectedAccount(connectedAccount)
+		user, err := ta.DBClient.AddUserViaConnectedAccount(connectedAccount, referrerCode)
 		if err != nil {
 			return nil, err
 		}

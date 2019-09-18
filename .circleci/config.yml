@@ -180,6 +180,34 @@ jobs: # basic units of work in a run
             cd actions/metrics
             make decrypt_secret
             go run *.go all
+  run_snowball:
+    executor: go
+    steps:
+      - checkout
+      - run:
+          name: Set env vars
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                export PG_HOST=$PG_HOSTNAME_PROD
+                export PG_USER=$PG_USER_PROD
+                export PG_USER_PW=$PG_USER_PW_PROD
+                export PG_DB_NAME=$PG_DB_NAME_PROD
+                export ENDPOINT_USER_JOURNEY=$BETA_HOST/api/v1/users/journey
+                export ENDPOINT_GIFT=$BETA_HOST/api/v1/gift
+            elif [ "${CIRCLE_BRANCH}" == "develop" ]
+            then
+                export PG_HOST=$PG_ADDR_DEVNET
+                export PG_USER=$PG_USER_DEVNET
+                export PG_USER_PW=$PG_USER_PW_DEVNET
+                export PG_DB_NAME=$PG_DB_NAME_DEVNET
+                export ENDPOINT_USER_JOURNEY=$DEVNET_HOST/api/v1/users/journey
+                export ENDPOINT_GIFT=$DEVNET_HOST/api/v1/gift
+            fi
+      - run:
+          name: Run snowball action
+          command: |
+            cd actions/snowball
+            make run
 workflows:
   version: 2
   build-workflow:
@@ -240,3 +268,14 @@ workflows:
                 - develop
     jobs:
       - bigquery_metrics
+  snowball:
+    triggers:
+      - schedule:
+          cron: "0 0,6,12,18 * * *"
+          filters:
+            branches:
+              only:
+                - master
+                - develop
+    jobs:
+      - run_snowball

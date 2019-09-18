@@ -23,7 +23,13 @@ func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 			return
 		}
 
-		user, err := CalibrateUser(ta, twitterUser)
+		referrerCode, err := cookies.GetReferrerFromCookie(req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		user, err := CalibrateUser(ta, twitterUser, referrerCode)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -45,15 +51,24 @@ func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+// OAuthLoginHandler handles Twitter login requests by obtaining a request token and
+// redirecting to the authorization URL.
+func OAuthLoginHandler(apiCtx truCtx.TruAPIContext, config *oauth1.Config, failure http.Handler) http.Handler {
+	// persistReferrer -> oauth1.LoginHandler -> oauth1.AuthRedirectHandler
+	authRedirectSuccess := oauth1Login.AuthRedirectHandler(config, failure)
+	loginSuccess := oauth1Login.LoginHandler(config, authRedirectSuccess, failure)
+	return persistReferrer(apiCtx, loginSuccess)
+}
+
 // HandleOAuthSuccess handles Twitter callback requests by parsing the oauth token
 // and verifier and adding the Twitter access token and User to the ctx. If
 // authentication succeeds, handling delegates to the success handler,
 // otherwise to the failure handler.
 func HandleOAuthSuccess(config *oauth1.Config, success, failure http.Handler) http.Handler {
 	// oauth1.EmptyTempHandler -> oauth1.CallbackHandler -> TwitterHandler -> success
-	success = twitterHandler(config, success, failure)
-	success = oauth1Login.CallbackHandler(config, success, failure)
-	return oauth1Login.EmptyTempHandler(success)
+	twitterHandlerSuccess := twitterHandler(config, success, failure)
+	callbackSuccess := oauth1Login.CallbackHandler(config, twitterHandlerSuccess, failure)
+	return oauth1Login.EmptyTempHandler(callbackSuccess)
 }
 
 // HandleOAuthFailure handles the failed oAuth requests gracefully
@@ -110,6 +125,19 @@ func twitterHandler(config *oauth1.Config, success, failure http.Handler) http.H
 			return
 		}
 		ctx = twitter.WithUser(ctx, user)
+		success.ServeHTTP(w, req.WithContext(ctx))
+	}
+	return http.HandlerFunc(fn)
+}
+
+func persistReferrer(apiCtx truCtx.TruAPIContext, success http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		referrerCode := req.FormValue("referrer")
+
+		if referrerCode != "" {
+			http.SetCookie(w, cookies.GetReferrerCookie(apiCtx, referrerCode))
+		}
 		success.ServeHTTP(w, req.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)

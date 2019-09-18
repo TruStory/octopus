@@ -22,6 +22,7 @@ type UserResponse struct {
 	UserID      int64                `json:"userId"`
 	Address     string               `json:"address"`
 	Bio         string               `json:"bio"`
+	InvitesLeft int64                `json:"invitesLeft"`
 	UserMeta    db.UserMeta          `json:"userMeta"`
 	UserProfile *UserProfileResponse `json:"userProfile"`
 }
@@ -151,17 +152,6 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		Email:    request.Email,
 		Password: request.Password,
 		Username: request.Username,
-	}
-
-	// check if the signing user was invited by anyone before
-	referrer, err := ta.DBClient.InvitesByFriendEmail(request.Email)
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if referrer != nil {
-		request.ReferredBy = referrer.Creator
 	}
 
 	err = ta.DBClient.RegisterUser(user, request.ReferredBy, ta.APIContext.Config.Defaults.AvatarURL)
@@ -385,10 +375,11 @@ func createUserResponse(user *db.User) UserResponse {
 	largeURI = strings.Replace(largeURI, "http://", "https://", 1)
 
 	return UserResponse{
-		UserID:   user.ID,
-		Address:  user.Address,
-		Bio:      user.Bio,
-		UserMeta: user.Meta,
+		UserID:      user.ID,
+		Address:     user.Address,
+		Bio:         user.Bio,
+		InvitesLeft: user.InvitesLeft,
+		UserMeta:    user.Meta,
 		UserProfile: &UserProfileResponse{
 			Bio:       user.Bio,
 			AvatarURL: largeURI,

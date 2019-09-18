@@ -1510,7 +1510,7 @@ func (ta *TruAPI) referredAppAccountsResolver(ctx context.Context, q queryReferr
 	var err error
 	settings := ta.settingsResolver(ctx)
 
-	if q.Admin == true && contains(settings.ClaimAdmins, user.Address) {
+	if q.Admin && contains(settings.ClaimAdmins, user.Address) {
 		users, err = ta.DBClient.ReferredUsers()
 		if err != nil {
 			fmt.Println("referredAppAccountsResolver err: ", err)

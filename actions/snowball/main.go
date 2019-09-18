@@ -34,10 +34,14 @@ var rewardForStep = map[db.UserJourneyStep]string{
 }
 
 func main() {
+	dbPort, err := strconv.Atoi(getEnv("PG_PORT", "5432"))
+	if err != nil {
+		log.Fatalln(err)
+	}
 	config := truCtx.Config{
 		Database: truCtx.DatabaseConfig{
-			Host: getEnv("PG_ADDR", "localhost"),
-			Port: 5432,
+			Host: getEnv("PG_HOST", "localhost"),
+			Port: dbPort,
 			User: getEnv("PG_USER", "postgres"),
 			Pass: getEnv("PG_USER_PW", ""),
 			Name: getEnv("PG_DB_NAME", "trudb"),

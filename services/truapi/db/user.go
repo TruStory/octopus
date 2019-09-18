@@ -51,7 +51,7 @@ type UserMeta struct {
 	OnboardFollowCommunities *bool             `json:"onboardFollowCommunities,omitempty"`
 	OnboardCarousel          *bool             `json:"onboardCarousel,omitempty"`
 	OnboardContextual        *bool             `json:"onboardContextual,omitempty"`
-	Journey                  []UserJourneyStep `json:"journey"`
+	Journey                  []UserJourneyStep `json:"journey,omitempty"`
 }
 
 // UserJourneyStep is a step in the entire journey

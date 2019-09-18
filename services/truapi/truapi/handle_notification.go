@@ -65,7 +65,11 @@ func (ta *TruAPI) handleUpdateNotificationEvent(r *http.Request) chttp.Response 
 		return chttp.SimpleErrorResponse(401, err)
 	}
 
-	notificationEvent.Read = *request.Read
+	if *request.Read {
+		notificationEvent.Read = true
+	}
+
+	notificationEvent.Seen = true
 	err = ta.DBClient.UpdateModel(notificationEvent)
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
@@ -85,6 +89,11 @@ func markAllAsRead(ta *TruAPI, r *http.Request) chttp.Response {
 		return chttp.SimpleErrorResponse(500, Err500InternalServerError)
 	}
 
+	err = ta.DBClient.MarkAllNotificationEventsAsSeenByAddress(user.Address)
+	if err != nil {
+		return chttp.SimpleErrorResponse(500, Err500InternalServerError)
+	}
+
 	return chttp.SimpleResponse(200, nil)
 }
 
@@ -99,13 +108,25 @@ func (ta *TruAPI) handleThreadOpened(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	argumentID, err := strconv.ParseInt(vars["argumentID"], 10, 64)
+	if err != nil {
+		argumentID = 0
+	}
+	elementID, err := strconv.ParseInt(vars["elementID"], 10, 64)
+	if err != nil {
+		elementID = 0
+	}
 	user, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
 	// ignore if user is not present
 	if err != nil || user == nil {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	err = ta.DBClient.MarkThreadNotificationsAsRead(user.Address, claimID)
+	if argumentID != 0 && elementID != 0 {
+		err = ta.DBClient.MarkArgumentCommentThreadNotificationsAsRead(user.Address, claimID, argumentID, elementID)
+	} else {
+		err = ta.DBClient.MarkCommentThreadNotificationsAsRead(user.Address, claimID)
+	}
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return

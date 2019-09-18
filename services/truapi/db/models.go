@@ -23,7 +23,8 @@ type Mutations interface {
 	UpsertFlaggedStory(flaggedStory *FlaggedStory) error
 	MarkAllNotificationEventsAsReadByAddress(addr string) error
 	MarkAllNotificationEventsAsSeenByAddress(addr string) error
-	MarkThreadNotificationsAsRead(addr string, claimID int64) error
+	MarkCommentThreadNotificationsAsRead(addr string, claimID int64) error
+	MarkArgumentCommentThreadNotificationsAsRead(addr string, claimID int64, argumentID int64, elementID int64) error
 	MarkArgumentNotificationAsRead(addr string, claimID int64, argumentID int64) error
 	AddComment(comment *Comment) error
 	AddQuestion(question *Question) error

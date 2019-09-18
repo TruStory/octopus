@@ -234,11 +234,12 @@ func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin) 
 	if err != nil {
 		return
 	}
-	err = cliCtx.EnsureAccountExistsFromAddr(brokerAddr)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	// TODO: re-enable this check once reward broker accounts is added to genesis.json
+	// err = cliCtx.EnsureAccountExistsFromAddr(brokerAddr)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
 
 	msg := bank.NewMsgSendGift(brokerAddr, recipient, amount)
 	err = msg.ValidateBasic()

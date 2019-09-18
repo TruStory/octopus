@@ -188,20 +188,20 @@ jobs: # basic units of work in a run
           name: Set env vars
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-                export PG_HOST=${PG_HOSTNAME_PROD}
-                export PG_USER={$PG_USER_PROD}
-                export PG_USER_PW={$PG_USER_PW_PROD}
-                export PG_DB_NAME={$PG_DB_NAME_PROD}
-                export ENDPOINT_USER_JOURNEY=${BETA_HOST}/api/v1/users/journey
-                export ENDPOINT_GIFT=${BETA_HOST}/api/v1/gift
+                export PG_HOST=$PG_HOSTNAME_PROD
+                export PG_USER=$PG_USER_PROD
+                export PG_USER_PW=$PG_USER_PW_PROD
+                export PG_DB_NAME=$PG_DB_NAME_PROD
+                export ENDPOINT_USER_JOURNEY=$BETA_HOST/api/v1/users/journey
+                export ENDPOINT_GIFT=$BETA_HOST/api/v1/gift
             elif [ "${CIRCLE_BRANCH}" == "develop" ]
             then
-                export PG_HOST=${PG_ADDR_DEVNET}
-                export PG_USER={$PG_USER_DEVNET}
-                export PG_USER_PW={$PG_USER_PW_DEVNET}
-                export PG_DB_NAME={$PG_DB_NAME_DEVNET}
-                export ENDPOINT_USER_JOURNEY=${DEVNET_HOST}/api/v1/users/journey
-                export ENDPOINT_GIFT=${DEVNET_HOST}/api/v1/gift
+                export PG_HOST=$PG_ADDR_DEVNET
+                export PG_USER=$PG_USER_DEVNET
+                export PG_USER_PW=$PG_USER_PW_DEVNET
+                export PG_DB_NAME=$PG_DB_NAME_DEVNET
+                export ENDPOINT_USER_JOURNEY=$DEVNET_HOST/api/v1/users/journey
+                export ENDPOINT_GIFT=$DEVNET_HOST/api/v1/gift
             fi
       - run:
           name: Run snowball action

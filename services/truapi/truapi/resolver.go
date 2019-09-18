@@ -69,6 +69,10 @@ type queryByCommunityIDAndFeedFilter struct {
 	IsSearch    bool       `graphql:"isSearch,optional"`
 }
 
+type queryReferredAppAccountsParams struct {
+	Admin bool `graphql:"admin,optional"`
+}
+
 // claimMetricsBest represents all-time claim metrics
 type claimMetricsBest struct {
 	Claim                 claim.Claim
@@ -1496,27 +1500,17 @@ func (ta *TruAPI) invitesResolver(ctx context.Context) []db.Invite {
 	return invites
 }
 
-func (ta *TruAPI) referredAppAccountsResolver(ctx context.Context) []AppAccount {
+func (ta *TruAPI) referredAppAccountsResolver(ctx context.Context, q queryReferredAppAccountsParams) []AppAccount {
 	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
 	if !ok {
 		return make([]AppAccount, 0)
 	}
 
-	userProfile, err := ta.DBClient.UserProfileByAddress(user.Address)
-	if err != nil {
-		fmt.Println("referredAppAccountsResolver err: ", err)
-		return make([]AppAccount, 0)
-	}
-
 	var users []db.User
+	var err error
+	settings := ta.settingsResolver(ctx)
 
-	// TODO: pull this in from an ENV
-	if strings.EqualFold(userProfile.Username, "lilrushishah") ||
-		strings.EqualFold(userProfile.Username, "patel0phone") ||
-		strings.EqualFold(userProfile.Username, "iam_preethi") ||
-		strings.EqualFold(userProfile.Username, "truted2") ||
-		strings.EqualFold(userProfile.Username, "mohitmamoria") ||
-		strings.EqualFold(userProfile.Username, "shanev") {
+	if q.Admin == true && contains(settings.ClaimAdmins, user.Address) {
 		users, err = ta.DBClient.ReferredUsers()
 		if err != nil {
 			fmt.Println("referredAppAccountsResolver err: ", err)

@@ -25,8 +25,7 @@ func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 
 		referrerCode, err := cookies.GetReferrerFromCookie(req)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			referrerCode = ""
 		}
 
 		user, err := CalibrateUser(ta, twitterUser, referrerCode)

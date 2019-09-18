@@ -204,6 +204,9 @@ jobs: # basic units of work in a run
                 echo "export ENDPOINT_GIFT=$DEVNET_HOST/api/v1/gift" >> $BASH_ENV
             fi
       - run:
+          name: printenv
+          command: printenv
+      - run:
           name: Run snowball action
           command: |
             cd actions/snowball

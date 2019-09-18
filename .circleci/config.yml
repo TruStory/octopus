@@ -204,9 +204,6 @@ jobs: # basic units of work in a run
                 echo "export ENDPOINT_GIFT=$DEVNET_URL/api/v1/gift" >> $BASH_ENV
             fi
       - run:
-          name: printenv
-          command: printenv
-      - run:
           name: Run snowball action
           command: |
             cd actions/snowball
@@ -274,7 +271,7 @@ workflows:
   snowball:
     triggers:
       - schedule:
-          cron: "0 * * * *"
+          cron: "0 0,6,12,18 * * *"
           filters:
             branches:
               only:

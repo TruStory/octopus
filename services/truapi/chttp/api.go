@@ -244,26 +244,31 @@ func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin) 
 	msg := bank.NewMsgSendGift(brokerAddr, recipient, amount)
 	err = msg.ValidateBasic()
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
 	// build and sign the transaction
 	seq, err := cliCtx.GetAccountSequence(brokerAddr)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
 	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
 	// broadcast to a Tendermint node
 	res, err = cliCtx.WithBroadcastMode(client.BroadcastBlock).BroadcastTx(txBytes)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
+
 	fmt.Println(res)
 
 	return res, nil

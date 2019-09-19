@@ -249,12 +249,7 @@ func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin) 
 	}
 
 	// build and sign the transaction
-	seq, err := cliCtx.GetAccountSequence(brokerAddr)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
+	seq := uint64(time.Now().UnixNano())
 	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {

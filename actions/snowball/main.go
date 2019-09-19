@@ -158,6 +158,9 @@ func getCurrentJourney(user db.User) (journey []db.UserJourneyStep, err error) {
 	if err != nil {
 		return
 	}
+	if response.StatusCode != 200 {
+		return journey, fmt.Errorf("Fetching user journey for (%d) %s failed", user.ID, user.Username)
+	}
 	defer response.Body.Close()
 
 	var userJourney UserJourneyResponse
@@ -209,9 +212,12 @@ func sendReward(user db.User, amount string) error {
 	if err != nil {
 		return err
 	}
-	_, err = makeHTTPRequest(http.MethodPost, mustEnv("ENDPOINT_GIFT"), bodyBuffer)
+	response, err := makeHTTPRequest(http.MethodPost, mustEnv("ENDPOINT_GIFT"), bodyBuffer)
 	if err != nil {
 		return err
+	}
+	if response.StatusCode != 200 {
+		return fmt.Errorf("Gift payment to (%d) %s failed", user.ID, user.Username)
 	}
 
 	return nil

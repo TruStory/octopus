@@ -234,12 +234,11 @@ func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin) 
 	if err != nil {
 		return
 	}
-	// TODO: re-enable this check once reward broker accounts is added to genesis.json
-	// err = cliCtx.EnsureAccountExistsFromAddr(brokerAddr)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
+	err = cliCtx.EnsureAccountExistsFromAddr(brokerAddr)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	msg := bank.NewMsgSendGift(brokerAddr, recipient, amount)
 	err = msg.ValidateBasic()
@@ -249,6 +248,7 @@ func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin) 
 	}
 
 	// build and sign the transaction
+	// TODO: remove this hack once Antehandler is enabled and incrementing sequence numbers correctly
 	seq := uint64(time.Now().UnixNano())
 	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})

@@ -198,7 +198,7 @@ func parseHighlightableFromRequest(request CreateHighlightRequest) (string, int6
 		matches = claimCommentRegex.FindStringSubmatch(request.HighlightedURL)
 		if len(matches) == REGEX_MATCHES_CLAIM_COMMENT {
 			highlightableType := "comment"
-			highlightableID, err := strconv.ParseInt(matches[2], 10, 64)
+			highlightableID, err := strconv.ParseInt(matches[1], 10, 64)
 			if err != nil {
 				return "", 0, err
 			}

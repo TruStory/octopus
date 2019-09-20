@@ -83,12 +83,13 @@ func (t MentionType) String() string {
 
 // NotificationMeta  contains extra payload information.
 type NotificationMeta struct {
-	ClaimID     *int64       `json:"claimId,omitempty" graphql:"claimId"`
-	ArgumentID  *int64       `json:"argumentId,omitempty" graphql:"argumentId"`
-	ElementID   *int64       `json:"elementId,omitempty" graphql:"elementId"`
-	StoryID     *int64       `json:"storyId,omitempty" graphql:"storyId"`
-	CommentID   *int64       `json:"commentId,omitempty" graphql:"commentId"`
-	MentionType *MentionType `json:"mentionType,omitempty" graphql:"mentionType"`
+	ClaimID        *int64       `json:"claimId,omitempty" graphql:"claimId"`
+	ArgumentID     *int64       `json:"argumentId,omitempty" graphql:"argumentId"`
+	ElementID      *int64       `json:"elementId,omitempty" graphql:"elementId"`
+	StoryID        *int64       `json:"storyId,omitempty" graphql:"storyId"`
+	CommentID      *int64       `json:"commentId,omitempty" graphql:"commentId"`
+	MentionType    *MentionType `json:"mentionType,omitempty" graphql:"mentionType"`
+	RewardCauserID *int64       `json:"rewardCauserId,omitempty" graphql:"rewardCauserId"`
 }
 
 // NotificationEvent represents a notification sent to an user.

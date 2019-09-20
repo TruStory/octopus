@@ -37,7 +37,9 @@ func (s *service) processRewardsNotifications(rNotifications <-chan *app.RewardN
 			TypeID: 0,
 			Type:   nType,
 			Msg:    fmt.Sprintf("rewarded with %s because %s", getRewardStringFromRequest(*n), getRewardReasonFromRequest(*n, causer)),
-			Meta:   db.NotificationMeta{},
+			Meta: db.NotificationMeta{
+				RewardCauserID: &n.CauserID,
+			},
 			Action: "Reward unlocked",
 			Trim:   true,
 		}

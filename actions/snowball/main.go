@@ -12,6 +12,7 @@ import (
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
+	app "github.com/TruStory/octopus/services/truapi/truapi"
 )
 
 var allSteps = [...]db.UserJourneyStep{
@@ -93,6 +94,11 @@ func main() {
 				log.Fatalln(err)
 			}
 			fmt.Printf("✅\n")
+			sendNotification(app.RewardNotificationRequest{
+				RewardeeID:   user.ID,
+				RewardType:   app.RewardTypeInvite,
+				RewardAmount: strconv.Itoa(inviteBatchSize),
+			})
 		}
 
 		// if they were not referred by anyone, we are done for them
@@ -119,6 +125,13 @@ func main() {
 			if err != nil {
 				log.Fatalln(err)
 			}
+			sendNotification(app.RewardNotificationRequest{
+				RewardeeID:   referrer.ID,
+				RewardType:   app.RewardTypeInvite,
+				RewardAmount: strconv.Itoa(inviteBatchSize),
+				CauserID:     user.ID,
+				CauserAction: app.RewardCauserActionJourneyComplete,
+			})
 			fmt.Printf("✅\n")
 		}
 
@@ -134,6 +147,13 @@ func main() {
 			if err != nil {
 				log.Fatalln(err)
 			}
+			sendNotification(app.RewardNotificationRequest{
+				RewardeeID:   referrer.ID,
+				RewardType:   app.RewardTypeTru,
+				RewardAmount: reward,
+				CauserID:     user.ID,
+				CauserAction: getCauserActionFromJourneyStep(step),
+			})
 			fmt.Printf("✅\n")
 		}
 
@@ -260,4 +280,17 @@ func additionalStepsCompleted(current []db.UserJourneyStep, previous []db.UserJo
 	}
 
 	return diff
+}
+
+func getCauserActionFromJourneyStep(step db.UserJourneyStep) app.RewardCauserAction {
+	switch step {
+	case db.JourneyStepSignedUp:
+		return app.RewardCauserActionSignedUp
+	case db.JourneyStepOneArgument:
+		return app.RewardCauserActionOneArgument
+	case db.JourneyStepReceiveFiveAgrees:
+		return app.RewardCauserActionReceiveFiveAgrees
+	}
+
+	return app.RewardCauserActionUnknown
 }

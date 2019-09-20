@@ -226,3 +226,28 @@ var NotificationIcons = map[db.NotificationType]string{
 	db.NotificationSlashed:     "slashed.png",
 	db.NotificationUnjailed:    "unjailed.png",
 }
+
+type RewardType int
+
+const (
+	RewardTypeInvite RewardType = iota
+	RewardTypeTru
+)
+
+type RewardCauserAction int
+
+const (
+	RewardCauserActionUnknown RewardCauserAction = iota
+	RewardCauserActionSignedUp
+	RewardCauserActionOneArgument
+	RewardCauserActionReceiveFiveAgrees
+	RewardCauserActionJourneyComplete
+)
+
+type RewardNotificationRequest struct {
+	RewardeeID   int64              `json:"rewardee_id"`
+	RewardType   RewardType         `json:"reward_type"`
+	RewardAmount string             `json:"reward_amount"`
+	CauserID     int64              `json:"causer_id"`
+	CauserAction RewardCauserAction `json:"causer_action"`
+}

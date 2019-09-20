@@ -20,6 +20,7 @@ import (
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
+	app "github.com/TruStory/octopus/services/truapi/truapi"
 )
 
 const (
@@ -264,8 +265,10 @@ func (s *service) run(stop <-chan struct{}) {
 	s.log.Infof("subscribing to query event %s", tmBlockQuery)
 	notificationsCh := make(chan *Notification)
 	cNotificationsCh := make(chan *CommentNotificationRequest)
-	go s.startHTTP(stop, cNotificationsCh)
+	rNotificationsCh := make(chan *app.RewardNotificationRequest)
+	go s.startHTTPServer(stop, cNotificationsCh, rNotificationsCh)
 	go s.processCommentsNotifications(cNotificationsCh, notificationsCh)
+	go s.processRewardsNotifications(rNotificationsCh, notificationsCh)
 	go s.notificationSender(notificationsCh, stop)
 	for {
 		select {

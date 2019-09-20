@@ -30,6 +30,8 @@ const (
 	NotificationJailed
 	NotificationUnjailed
 	NotificationArgumentCommentAction
+	NotificationRewardInviteUnlocked
+	NotificationRewardTruUnlocked
 )
 
 var NotificationTypeName = []string{
@@ -45,6 +47,8 @@ var NotificationTypeName = []string{
 	NotificationJailed:                "Jailed",
 	NotificationUnjailed:              "Unjailed",
 	NotificationArgumentCommentAction: "Reply Added",
+	NotificationRewardInviteUnlocked:  "Invites Unlocked",
+	NotificationRewardTruUnlocked:     "Referral Reward Unlocked",
 }
 
 func (t NotificationType) String() string {

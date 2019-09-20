@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -28,10 +27,15 @@ func (s *service) processRewardsNotifications(rNotifications <-chan *app.RewardN
 			}
 		}
 
+		nType, ok := getNotificationTypeFromRequest(*n)
+		if !ok {
+			s.log.Warn("Unknown reward type")
+			continue
+		}
 		notifications <- &Notification{
 			To:     user.Address,
 			TypeID: 0,
-			Type:   getNotificationTypeFromRequest(*n),
+			Type:   nType,
 			Msg:    fmt.Sprintf("rewarded with %s because %s", getRewardStringFromRequest(*n), getRewardReasonFromRequest(*n, causer)),
 			Meta:   db.NotificationMeta{},
 			Action: "Reward unlocked",
@@ -40,15 +44,15 @@ func (s *service) processRewardsNotifications(rNotifications <-chan *app.RewardN
 	}
 }
 
-func getNotificationTypeFromRequest(n app.RewardNotificationRequest) db.NotificationType {
+func getNotificationTypeFromRequest(n app.RewardNotificationRequest) (db.NotificationType, bool) {
 	switch n.RewardType {
 	case app.RewardTypeInvite:
-		return db.NotificationRewardInviteUnlocked
+		return db.NotificationRewardInviteUnlocked, true
 	case app.RewardTypeTru:
-		return db.NotificationRewardTruUnlocked
+		return db.NotificationRewardTruUnlocked, true
 	}
 
-	return 0
+	return 0, false
 }
 
 func getRewardStringFromRequest(n app.RewardNotificationRequest) string {
@@ -60,7 +64,7 @@ func getRewardStringFromRequest(n app.RewardNotificationRequest) string {
 		if err != nil {
 			return n.RewardAmount
 		}
-		return fmt.Sprintf("%d %s", amount.Amount.Int64()/int64(math.Pow10(9)), db.CoinDisplayName)
+		return fmt.Sprintf("%s %s", humanReadable(amount), db.CoinDisplayName)
 	}
 
 	return ""

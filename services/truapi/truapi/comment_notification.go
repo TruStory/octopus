@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func (ta *TruAPI) sendCommentNotification(n CommentNotificationRequest) {
@@ -39,7 +40,13 @@ func (ta *TruAPI) runCommentNotificationSender(notifications <-chan CommentNotif
 			fmt.Println("error encoding comment notification request", err)
 			continue
 		}
-		resp, err := http.Post(url, "application/json", bytes.NewBuffer(b))
+		httpClient := &http.Client{
+			Timeout: time.Second * 10,
+		}
+		request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(b))
+		request.Header.Add("Accept", "application/json")
+		request.Header.Add("Content-Type", "application/json")
+		resp, err := httpClient.Do(request)
 		if err != nil {
 			fmt.Println("error sending comment notification request", err)
 			continue

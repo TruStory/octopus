@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	app "github.com/TruStory/octopus/services/truapi/truapi"
 )
@@ -16,7 +17,13 @@ func sendNotification(n app.RewardNotificationRequest) {
 	if err != nil {
 		fmt.Println("error encoding reward notification request", err)
 	}
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(b))
+	httpClient := &http.Client{
+		Timeout: time.Second * 10,
+	}
+	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(b))
+	request.Header.Add("Accept", "application/json")
+	request.Header.Add("Content-Type", "application/json")
+	resp, err := httpClient.Do(request)
 	if err != nil {
 		fmt.Println("error sending reward notification request", err)
 	}

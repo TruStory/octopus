@@ -11,8 +11,7 @@ import (
 )
 
 func sendNotification(n app.RewardNotificationRequest) {
-	url := fmt.Sprintf("%s/%s", getEnv("ENDPOINT_NOTIFICATION", "http://localhost:9001"), "sendRewardNotification")
-
+	url := fmt.Sprintf("%s/%s", mustEnv("ENDPOINT_NOTIFICATION"), "sendRewardNotification")
 	b, err := json.Marshal(&n)
 	if err != nil {
 		fmt.Println("error encoding reward notification request", err)
@@ -32,7 +31,7 @@ func sendNotification(n app.RewardNotificationRequest) {
 	}
 	// only read the status
 	_ = resp.Body.Close()
-	if resp.StatusCode != http.StatusAccepted {
+	if resp.StatusCode != http.StatusOK {
 		fmt.Printf("error sending reward notification request status [%s] \n", resp.Status)
 	}
 	fmt.Printf("reward notification sent to user with id[%d]\n", n.RewardeeID)

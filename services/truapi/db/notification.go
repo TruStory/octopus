@@ -48,7 +48,7 @@ var NotificationTypeName = []string{
 	NotificationUnjailed:              "Unjailed",
 	NotificationArgumentCommentAction: "Reply Added",
 	NotificationRewardInviteUnlocked:  "Invites Unlocked",
-	NotificationRewardTruUnlocked:     "Referral Reward Unlocked",
+	NotificationRewardTruUnlocked:     fmt.Sprintf("Earned %s", CoinDisplayName),
 }
 
 func (t NotificationType) String() string {

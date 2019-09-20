@@ -21,6 +21,9 @@ func sendNotification(n app.RewardNotificationRequest) {
 		Timeout: time.Second * 10,
 	}
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(b))
+	if err != nil {
+		fmt.Println("error creating http request", err)
+	}
 	request.Header.Add("Accept", "application/json")
 	request.Header.Add("Content-Type", "application/json")
 	resp, err := httpClient.Do(request)

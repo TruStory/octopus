@@ -194,6 +194,7 @@ jobs: # basic units of work in a run
                 echo "export PG_DB_NAME=$PG_DB_NAME_PROD" >> $BASH_ENV
                 echo "export ENDPOINT_USER_JOURNEY=$BETA_URL/api/v1/users/journey" >> $BASH_ENV
                 echo "export ENDPOINT_GIFT=$BETA_URL/api/v1/gift" >> $BASH_ENV
+                echo "export ENDPOINT_NOTIFICATION=$BETA_URL/api/v1/push" >> $BASH_ENV
             elif [ "${CIRCLE_BRANCH}" == "develop" ]
             then
                 echo "export PG_HOST=$PG_ADDR_DEVNET" >> $BASH_ENV
@@ -202,6 +203,7 @@ jobs: # basic units of work in a run
                 echo "export PG_DB_NAME=$PG_DB_NAME_DEVNET" >> $BASH_ENV
                 echo "export ENDPOINT_USER_JOURNEY=$DEVNET_URL/api/v1/users/journey" >> $BASH_ENV
                 echo "export ENDPOINT_GIFT=$DEVNET_URL/api/v1/gift" >> $BASH_ENV
+                echo "export ENDPOINT_NOTIFICATION=$DEVNET_URL/api/v1/push" >> $BASH_ENV
             fi
       - run:
           name: Run snowball action

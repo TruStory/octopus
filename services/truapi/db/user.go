@@ -701,8 +701,13 @@ func getUniqueUsername(c *Client, username string, suffix string) (string, error
 	return candidate, nil
 }
 
-// UsernamesByPrefix returns the first five usernames for the provided prefix string
-func (c *Client) UsernamesByPrefix(prefix string) (usernames []string, err error) {
+type UsernameAndImage struct {
+	Username  string `json:"username"`
+	AvatarURL string `json:"avatar_url"`
+}
+
+// UsernamesAndImagesByPrefix returns the first five usernames and their corresponding images for the provided prefix string
+func (c *Client) UsernamesAndImagesByPrefix(prefix string) (usernames []UsernameAndImage, err error) {
 	var users []User
 	sqlFragment := fmt.Sprintf("username ILIKE '%s", prefix)
 	err = c.Model(&users).Where(sqlFragment + "%'").Limit(5).Select()
@@ -713,7 +718,12 @@ func (c *Client) UsernamesByPrefix(prefix string) (usernames []string, err error
 		return usernames, err
 	}
 	for _, user := range users {
-		usernames = append(usernames, user.Username)
+		obj := UsernameAndImage{
+			Username:  user.Username,
+			AvatarURL: user.AvatarURL,
+		}
+
+		usernames = append(usernames, obj)
 	}
 
 	return usernames, nil

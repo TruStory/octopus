@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"strings"
 
@@ -152,38 +150,5 @@ func (s *service) processCommentsNotifications(cNotifications <-chan *CommentNot
 			}
 		}
 
-	}
-}
-
-func (s *service) startHTTP(stop <-chan struct{}, notifications chan<- *CommentNotificationRequest) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/sendCommentNotification", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			fmt.Printf("only POST method allowed received [%s]\n", r.Method)
-			return
-		}
-		n := &CommentNotificationRequest{}
-		err := json.NewDecoder(r.Body).Decode(n)
-		if err != nil {
-			s.log.WithError(err).Error("error decoding request")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		s.log.WithField("commentId", n.ID).Info("comment notification request received")
-		notifications <- n
-		w.WriteHeader(http.StatusAccepted)
-	})
-	server := &http.Server{
-		Addr:    ":9001",
-		Handler: mux,
-	}
-	go func() {
-		<-stop
-		// we are at shutdown
-		_ = server.Close()
-	}()
-	err := server.ListenAndServe()
-	if err != nil {
-		s.log.WithError(err).Fatal("error starting http service")
 	}
 }

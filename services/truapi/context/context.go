@@ -58,6 +58,13 @@ type RegistrarConfig struct {
 	Pass string `mapstructure:"password"`
 }
 
+// RewardBrokerConfig is the config for the reward broker account that rewards the users
+type RewardBrokerConfig struct {
+	Name string
+	Addr string
+	Pass string `mapstructure:"password"`
+}
+
 // TwitterConfig is the config for Twitter
 type TwitterConfig struct {
 	APIKey        string `mapstructure:"api-key"`
@@ -140,24 +147,25 @@ type DefaultsConfig struct {
 
 // Config contains all the config variables for the API server
 type Config struct {
-	ChainID     string `mapstructure:"chain-id"`
-	App         AppConfig
-	Cookie      CookieConfig
-	Database    DatabaseConfig
-	Flag        FlagConfig
-	Host        HostConfig
-	Push        PushConfig
-	Registrar   RegistrarConfig
-	Twitter     TwitterConfig
-	Web         WebConfig
-	Community   CommunityConfig
-	Params      ParamsConfig
-	Admin       AdminConfig
-	AWS         AWSConfig
-	Spotlight   SpotlightConfig
-	Dripper     DripperConfig
-	Leaderboard LeaderboardConfig
-	Defaults    DefaultsConfig
+	ChainID      string `mapstructure:"chain-id"`
+	App          AppConfig
+	Cookie       CookieConfig
+	Database     DatabaseConfig
+	Flag         FlagConfig
+	Host         HostConfig
+	Push         PushConfig
+	Registrar    RegistrarConfig
+	RewardBroker RewardBrokerConfig
+	Twitter      TwitterConfig
+	Web          WebConfig
+	Community    CommunityConfig
+	Params       ParamsConfig
+	Admin        AdminConfig
+	AWS          AWSConfig
+	Spotlight    SpotlightConfig
+	Dripper      DripperConfig
+	Leaderboard  LeaderboardConfig
+	Defaults     DefaultsConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

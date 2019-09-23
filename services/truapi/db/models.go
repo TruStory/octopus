@@ -52,12 +52,17 @@ type Mutations interface {
 	IssueResetToken(userID int64) (*PasswordResetToken, error)
 	UseResetToken(prt *PasswordResetToken) error
 	UpsertConnectedAccount(connectedAccount *ConnectedAccount) error
-	AddUserViaConnectedAccount(connectedAccount *ConnectedAccount) (*User, error)
+	AddUserViaConnectedAccount(connectedAccount *ConnectedAccount, referrerCode string) (*User, error)
 	FollowCommunities(address string, communities []string) error
 	FollowedCommunities(address string) ([]FollowedCommunity, error)
 	UnfollowCommunity(address, communityID string) error
 	FollowsCommunity(address, communityID string) (bool, error)
 	AddImageURLToHighlight(id int64, url string) error
+	GrantInvites(id int64, count int) error
+	ConsumeInvite(id int64) (bool, error)
+	UsersWithIncompleteJourney() ([]User, error)
+	UpdateUserJourney(id int64, journey []UserJourneyStep) error
+	RecordRewardLedgerEntry(userID int64, direction RewardLedgerEntryDirection, amount int64, currency RewardLedgerEntryCurrency) (*RewardLedgerEntry, error)
 }
 
 // Queries read from the database
@@ -99,8 +104,8 @@ type Queries interface {
 	UserByAddress(address string) (*User, error)
 	UserByConnectedAccountTypeAndID(accountType, accountID string) (*User, error)
 	IsTwitterUser(userID int64) bool
-	InvitedUsers() ([]User, error)
-	InvitedUsersByID(referrerID int64) ([]User, error)
+	ReferredUsers() ([]User, error)
+	ReferredUsersByID(referrerID int64) ([]User, error)
 	UnusedResetTokensByUser(userID int64) ([]PasswordResetToken, error)
 	UnusedResetTokenByUserAndToken(userID int64, token string) (*PasswordResetToken, error)
 	ConnectedAccountsByUserID(userID int64) ([]ConnectedAccount, error)

@@ -51,6 +51,9 @@ const (
 	flagRegistrarName              = "registrar.name"
 	flagRegistrarAddr              = "registrar.addr"
 	flagRegistrarPass              = "registrar.password"
+	flagRewardBrokerName           = "rewardbroker.name"
+	flagRewardBrokerAddr           = "rewardbroker.addr"
+	flagRewardBrokerPass           = "rewardbroker.password"
 )
 
 var (
@@ -131,6 +134,7 @@ func startCmd(codec *codec.Codec) *cobra.Command {
 	cmd = registerTwitterFlags(cmd)
 	cmd = registerFlagFlags(cmd)
 	cmd = registerRegistrarFlags(cmd)
+	cmd = registerRewardBrokerFlags(cmd)
 
 	return cmd
 }
@@ -350,6 +354,28 @@ func registerRegistrarFlags(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().String(flagRegistrarPass, "", "Registrar account password")
 	err = viper.BindPFlag(flagRegistrarPass, cmd.Flags().Lookup(flagRegistrarPass))
+	if err != nil {
+		panic(err)
+	}
+
+	return cmd
+}
+
+func registerRewardBrokerFlags(cmd *cobra.Command) *cobra.Command {
+	cmd.Flags().String(flagRewardBrokerName, "reward_broker", "RewardBroker account name")
+	err := viper.BindPFlag(flagRewardBrokerName, cmd.Flags().Lookup(flagRewardBrokerName))
+	if err != nil {
+		panic(err)
+	}
+
+	cmd.Flags().String(flagRewardBrokerAddr, "", "RewardBroker account address")
+	err = viper.BindPFlag(flagRewardBrokerAddr, cmd.Flags().Lookup(flagRewardBrokerAddr))
+	if err != nil {
+		panic(err)
+	}
+
+	cmd.Flags().String(flagRewardBrokerPass, "", "RewardBroker account password")
+	err = viper.BindPFlag(flagRewardBrokerPass, cmd.Flags().Lookup(flagRewardBrokerPass))
 	if err != nil {
 		panic(err)
 	}

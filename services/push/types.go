@@ -71,7 +71,6 @@ type CommentNotificationRequest struct {
 }
 
 // GraphQL responses
-
 const ClaimArgumentByIDQuery = `
 query ClaimArgumentQuery($argumentId: ID!) {
   claimArgument(id: $argumentId) {

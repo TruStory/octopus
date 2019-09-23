@@ -17,7 +17,8 @@ import (
 const (
 	// UserCookieName contains the name of the cookie that stores the user
 	UserCookieName string = "tru-user"
-
+	// ReferrerCookieName contains the code for the referrer
+	ReferrerCookieName string = "tru-referrer"
 	// AnonSessionCookieName to track anonymous users
 	AnonSessionCookieName string = "tru-session"
 	// SessionDuration defines expiration time so we can track users that come back
@@ -117,6 +118,30 @@ func MakeLoginCookieValue(apiCtx truCtx.TruAPIContext, user *db.User) (string, e
 	}
 
 	return encodedValue, nil
+}
+
+// GetReferrerCookie returns the very short-lived http cookie that persists the referrer during the oauth flow
+func GetReferrerCookie(apiCtx truCtx.TruAPIContext, referrerCode string) *http.Cookie {
+	cookie := http.Cookie{
+		Name:     ReferrerCookieName,
+		Path:     "/",
+		HttpOnly: true,
+		Value:    referrerCode,
+		Expires:  time.Now().Add(time.Second * 120),
+		Domain:   apiCtx.Config.Host.Name,
+	}
+
+	return &cookie
+}
+
+// GetReferrerFromCookie gets the referrer from the request's short-lived http cookie
+func GetReferrerFromCookie(r *http.Request) (string, error) {
+	cookie, err := r.Cookie(ReferrerCookieName)
+	if err != nil {
+		return "", err
+	}
+
+	return cookie.Value, nil
 }
 
 // isStale returns whether the cookie older than what is accepted

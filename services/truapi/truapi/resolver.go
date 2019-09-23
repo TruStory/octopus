@@ -69,6 +69,10 @@ type queryByCommunityIDAndFeedFilter struct {
 	IsSearch    bool       `graphql:"isSearch,optional"`
 }
 
+type queryReferredAppAccountsParams struct {
+	Admin bool `graphql:"admin,optional"`
+}
+
 // claimMetricsBest represents all-time claim metrics
 type claimMetricsBest struct {
 	Claim                 claim.Claim
@@ -177,6 +181,16 @@ func (ta *TruAPI) userProfileResolver(ctx context.Context, addr string) *db.User
 		return nil
 	}
 	return profile
+}
+
+func (ta *TruAPI) userResolver(ctx context.Context, addr string) *db.User {
+	user, err := ta.DBClient.UserByAddress(addr)
+	if err != nil {
+		fmt.Println("userResolver err: ", err)
+		return nil
+	}
+
+	return user
 }
 
 func (ta *TruAPI) earnedBalanceResolver(ctx context.Context, q queryByAddress) sdk.Coin {
@@ -1484,6 +1498,39 @@ func (ta *TruAPI) invitesResolver(ctx context.Context) []db.Invite {
 		panic(err)
 	}
 	return invites
+}
+
+func (ta *TruAPI) referredAppAccountsResolver(ctx context.Context, q queryReferredAppAccountsParams) []AppAccount {
+	user, ok := ctx.Value(userContextKey).(*cookies.AuthenticatedUser)
+	if !ok {
+		return make([]AppAccount, 0)
+	}
+
+	var users []db.User
+	var err error
+	settings := ta.settingsResolver(ctx)
+
+	if q.Admin && contains(settings.ClaimAdmins, user.Address) {
+		users, err = ta.DBClient.ReferredUsers()
+		if err != nil {
+			fmt.Println("referredAppAccountsResolver err: ", err)
+			return make([]AppAccount, 0)
+		}
+	} else {
+		users, err = ta.DBClient.ReferredUsersByID(user.ID)
+		if err != nil {
+			fmt.Println("referredAppAccountsResolver err: ", err)
+			return make([]AppAccount, 0)
+		}
+	}
+
+	appAccounts := make([]AppAccount, 0)
+	for _, user := range users {
+		if user.Address != "" {
+			appAccounts = append(appAccounts, *ta.appAccountResolver(ctx, queryByAddress{ID: user.Address}))
+		}
+	}
+	return appAccounts
 }
 
 func (ta *TruAPI) followsCommunity(ctx context.Context, q queryByCommunityID) bool {

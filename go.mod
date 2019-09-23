@@ -6,12 +6,12 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
-	github.com/TruStory/truchain v0.1.26-0.20190816034251-573237e34281
+	github.com/TruStory/truchain v0.1.28-0.20190923225041-cbe01ed72ed9
 	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.21.5
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32
-	github.com/cosmos/cosmos-sdk v0.28.2-0.20190601143109-dcdabc7e6e20
+	github.com/cosmos/cosmos-sdk v0.37.0
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d // indirect
 	github.com/dghubble/go-twitter v0.0.0-20190711044719-dc9b50841e5b
 	github.com/dghubble/gologin v2.1.0+incompatible
@@ -56,27 +56,23 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
-	github.com/syndtr/goleveldb v1.0.0 // indirect
-	github.com/tendermint/tendermint v0.31.5
+	github.com/tendermint/tendermint v0.32.2
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/ugorji/go v1.1.7 // indirect
 	github.com/vektah/dataloaden v0.3.0
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	go.opencensus.io v0.22.1 // indirect
-	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
+	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
 	golang.org/x/exp v0.0.0-20190919035709-81c71964d733 // indirect
-	golang.org/x/net v0.0.0-20190918130420-a8b05e9114ab
+	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20190919044723-0c1ff786ef13 // indirect
-	golang.org/x/tools v0.0.0-20190919031856-7460b8e10b7e // indirect
+	golang.org/x/tools v0.0.0-20190923230126-0f9bb8f614ff // indirect
 	google.golang.org/api v0.10.0 // indirect
-	google.golang.org/appengine v1.6.2 // indirect
+	google.golang.org/appengine v1.6.3 // indirect
 	google.golang.org/genproto v0.0.0-20190916214212-f660b8655731 // indirect
 	google.golang.org/grpc v1.23.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )
-
-replace golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
 
 replace github.com/appleboy/gorush => github.com/jhernandezb/gorush v1.11.2-0.20190607192845-ca316b6313df

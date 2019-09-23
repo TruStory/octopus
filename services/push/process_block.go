@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/truchain/x/account"
 	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/types"
-
-	"github.com/TruStory/octopus/services/truapi/db"
 )
 
 // Copied from truchain/truapi until truapi is moved into Octopus
@@ -98,32 +97,31 @@ func (s *service) processExpiredStakes(data []byte, notifications chan<- *Notifi
 	}
 }
 
-func (s *service) processUnjailedAccounts(data []byte, notifications chan<- *Notification) {
-	unjailed := make([]string, 0)
-	err := account.ModuleCodec.UnmarshalJSON(data, &unjailed)
-	if err != nil {
-		s.log.WithError(err).Error("error decoding unjailed accounts")
-		return
-	}
-
-	for _, acc := range unjailed {
-		notifications <- &Notification{
-			To:     acc,
-			Msg:    "Hooray you got out of jail!",
-			Type:   db.NotificationUnjailed,
-			Action: "Unjailed",
-		}
+func (s *service) processUnjailedAccount(data []byte, notifications chan<- *Notification) {
+	notifications <- &Notification{
+		To:     string(data),
+		Msg:    "Hooray you got out of jail!",
+		Type:   db.NotificationUnjailed,
+		Action: "Unjailed",
 	}
 }
+
 func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notifications chan<- *Notification) {
-
-	for _, tag := range blockEvt.ResultEndBlock.Tags {
-		switch k := string(tag.Key); k {
-		case "expired-stakes":
-			s.processExpiredStakes(tag.Value, notifications)
-		case "unjailed-accounts":
-			s.processUnjailedAccounts(tag.Value, notifications)
+	for _, event := range blockEvt.ResultEndBlock.Events {
+		s.log.Debug(event.String())
+		switch eventType := event.Type; eventType {
+		case account.EventTypeUnjailedAccount:
+			for _, attr := range event.GetAttributes() {
+				if string(attr.Key) == account.AttributeKeyUser {
+					s.processUnjailedAccount(attr.Value, notifications)
+				}
+			}
+		case staking.EventTypeInterestRewardPaid:
+			for _, attr := range event.GetAttributes() {
+				if string(attr.Key) == staking.AttributeKeyExpiredStakes {
+					s.processExpiredStakes(attr.Value, notifications)
+				}
+			}
 		}
-
 	}
 }

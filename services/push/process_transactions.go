@@ -4,17 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/TruStory/truchain/x/slashing"
-	slashingtags "github.com/TruStory/truchain/x/slashing/tags"
-
 	"github.com/TruStory/octopus/services/truapi/db"
-
+	"github.com/TruStory/truchain/x/slashing"
 	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/types"
 )
 
 func (s *service) processArgumentCreated(data []byte, notifications chan<- *Notification) {
+	fmt.Println("data " + string(data))
 	argument := staking.Argument{}
 	err := staking.ModuleCodec.UnmarshalJSON(data, &argument)
 	if err != nil {
@@ -115,10 +114,12 @@ func (s *service) processUpvote(data []byte, notifications chan<- *Notification)
 	}
 }
 
-func getTagValue(key string, tags sdk.Tags) ([]byte, bool) {
-	for _, tag := range tags.ToKVPairs() {
-		if string(tag.Key) == key {
-			return tag.Value, true
+func getTagValue(key string, events []abci.Event) ([]byte, bool) {
+	for _, event := range events {
+		for _, attr := range event.GetAttributes() {
+			if string(attr.Key) == key {
+				return attr.Value, true
+			}
 		}
 	}
 	return nil, false
@@ -147,7 +148,6 @@ func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
 	}
 
 	for _, p := range punishResults {
-
 		if p.Type == slashing.PunishmentCuratorRewarded {
 			notifications <- &Notification{
 				To: p.AppAccAddress.String(),
@@ -170,9 +170,9 @@ func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
 			}
 		}
 	}
-
 }
-func (s *service) processSlash(data []byte, tags sdk.Tags, notifications chan<- *Notification) {
+
+func (s *service) processSlash(data []byte, events []abci.Event, notifications chan<- *Notification) {
 	slash := slashing.Slash{}
 	err := slashing.ModuleCodec.UnmarshalJSON(data, &slash)
 	if err != nil {
@@ -202,8 +202,8 @@ func (s *service) processSlash(data []byte, tags sdk.Tags, notifications chan<- 
 		Action: "Not Helpful received on an Argument",
 	}
 
-	b, ok := getTagValue(slashingtags.SlashResults, tags)
-	minSlashCount, _ := getTagValue("min-slash-count", tags)
+	b, ok := getTagValue(slashing.AttributeKeySlashResults, events)
+	minSlashCount, _ := getTagValue(slashing.AttributeKeyMinSlashCountKey, events)
 	count := string(minSlashCount)
 	if ok {
 		punishResults := make([]slashing.PunishmentResult, 0)
@@ -216,18 +216,23 @@ func (s *service) processSlash(data []byte, tags sdk.Tags, notifications chan<- 
 			s.notifySlashes(punishResults, notifications, meta, int64(slash.ArgumentID), count)
 		}
 	}
-
 }
+
 func (s *service) processTxEvent(evt types.EventDataTx, notifications chan<- *Notification) {
-	for _, tag := range evt.Result.Tags {
-		action := string(tag.Value)
-		switch action {
-		case "create-argument":
-			s.processArgumentCreated(evt.Result.Data, notifications)
-		case "create-upvote":
-			s.processUpvote(evt.Result.Data, notifications)
-		case "create-slash":
-			s.processSlash(evt.Result.Data, evt.Result.Tags, notifications)
+	for _, event := range evt.Result.Events {
+		if event.Type == sdk.EventTypeMessage {
+			for _, attr := range event.GetAttributes() {
+				if string(attr.Key) == sdk.AttributeKeyAction {
+					switch v := string(attr.Value); v {
+					case staking.TypeMsgSubmitArgument:
+						s.processArgumentCreated(evt.Result.Data, notifications)
+					case staking.TypeMsgSubmitUpvote:
+						s.processUpvote(evt.Result.Data, notifications)
+					case slashing.TypeMsgSlashArgument:
+						s.processSlash(evt.Result.Data, evt.Result.Events, notifications)
+					}
+				}
+			}
 		}
 	}
 }

@@ -1,20 +1,16 @@
 package db
 
 import (
-	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/regex"
-
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/go-pg/pg"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // InvitedUserDefaultName is the default name given to the invited user
@@ -241,15 +237,11 @@ func (c *Client) SetUserMeta(id int64, meta *UserMeta) error {
 
 // RegisterUser signs up a new user
 func (c *Client) RegisterUser(user *User, referrerCode, defaultAvatarURL string) error {
-	salt, err := generateCryptoSafeRandomBytes(16)
-	if err != nil {
-		return err
-	}
 	token, err := generateCryptoSafeRandomBytes(32)
 	if err != nil {
 		return err
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword(salt, []byte(user.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
@@ -329,12 +321,7 @@ func (c *Client) ResetPassword(id int64, password string) error {
 		return errors.New("no such user found")
 	}
 
-	salt := make([]byte, 16)
-	_, err = io.ReadFull(rand.Reader, salt)
-	if err != nil {
-		return err
-	}
-	hashedPassword, err := bcrypt.GenerateFromPassword(salt, []byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
@@ -367,12 +354,7 @@ func (c *Client) UpdatePassword(id int64, password *UserPassword) error {
 		return errors.New("incorrect current password")
 	}
 
-	salt := make([]byte, 16)
-	_, err = io.ReadFull(rand.Reader, salt)
-	if err != nil {
-		return err
-	}
-	hashedPassword, err := bcrypt.GenerateFromPassword(salt, []byte(password.New), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password.New), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
@@ -852,11 +834,7 @@ func (c *Client) UpdateUserJourney(id int64, journey []UserJourneyStep) error {
 }
 
 func getHashedPassword(password string) (string, error) {
-	salt, err := generateCryptoSafeRandomBytes(16)
-	if err != nil {
-		return "", err
-	}
-	hashedPassword, err := bcrypt.GenerateFromPassword(salt, []byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}

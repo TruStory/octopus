@@ -13,11 +13,10 @@ import (
 	"github.com/TruStory/truchain/x/account"
 	"github.com/TruStory/truchain/x/bank"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
+	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/gorilla/mux"
 	"github.com/oklog/ulid"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -175,10 +174,6 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	if err != nil {
 		return
 	}
-	err = cliCtx.EnsureAccountExistsFromAddr(registrarAddr)
-	if err != nil {
-		return
-	}
 	sk, err := StdKey(algo, k)
 	if err != nil {
 		return
@@ -189,13 +184,7 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 		return
 	}
 
-	// build and sign the transaction
-	seq, err := cliCtx.GetAccountSequence(registrarAddr)
-	if err != nil {
-		return
-	}
-
-	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+	txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
 		return
@@ -234,11 +223,6 @@ func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin) 
 	if err != nil {
 		return
 	}
-	err = cliCtx.EnsureAccountExistsFromAddr(brokerAddr)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
 
 	msg := bank.NewMsgSendGift(brokerAddr, recipient, amount)
 	err = msg.ValidateBasic()
@@ -250,7 +234,7 @@ func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin) 
 	// build and sign the transaction
 	// TODO: remove this hack once Antehandler is enabled and incrementing sequence numbers correctly
 	seq := uint64(time.Now().UnixNano())
-	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+	txBldr := auth.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
 		fmt.Println(err)
@@ -263,7 +247,6 @@ func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin) 
 		fmt.Println(err)
 		return
 	}
-
 	fmt.Println(res)
 
 	return res, nil
@@ -276,7 +259,8 @@ func (a *API) RunQuery(path string, params interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
+
+	res, _, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
 	if err != nil {
 		return res, err
 	}
@@ -290,7 +274,7 @@ func (a *API) Query(path string, params interface{}, cdc *codec.Codec) ([]byte, 
 	if err != nil {
 		return nil, err
 	}
-	res, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
+	res, _, err := a.apiCtx.QueryWithData("/custom/"+path, paramBytes)
 	if err != nil {
 		return res, err
 	}

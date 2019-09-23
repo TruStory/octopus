@@ -3,7 +3,6 @@ module github.com/TruStory/octopus
 require (
 	cloud.google.com/go/bigquery v1.0.1
 	cloud.google.com/go/storage v1.0.0 // indirect
-	cloud.google.com/go/pubsub v1.0.1 // indirect
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
@@ -46,7 +45,6 @@ require (
 	github.com/prometheus/common v0.7.0 // indirect
 	github.com/prometheus/procfs v0.0.5 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
-	github.com/rogpeppe/go-internal v1.3.2 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/samsarahq/go v0.0.0-20190126203740-720caea591c9 // indirect
 	github.com/samsarahq/thunder v0.5.1-0.20190814161136-ef9b23e4cfcb
@@ -58,26 +56,20 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
-	github.com/syndtr/goleveldb v1.0.0 // indirect
-	github.com/tendermint/tendermint v0.31.5
+	github.com/tendermint/tendermint v0.32.2
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/ugorji/go v1.1.7 // indirect
 	github.com/vektah/dataloaden v0.3.0
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	go.opencensus.io v0.22.1 // indirect
 	golang.org/x/crypto v0.0.0-20190909091759-094676da4a83
-	golang.org/x/exp v0.0.0-20190829153037-c13cbed26979 // indirect
-	golang.org/x/lint v0.0.0-20190909230951-414d861bb4ac // indirect
 	golang.org/x/net v0.0.0-20190909003024-a7b16738d86b
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20190910064555-bbd175535a8b // indirect
-	golang.org/x/tools v0.0.0-20190910202502-d0542c01b04d // indirect
 	google.golang.org/api v0.10.0 // indirect
 	google.golang.org/appengine v1.6.2 // indirect
-	google.golang.org/genproto v0.0.0-20190905072037-92dd089d5514 // indirect
 	google.golang.org/grpc v1.23.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
-	honnef.co/go/tools v0.0.1-2019.2.3 // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )
 

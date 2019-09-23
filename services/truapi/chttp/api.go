@@ -185,7 +185,6 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 	}
 
 	txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
-
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
 		return
@@ -224,11 +223,6 @@ func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin) 
 	if err != nil {
 		return
 	}
-	err = cliCtx.EnsureAccountExistsFromAddr(brokerAddr)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
 
 	msg := bank.NewMsgSendGift(brokerAddr, recipient, amount)
 	err = msg.ValidateBasic()
@@ -240,7 +234,7 @@ func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin) 
 	// build and sign the transaction
 	// TODO: remove this hack once Antehandler is enabled and incrementing sequence numbers correctly
 	seq := uint64(time.Now().UnixNano())
-	txBldr := authtxb.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+	txBldr := auth.NewTxBuilderFromCLI().WithSequence(seq).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
 		fmt.Println(err)
@@ -253,7 +247,6 @@ func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin) 
 		fmt.Println(err)
 		return
 	}
-
 	fmt.Println(res)
 
 	return res, nil

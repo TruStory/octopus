@@ -273,7 +273,8 @@ workflows:
   snowball:
     triggers:
       - schedule:
-          cron: "0 * * * *"
+          # 1 am in PDT
+          cron: "0 7 * * *"
           filters:
             branches:
               only:

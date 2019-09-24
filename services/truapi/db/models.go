@@ -68,7 +68,7 @@ type Mutations interface {
 // Queries read from the database
 type Queries interface {
 	GenericQueries
-	UsernamesByPrefix(prefix string) ([]string, error)
+	UsernamesAndImagesByPrefix(prefix string) ([]UsernameAndImage, error)
 	KeyPairByUserID(userID int64) (*KeyPair, error)
 	DeviceTokensByAddress(addr string) ([]DeviceToken, error)
 	NotificationEventsByAddress(addr string) ([]NotificationEvent, error)

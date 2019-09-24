@@ -7,11 +7,6 @@ import (
 	"github.com/TruStory/octopus/services/truapi/chttp"
 )
 
-// UsernameSearchResponse is a JSON response body representing the result of username search
-type UsernameSearchResponse struct {
-	Usernames []string `json:"usernames"`
-}
-
 // HandleUsernameSearch takes a `UsernameSearchRequest` and returns a `UsernameSearchResponse`
 func (ta *TruAPI) HandleUsernameSearch(r *http.Request) chttp.Response {
 	switch r.Method {
@@ -29,14 +24,12 @@ func (ta *TruAPI) handleUsernameSearch(r *http.Request) chttp.Response {
 	}
 
 	prefix := r.Form["username_prefix"][0]
-	usernames, err := ta.DBClient.UsernamesByPrefix(prefix)
+	usernames, err := ta.DBClient.UsernamesAndImagesByPrefix(prefix)
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
 	}
 
-	responseBytes, _ := json.Marshal(UsernameSearchResponse{
-		Usernames: usernames,
-	})
+	responseBytes, _ := json.Marshal(usernames)
 
 	return chttp.SimpleResponse(200, responseBytes)
 }

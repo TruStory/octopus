@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
-	github.com/TruStory/truchain v0.1.28-0.20190923225041-cbe01ed72ed9
+	github.com/TruStory/truchain v0.1.28
 	github.com/appleboy/gofight v1.0.4 // indirect
 	github.com/appleboy/gorush v1.11.1
 	github.com/aws/aws-sdk-go v1.21.5

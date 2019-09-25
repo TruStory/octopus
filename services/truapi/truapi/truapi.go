@@ -174,14 +174,13 @@ func BasicAuth(apiCtx truCtx.TruAPIContext, handler http.Handler) http.HandlerFu
 func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	sessionHandler := cookies.AnonymousSessionHandler(ta.APIContext)
 	ta.Use(sessionHandler)
+	// Enable gzip compression
+	ta.Use(handlers.CompressHandler)
 
 	liveRedirectHandler := RedirectHandler(apiCtx.Config.App.LiveDebateURL, http.StatusFound)
 	ta.Handle("/live", liveRedirectHandler)
 
 	api := ta.Subrouter("/api/v1")
-
-	// Enable gzip compression
-	api.Use(handlers.CompressHandler)
 	api.Use(chttp.JSONResponseMiddleware)
 	api.Use(WithUser(ta.APIContext))
 	api.Use(ta.WithDataLoaders())

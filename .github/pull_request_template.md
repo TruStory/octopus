@@ -1,4 +1,6 @@
-- [ ] Linked to Github issues that this PR fixes (if any)
-- [ ] Wrote tests
+- [ ] Linked to Github issues that this PR fixes, if any
+- [ ] Wrote tests if applicable
 - [ ] Updated README if needed
-- [ ] Tested running truchain and truapp locally (https://gist.github.com/shanev/3897a80072ac4147677fa596ada497fb)
+- [ ] Tested running truchain and octopus locally (https://gist.github.com/shanev/3897a80072ac4147677fa596ada497fb)
+- [ ] Implemented changes to notifications if needed
+- [ ] Tested CI locally if there's changes to CI

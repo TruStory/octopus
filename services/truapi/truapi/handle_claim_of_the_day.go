@@ -51,6 +51,9 @@ func (ta *TruAPI) addClaimOfTheDayID(r *http.Request) chttp.Response {
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
 	}
+	ta.sendBroadcastNotification(BroadcastNotificationRequest{
+		Type: db.NotificationFeaturedDebate,
+	})
 	return chttp.SimpleResponse(200, nil)
 }
 

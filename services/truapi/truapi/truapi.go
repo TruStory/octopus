@@ -60,6 +60,7 @@ type TruAPI struct {
 	// notifications
 	notificationsInitialized bool
 	commentsNotificationsCh  chan CommentNotificationRequest
+	broadcastNotificationsCh chan BroadcastNotificationRequest
 	httpClient               *http.Client
 }
 
@@ -76,13 +77,14 @@ func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 		os.Exit(1)
 	}
 	ta := TruAPI{
-		API:                     chttp.NewAPI(apiCtx, supported),
-		APIContext:              apiCtx,
-		GraphQLClient:           graphql.NewGraphQLClient(),
-		DBClient:                db.NewDBClient(apiCtx.Config),
-		Postman:                 postman,
-		Dripper:                 dripper,
-		commentsNotificationsCh: make(chan CommentNotificationRequest),
+		API:                      chttp.NewAPI(apiCtx, supported),
+		APIContext:               apiCtx,
+		GraphQLClient:            graphql.NewGraphQLClient(),
+		DBClient:                 db.NewDBClient(apiCtx.Config),
+		Postman:                  postman,
+		Dripper:                  dripper,
+		commentsNotificationsCh:  make(chan CommentNotificationRequest),
+		broadcastNotificationsCh: make(chan BroadcastNotificationRequest),
 		httpClient: &http.Client{
 			Timeout: time.Second * 5,
 		},
@@ -95,6 +97,7 @@ func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 func (ta *TruAPI) RunNotificationSender(apiCtx truCtx.TruAPIContext) error {
 	ta.notificationsInitialized = true
 	go ta.runCommentNotificationSender(ta.commentsNotificationsCh, apiCtx.Config.Push.EndpointURL)
+	go ta.runBroadcastNotificationSender(ta.broadcastNotificationsCh, apiCtx.Config.Push.EndpointURL)
 	return nil
 }
 

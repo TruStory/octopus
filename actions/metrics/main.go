@@ -193,10 +193,13 @@ func main() {
 		usersMetrics(*skipDaily)
 	case "claims":
 		claimMetrics(*skipDaily)
+	case "user_base":
+		userBase()
 	case "all":
 		fmt.Println("Running users and claim metrics")
 		usersMetrics(*skipDaily)
 		claimMetrics(*skipDaily)
+		userBase()
 	default:
 		log.Fatal("invalid subcommand")
 	}

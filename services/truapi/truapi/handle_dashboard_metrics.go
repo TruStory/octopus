@@ -624,10 +624,14 @@ func (ta *TruAPI) HandleUserBase(w http.ResponseWriter, r *http.Request) {
 	header := []string{
 		"address", "username", "email", "creation_date", "updated_date", "last_login", "user_group",
 	}
-	csvw.Write(header)
+	err := csvw.Write(header)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	// For each user, get the available stake calculated.
 	users := make([]db.User, 0)
-	err := ta.DBClient.FindAll(&users)
+	err = ta.DBClient.FindAll(&users)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
@@ -649,7 +653,11 @@ func (ta *TruAPI) HandleUserBase(w http.ResponseWriter, r *http.Request) {
 			lastLogin,
 			user.UserGroup.String(),
 		}
-		csvw.Write(row)
+		err := csvw.Write(row)
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		csvw.Flush()
 	}
 }

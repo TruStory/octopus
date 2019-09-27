@@ -63,6 +63,9 @@ func usersMetrics(skipDaily bool) {
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		log.Fatal("Error running user metrics", resp.Status)
+	}
 	ctx := context.Background()
 	bigQClient, err := bigquery.NewClient(ctx, "metrics-240714")
 	if err != nil {
@@ -145,6 +148,9 @@ func claimMetrics(skipDaily bool) {
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		log.Fatal("Error running claim metrics", resp.Status)
+	}
 	ctx := context.Background()
 	bigQClient, err := bigquery.NewClient(ctx, "metrics-240714")
 	if err != nil {

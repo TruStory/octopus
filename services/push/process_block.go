@@ -86,7 +86,7 @@ func (s *service) processExpiredStakes(data []byte, notifications chan<- *Notifi
 		}
 		notifications <- &Notification{
 			To: expiredStake.Result.StakeCreator.String(),
-			Msg: fmt.Sprintf("You just earned %s %s on an argument you agreed on",
+			Msg: fmt.Sprintf("You just earned %s %s on an Argument you Agreed with",
 				humanReadable(expiredStake.Result.StakeCreatorReward), db.CoinDisplayName,
 			),
 			TypeID: int64(expiredStake.ArgumentID),

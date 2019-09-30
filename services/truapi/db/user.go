@@ -19,6 +19,30 @@ const InvitedUserDefaultName = "<invited user>"
 // StepsToCompleteJourney denotes the number of steps one user has to complete to be considered active
 const StepsToCompleteJourney = 4 // signup, write an argument, receive five agrees, give an agree
 
+type UserGroup int
+
+const (
+	// UserGroupUser is just a regular user and the default group assignation
+	UserGroupUser = iota
+	UserGroupEmployee
+	UserGroupTruStoryDebater
+	UserGroupResearchAnalyst
+)
+
+var userGroupTypeName = []string{
+	UserGroupUser:            "User",
+	UserGroupEmployee:        "Employee",
+	UserGroupTruStoryDebater: "TruStory Debater",
+	UserGroupResearchAnalyst: "Research Analyst",
+}
+
+func (ug UserGroup) String() string {
+	if int(ug) >= len(userGroupTypeName) {
+		return "Unknown"
+	}
+	return userGroupTypeName[ug]
+}
+
 // User is the user on the TruStory platform
 type User struct {
 	Timestamps
@@ -39,6 +63,7 @@ type User struct {
 	VerifiedAt          time.Time  `json:"verified_at" graphql:"-"`
 	BlacklistedAt       time.Time  `json:"blacklisted_at" graphql:"-"`
 	LastAuthenticatedAt *time.Time `json:"last_authenticated_at" graphql:"-"`
+	UserGroup           UserGroup  `json:"user_group"`
 	Meta                UserMeta   `json:"meta"`
 }
 

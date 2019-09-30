@@ -140,6 +140,11 @@ type LeaderboardConfig struct {
 	TopDisplaying int `mapstructure:"top-displaying"`
 }
 
+// Metrics represents metrics configuration
+type MetricsConfig struct {
+	Secret string `mapstructure:"secret"`
+}
+
 // DefaultsConfig represents the default values
 type DefaultsConfig struct {
 	AvatarURL string `mapstructure:"default-avatar-url"`
@@ -166,6 +171,7 @@ type Config struct {
 	Dripper      DripperConfig
 	Leaderboard  LeaderboardConfig
 	Defaults     DefaultsConfig
+	Metrics      MetricsConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

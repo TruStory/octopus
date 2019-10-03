@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"path"
 	"strings"
@@ -105,12 +104,6 @@ func WrapHandler(h chttp.Handler) http.Handler {
 func WithUser(apiCtx truCtx.TruAPIContext) mux.MiddlewareFunc {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			for _, v := range r.Cookies() {
-				fmt.Println(v.Name, v.Value)
-			}
-			d, _ := httputil.DumpRequest(r, false)
-			fmt.Println(string(d))
-			fmt.Println("-------------")
 			auth, err := cookies.GetAuthenticatedUser(apiCtx, r)
 			if err != nil {
 				h.ServeHTTP(w, r)

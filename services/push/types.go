@@ -112,6 +112,17 @@ query ClaimArgumentQuery($argumentId: ID!) {
 }
 `
 
+const earnedBalanceByAddressQuery = `
+query AppAccountBalanceQuery($address: String) {
+	appAccount(id: $address) {
+		id
+		earnedBalance {
+			humanReadable
+		}
+	}
+}
+`
+
 // Creator represents the user that backed/challenge.
 type Creator struct {
 	Address string `json:"address"`
@@ -135,6 +146,16 @@ type ClaimResponse struct {
 		ID   int64  `json:"id"`
 		Body string `json:"body"`
 	} `json:"claim"`
+}
+
+// EarnedBalanceResponse is the response from the graphql endpoint.
+type EarnedBalanceResponse struct {
+	AppAccount struct {
+		ID            string `json:"id"`
+		EarnedBalance struct {
+			HumanReadable string `json:"humanReadable"`
+		} `json:"earnedBalance"`
+	} `json:"appAccount"`
 }
 
 // ArgumentSummaryResponse is the response from the graphql endpoint.

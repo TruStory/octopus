@@ -33,6 +33,7 @@ const (
 	NotificationRewardInviteUnlocked
 	NotificationRewardTruUnlocked
 	NotificationFeaturedDebate
+	NotificationStakeLimitIncreased
 )
 
 var NotificationTypeName = []string{
@@ -51,6 +52,7 @@ var NotificationTypeName = []string{
 	NotificationRewardInviteUnlocked:  "Invites Unlocked",
 	NotificationRewardTruUnlocked:     fmt.Sprintf("Earned %s", CoinDisplayName),
 	NotificationFeaturedDebate:        "Featured Debate",
+	NotificationStakeLimitIncreased:   "Staking Limit Increased",
 }
 
 func (t NotificationType) String() string {

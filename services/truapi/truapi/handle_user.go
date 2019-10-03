@@ -25,6 +25,7 @@ type UserResponse struct {
 	InvitesLeft int64                `json:"invitesLeft"`
 	UserMeta    db.UserMeta          `json:"userMeta"`
 	UserProfile *UserProfileResponse `json:"userProfile"`
+	Group       string               `json:"group"`
 }
 
 // UserProfileResponse is a JSON response body representing the UserProfile
@@ -380,6 +381,7 @@ func createUserResponse(user *db.User) UserResponse {
 		Bio:         user.Bio,
 		InvitesLeft: user.InvitesLeft,
 		UserMeta:    user.Meta,
+		Group:       user.UserGroup.String(),
 		UserProfile: &UserProfileResponse{
 			Bio:       user.Bio,
 			AvatarURL: largeURI,

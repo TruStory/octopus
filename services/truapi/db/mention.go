@@ -76,7 +76,7 @@ func (c *Client) replaceUsernamesWithAddress(body string) (string, error) {
 		}
 	}
 	for username, address := range addressByUsername {
-		body = strings.ReplaceAll(body, username, address)
+		body = strings.ReplaceAll(body, "@"+username, "@"+address)
 	}
 
 	return body, nil

@@ -19,6 +19,30 @@ const InvitedUserDefaultName = "<invited user>"
 // StepsToCompleteJourney denotes the number of steps one user has to complete to be considered active
 const StepsToCompleteJourney = 4 // signup, write an argument, receive five agrees, give an agree
 
+type UserGroup int
+
+const (
+	// UserGroupUser is just a regular user and the default group assignation
+	UserGroupUser = iota
+	UserGroupEmployee
+	UserGroupTruStoryDebater
+	UserGroupResearchAnalyst
+)
+
+var userGroupTypeName = []string{
+	UserGroupUser:            "User",
+	UserGroupEmployee:        "Employee",
+	UserGroupTruStoryDebater: "TruStory Debater",
+	UserGroupResearchAnalyst: "Research Analyst",
+}
+
+func (ug UserGroup) String() string {
+	if int(ug) >= len(userGroupTypeName) {
+		return "Unknown"
+	}
+	return userGroupTypeName[ug]
+}
+
 // User is the user on the TruStory platform
 type User struct {
 	Timestamps
@@ -39,6 +63,7 @@ type User struct {
 	VerifiedAt          time.Time  `json:"verified_at" graphql:"-"`
 	BlacklistedAt       time.Time  `json:"blacklisted_at" graphql:"-"`
 	LastAuthenticatedAt *time.Time `json:"last_authenticated_at" graphql:"-"`
+	UserGroup           UserGroup  `json:"user_group"`
 	Meta                UserMeta   `json:"meta"`
 }
 
@@ -192,16 +217,16 @@ func (c *Client) GetAuthenticatedUser(identifier, password string) (*User, error
 		return nil, err
 	}
 	if user == nil {
-		return nil, errors.New("no such user found")
+		return nil, errors.New("Invalid username, email or password")
 	}
 
 	if !user.BlacklistedAt.IsZero() {
-		return nil, errors.New("the user is blacklisted and cannot be authenticated")
+		return nil, errors.New("The user is blacklisted and cannot be authenticated")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return nil, errors.New("no such user found")
+		return nil, errors.New("Oops! Invalid credentials provided")
 	}
 
 	return user, nil

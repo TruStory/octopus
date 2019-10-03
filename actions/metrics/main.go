@@ -63,6 +63,9 @@ func usersMetrics(skipDaily bool) {
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		log.Fatal("Error running user metrics", resp.Status)
+	}
 	ctx := context.Background()
 	bigQClient, err := bigquery.NewClient(ctx, "metrics-240714")
 	if err != nil {
@@ -145,6 +148,9 @@ func claimMetrics(skipDaily bool) {
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		log.Fatal("Error running claim metrics", resp.Status)
+	}
 	ctx := context.Background()
 	bigQClient, err := bigquery.NewClient(ctx, "metrics-240714")
 	if err != nil {
@@ -193,10 +199,13 @@ func main() {
 		usersMetrics(*skipDaily)
 	case "claims":
 		claimMetrics(*skipDaily)
+	case "user_base":
+		userBase()
 	case "all":
 		fmt.Println("Running users and claim metrics")
 		usersMetrics(*skipDaily)
 		claimMetrics(*skipDaily)
+		userBase()
 	default:
 		log.Fatal("invalid subcommand")
 	}

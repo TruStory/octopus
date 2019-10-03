@@ -610,3 +610,54 @@ func (ta *TruAPI) HandleClaimMetrics(w http.ResponseWriter, r *http.Request) {
 		csvw.Flush()
 	}
 }
+
+// HandleUserBase returns the user base.
+func (ta *TruAPI) HandleUserBase(w http.ResponseWriter, r *http.Request) {
+	token := ta.APIContext.Config.Metrics.Secret
+	if token == "" || token != r.Header.Get("Metrics-Secret") {
+		render.Error(w, r, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Add("Content-Type", "text/csv")
+	csvw := csv.NewWriter(w)
+	header := []string{
+		"address", "username", "email", "creation_date", "updated_date", "last_login", "user_group",
+	}
+	err := csvw.Write(header)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// For each user, get the available stake calculated.
+	users := make([]db.User, 0)
+	err = ta.DBClient.FindAll(&users)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	for _, user := range users {
+		if user.Address == "" {
+			continue
+		}
+		lastLogin := ""
+		if user.LastAuthenticatedAt != nil {
+			lastLogin = user.LastAuthenticatedAt.Format(time.RFC3339Nano)
+		}
+		row := []string{
+			user.Address,
+			user.Username,
+			user.Email,
+			user.CreatedAt.Format(time.RFC3339Nano),
+			user.UpdatedAt.Format(time.RFC3339Nano),
+			lastLogin,
+			user.UserGroup.String(),
+		}
+		err := csvw.Write(row)
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		csvw.Flush()
+	}
+}

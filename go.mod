@@ -5,10 +5,8 @@ require (
 	cloud.google.com/go/storage v1.0.0 // indirect
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
-	github.com/Sereal/Sereal v0.0.0-20190430203904-6faf9605eb56 // indirect
 	github.com/TruStory/truchain v0.1.28
-	github.com/appleboy/gofight v1.0.4 // indirect
-	github.com/appleboy/gorush v1.11.1
+	github.com/appleboy/gorush v1.11.2-0.20190923153638-1c82f5c90456
 	github.com/aws/aws-sdk-go v1.21.5
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32
 	github.com/cosmos/cosmos-sdk v0.37.0
@@ -19,9 +17,7 @@ require (
 	github.com/gernest/mention v2.0.0+incompatible
 	github.com/go-pg/migrations v6.7.3+incompatible
 	github.com/go-pg/pg v8.0.3+incompatible
-	github.com/gobuffalo/envy v1.7.1 // indirect
-	github.com/gobuffalo/logger v1.0.1 // indirect
-	github.com/gobuffalo/packr/v2 v2.6.0
+	github.com/gobuffalo/packr/v2 v2.7.0
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gogo/protobuf v1.3.0 // indirect
 	github.com/google/go-cmp v0.3.1 // indirect
@@ -58,15 +54,15 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/tendermint/tendermint v0.32.2
 	github.com/tendermint/tmlibs v0.9.0
-	github.com/ugorji/go v1.1.7 // indirect
 	github.com/vektah/dataloaden v0.3.0
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	go.opencensus.io v0.22.1 // indirect
-	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
+	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
 	golang.org/x/exp v0.0.0-20190919035709-81c71964d733 // indirect
 	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/tools v0.0.0-20190923230126-0f9bb8f614ff // indirect
+	golang.org/x/sys v0.0.0-20191003212358-c178f38b412c // indirect
+	golang.org/x/tools v0.0.0-20191003162220-c56b4b191e2d // indirect
 	google.golang.org/api v0.10.0 // indirect
 	google.golang.org/appengine v1.6.3 // indirect
 	google.golang.org/genproto v0.0.0-20190916214212-f660b8655731 // indirect
@@ -75,4 +71,4 @@ require (
 	mellium.im/sasl v0.2.1 // indirect
 )
 
-replace github.com/appleboy/gorush => github.com/jhernandezb/gorush v1.11.2-0.20190607192845-ca316b6313df
+go 1.13

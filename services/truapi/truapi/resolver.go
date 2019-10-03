@@ -447,10 +447,6 @@ func (ta *TruAPI) claimResolver(ctx context.Context, q queryByClaimID) claim.Cla
 
 func (ta *TruAPI) claimOfTheDayResolver(ctx context.Context, q queryByCommunityID) *claim.Claim {
 	communityID := q.CommunityID
-	// personal home feed and all claims feed should return same Claim of the Day
-	if q.CommunityID == "home" {
-		communityID = "all"
-	}
 	claimOfTheDayID, err := ta.DBClient.ClaimOfTheDayIDByCommunityID(communityID)
 	if err != nil {
 		return nil

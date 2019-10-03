@@ -16,8 +16,8 @@ func (ta *TruAPI) sendBroadcastNotification(n BroadcastNotificationRequest) {
 	ta.broadcastNotificationsCh <- n
 }
 
-func (ta *TruAPI) runBroadcastNotificationSender(notifications <-chan BroadcastNotificationRequest, endpoint string) {
-	url := fmt.Sprintf("%s/%s", strings.TrimRight(strings.TrimSpace(endpoint), "/"), "sendBroadcastNotification")
+func (ta *TruAPI) runBroadcastNotificationSender(notifications <-chan BroadcastNotificationRequest, pushEndpoint string) {
+	pushURL := fmt.Sprintf("%s/%s", strings.TrimRight(strings.TrimSpace(pushEndpoint), "/"), "sendBroadcastNotification")
 
 	for n := range notifications {
 		httpClient := &http.Client{
@@ -28,7 +28,7 @@ func (ta *TruAPI) runBroadcastNotificationSender(notifications <-chan BroadcastN
 			fmt.Println("error encoding broadcast notification request", err)
 			continue
 		}
-		request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(b))
+		request, err := http.NewRequest(http.MethodPost, pushURL, bytes.NewBuffer(b))
 		if err != nil {
 			fmt.Println("error creating http request", err)
 		}

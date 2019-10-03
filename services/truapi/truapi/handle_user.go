@@ -26,6 +26,14 @@ type UserResponse struct {
 	UserMeta    db.UserMeta          `json:"userMeta"`
 	UserProfile *UserProfileResponse `json:"userProfile"`
 	Group       string               `json:"group"`
+	SignedUp    bool                 `json:"signedUp"`
+}
+
+// VerificationRespose represents the response sent when a users verifies the email
+type VerificationRespose struct {
+	User     UserResponse `json:"user"`
+	Verified bool         `json:"verified"`
+	Created  bool         `json:"created"`
 }
 
 // UserProfileResponse is a JSON response body representing the UserProfile
@@ -215,7 +223,13 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 
 	// user is already registered on the chain and has an address
 	if user.Address != "" {
-		render.Response(w, r, true, http.StatusOK)
+		userResponse := createUserResponse(user, false)
+		resp := VerificationRespose{
+			User:     userResponse,
+			Verified: true,
+			Created:  false,
+		}
+		render.Response(w, r, resp, http.StatusOK)
 		return
 	}
 
@@ -267,8 +281,14 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-
-	render.Response(w, r, true, http.StatusOK)
+	user.Address = address.String()
+	userResponse := createUserResponse(user, false)
+	resp := VerificationRespose{
+		User:     userResponse,
+		Verified: true,
+		Created:  true,
+	}
+	render.Response(w, r, resp, http.StatusOK)
 }
 
 func (ta *TruAPI) updateUserDetailsViaCookie(w http.ResponseWriter, r *http.Request) {
@@ -367,11 +387,11 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := createUserResponse(user)
+	response := createUserResponse(user, false)
 	render.Response(w, r, response, http.StatusOK)
 }
 
-func createUserResponse(user *db.User) UserResponse {
+func createUserResponse(user *db.User, singedUp bool) UserResponse {
 	largeURI := strings.Replace(user.AvatarURL, "_bigger", "_200x200", 1)
 	largeURI = strings.Replace(largeURI, "http://", "https://", 1)
 
@@ -388,6 +408,7 @@ func createUserResponse(user *db.User) UserResponse {
 			FullName:  user.FullName,
 			Username:  user.Username,
 		},
+		SignedUp: singedUp,
 	}
 }
 

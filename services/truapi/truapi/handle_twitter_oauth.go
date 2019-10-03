@@ -28,7 +28,7 @@ func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 			referrerCode = ""
 		}
 
-		user, err := CalibrateUser(ta, twitterUser, referrerCode)
+		user, new, err := CalibrateUser(ta, twitterUser, referrerCode)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -45,6 +45,9 @@ func IssueSession(apiCtx truCtx.TruAPIContext, ta *TruAPI) http.Handler {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		http.SetCookie(w, cookie)
+		if new {
+			http.SetCookie(w, cookies.GetUserSignedUpCookie(apiCtx))
+		}
 		http.Redirect(w, req, apiCtx.Config.Web.AuthLoginRedir, http.StatusFound)
 	}
 	return http.HandlerFunc(fn)

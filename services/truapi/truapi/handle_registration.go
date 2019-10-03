@@ -82,7 +82,7 @@ func (ta *TruAPI) HandleRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := RegisterTwitterUser(ta, twitterUser)
+	user, new, err := RegisterTwitterUser(ta, twitterUser)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
@@ -95,38 +95,38 @@ func (ta *TruAPI) HandleRegistration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, cookie)
-	response := createUserResponse(user)
+	response := createUserResponse(user, new)
 	render.Response(w, r, response, http.StatusOK)
 }
 
 // RegisterTwitterUser registers a new twitter user
-func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, error) {
-	user, err := CalibrateUser(ta, twitterUser, "")
+func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, bool, error) {
+	user, new, err := CalibrateUser(ta, twitterUser, "")
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	err = ta.DBClient.TouchLastAuthenticatedAt(user.ID)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return user, nil
+	return user, new, nil
 }
 
 // CalibrateUser takes a twitter authenticated user and makes sure it has
 // been properly calibrated in the database with all proper keypairs
-func CalibrateUser(ta *TruAPI, twitterUser *twitter.User, referrerCode string) (*db.User, error) {
+func CalibrateUser(ta *TruAPI, twitterUser *twitter.User, referrerCode string) (user *db.User, new bool, err error) {
 	ctx := context.Background()
 	connectedAccount, err := ta.DBClient.ConnectedAccountByTypeAndID("twitter", fmt.Sprintf("%d", twitterUser.ID))
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// we'll make a local copy of their avatar photo to remove the dependency on twitter
 	avatarURL, err := cacheAvatarLocally(ta.APIContext, twitterUser.ProfileImageURL)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if connectedAccount == nil {
@@ -145,37 +145,38 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User, referrerCode string) (
 
 		user, err := ta.DBClient.AddUserViaConnectedAccount(connectedAccount, referrerCode)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		// generating a signing keypair for the user,
 		// if they don't have it yet
 		if user.Address == "" {
+			new = true
 			keyPair, err := makeNewKeyPair()
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			keyPair.UserID = user.ID
 
 			// registering on the chain
 			pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			address, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 
 			// adding the keypair in the database
 			err = ta.DBClient.Add(keyPair)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			// adding the address to the user
 			err = ta.DBClient.AddAddressToUser(user.ID, address.String())
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			// follow all communities by default
 			communities := ta.communitiesResolver(ctx)
@@ -185,7 +186,7 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User, referrerCode string) (
 			}
 			err = ta.DBClient.FollowCommunities(address.String(), communityIDs)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 		}
 
@@ -200,12 +201,12 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User, referrerCode string) (
 	} else {
 		user, err := ta.DBClient.UserByID(connectedAccount.UserID)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		user.AvatarURL = avatarURL
 		err = ta.DBClient.UpdateModel(user)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		// this user is already our user, so, we'll just update their meta fields to stay updated
 		connectedAccount.Meta = db.ConnectedAccountMeta{
@@ -217,17 +218,17 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User, referrerCode string) (
 		}
 		err = ta.DBClient.UpsertConnectedAccount(connectedAccount)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 
 	// finally fetching a fresh copy of the user and returning back
-	user, err := ta.DBClient.UserByConnectedAccountTypeAndID(connectedAccount.AccountType, connectedAccount.AccountID)
+	user, err = ta.DBClient.UserByConnectedAccountTypeAndID(connectedAccount.AccountType, connectedAccount.AccountID)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return user, nil
+	return user, new, nil
 }
 
 func makeNewKeyPair() (*db.KeyPair, error) {

@@ -115,7 +115,6 @@ query ClaimArgumentQuery($argumentId: ID!) {
 const earnedBalanceByAddressQuery = `
 query AppAccountBalanceQuery($address: String) {
 	appAccount(id: $address) {
-		id
 		earnedBalance {
 			humanReadable
 		}
@@ -151,7 +150,6 @@ type ClaimResponse struct {
 // EarnedBalanceResponse is the response from the graphql endpoint.
 type EarnedBalanceResponse struct {
 	AppAccount struct {
-		ID            string `json:"id"`
 		EarnedBalance struct {
 			HumanReadable string `json:"humanReadable"`
 		} `json:"earnedBalance"`

@@ -104,6 +104,11 @@ type CommentNotificationRequest struct {
 	Timestamp       time.Time `json:"timestamp"`
 }
 
+// BroadcastNotificationRequest is the payload sent to pushd for broadcasting notifications.
+type BroadcastNotificationRequest struct {
+	Type db.NotificationType `json:"type"`
+}
+
 // AppAccount represents graphql serializable representation of a cosmos account
 type AppAccount struct {
 	Address       string
@@ -227,6 +232,8 @@ var NotificationIcons = map[db.NotificationType]string{
 	db.NotificationUnjailed:             "unjailed.png",
 	db.NotificationRewardInviteUnlocked: "unlock_invites.png",
 	db.NotificationRewardTruUnlocked:    "earned_trustake.png",
+	db.NotificationFeaturedDebate:       "featured_debate.png",
+	db.NotificationStakeLimitIncreased:  "limit_increased.png",
 }
 
 type RewardType int

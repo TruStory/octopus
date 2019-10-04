@@ -54,6 +54,7 @@ type TruAPI struct {
 	// notifications
 	notificationsInitialized bool
 	commentsNotificationsCh  chan CommentNotificationRequest
+	broadcastNotificationsCh chan BroadcastNotificationRequest
 	httpClient               *http.Client
 }
 
@@ -68,13 +69,14 @@ func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 		log.Fatal(err)
 	}
 	ta := TruAPI{
-		API:                     chttp.NewAPI(apiCtx, supported),
-		APIContext:              apiCtx,
-		GraphQLClient:           graphql.NewGraphQLClient(),
-		DBClient:                db.NewDBClient(apiCtx.Config),
-		Postman:                 postmanService,
-		Dripper:                 dripperService,
-		commentsNotificationsCh: make(chan CommentNotificationRequest),
+		API:                      chttp.NewAPI(apiCtx, supported),
+		APIContext:               apiCtx,
+		GraphQLClient:            graphql.NewGraphQLClient(),
+		DBClient:                 db.NewDBClient(apiCtx.Config),
+		Postman:                  postmanService,
+		Dripper:                  dripperService,
+		commentsNotificationsCh:  make(chan CommentNotificationRequest),
+		broadcastNotificationsCh: make(chan BroadcastNotificationRequest),
 		httpClient: &http.Client{
 			Timeout: time.Second * 5,
 		},
@@ -87,6 +89,7 @@ func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
 func (ta *TruAPI) RunNotificationSender(apiCtx truCtx.TruAPIContext) error {
 	ta.notificationsInitialized = true
 	go ta.runCommentNotificationSender(ta.commentsNotificationsCh, apiCtx.Config.Push.EndpointURL)
+	go ta.runBroadcastNotificationSender(ta.broadcastNotificationsCh, apiCtx.Config.Push.EndpointURL)
 	return nil
 }
 
@@ -225,6 +228,9 @@ func (ta *TruAPI) RegisterResolvers() {
 		},
 		"totalAgrees": func(ctx context.Context, q AppAccount) int {
 			return len(ta.agreesResolver(ctx, queryByAddress{ID: q.Address}))
+		},
+		"totalAgreesReceived": func(ctx context.Context, q AppAccount) int {
+			return 0;
 		},
 		"earnedBalance": func(ctx context.Context, q AppAccount) sdk.Coin {
 			return ta.earnedBalanceResolver(ctx, queryByAddress{ID: q.Address})

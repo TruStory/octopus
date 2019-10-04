@@ -1,13 +1,8 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"math"
-	"strconv"
 	"strings"
-
-	"github.com/machinebox/graphql"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/truchain/x/account"
@@ -99,25 +94,25 @@ func (s *service) processExpiredStakes(data []byte, notifications chan<- *Notifi
 			Meta:   meta,
 			Action: fmt.Sprintf("Earned %s", db.CoinDisplayName),
 		}
-
-		increased, earning, limit, err := s.hasStakeLimitIncreased(expiredStake.Result.StakeCreator.String())
-		if err != nil {
-			s.log.WithError(err).Error("error getting if the stake limit has increased or not")
-			return
-		}
-		if increased {
-			notifications <- &Notification{
-				To: expiredStake.Result.StakeCreator.String(),
-				Msg: fmt.Sprintf("Congrats! You've earned a total of %s %s. Your weekly staking limits are increased to %s %s.",
-					earning, db.CoinDisplayName, limit, db.CoinDisplayName,
-				),
-				Type:   db.NotificationStakeLimitIncreased,
-				Action: "Staking Limit Increased",
-			}
-		}
 	}
 }
 
+func (s *service) processStakeLimitUpgrade(data []byte, notifications chan<- *Notification) {
+	var upgrade staking.StakeLimitUpgrade
+	err := staking.ModuleCodec.UnmarshalJSON(data, &upgrade)
+	if err != nil {
+		s.log.WithError(err).Error("error decoding stake limit upgrade")
+		return
+	}
+	notifications <- &Notification{
+		To: upgrade.Address.String(),
+		Msg: fmt.Sprintf("Congrats! You've earned a total of %s %s. Your weekly staking limits are increased to %d %s.",
+			humanReadable(upgrade.EarnedStake), db.CoinDisplayName, upgrade.NewLimit, db.CoinDisplayName,
+		),
+		Type:   db.NotificationStakeLimitIncreased,
+		Action: "Staking Limit Increased",
+	}
+}
 func (s *service) processUnjailedAccount(data []byte, notifications chan<- *Notification) {
 	notifications <- &Notification{
 		To:     string(data),
@@ -143,53 +138,12 @@ func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notificati
 					s.processExpiredStakes(attr.Value, notifications)
 				}
 			}
+		case staking.EventTypeStakeLimitIncreased:
+			for _, attr := range event.GetAttributes() {
+				if string(attr.Key) == staking.AttributeKeyStakeLimitUpgrade {
+					s.processStakeLimitUpgrade(attr.Value, notifications)
+				}
+			}
 		}
 	}
-}
-
-func (s *service) hasStakeLimitIncreased(address string) (bool, string, string, error) {
-	/**
-		if earned stake is n,
-		we'll compute the multiple, x, using:
-		n/10 = x
-
-		eg.
-		10/10 = 1
-		20/10 = 2
-
-		then,
-		limit = 1000 + (500 * (x-1))
-
-		eg.
-		for n = 10, limit = 1000 + (500 * 0) = 1000
-		for n = 20, limit = 1000 + (500 * 1) = 1500
-		for n = 30, limit = 1000 + (500 * 2) = 2000
-	**/
-	balanceRes, err := s.getEarnedBalance(address)
-	if err != nil {
-		return false, "", "", err
-	}
-
-	balanceHuman, _ := strconv.ParseFloat(balanceRes.AppAccount.EarnedBalance.HumanReadable, 64)
-	multiple := int(math.Floor(balanceHuman / 10))
-
-	if multiple < 1 {
-		return false, balanceRes.AppAccount.EarnedBalance.HumanReadable, "", nil
-	}
-
-	limit := 1000 + (500 * (multiple - 1))
-
-	return true, balanceRes.AppAccount.EarnedBalance.HumanReadable, strconv.Itoa(limit), nil
-}
-
-func (s *service) getEarnedBalance(address string) (EarnedBalanceResponse, error) {
-	graphqlReq := graphql.NewRequest(earnedBalanceByAddressQuery)
-	graphqlReq.Var("address", address)
-	var graphqlRes EarnedBalanceResponse
-	ctx := context.Background()
-	if err := s.graphqlClient.Run(ctx, graphqlReq, &graphqlRes); err != nil {
-		return graphqlRes, err
-	}
-
-	return graphqlRes, nil
 }

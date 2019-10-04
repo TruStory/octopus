@@ -51,6 +51,7 @@ func (ta *TruAPI) addClaimOfTheDayID(r *http.Request) chttp.Response {
 	if err != nil {
 		return chttp.SimpleErrorResponse(500, err)
 	}
+	// Only notify when setting the Homepage featured debate, not for individual community featured debates
 	if request.CommunityID == "all" {
 		ta.sendBroadcastNotification(BroadcastNotificationRequest{
 			Type: db.NotificationFeaturedDebate,

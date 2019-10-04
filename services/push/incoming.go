@@ -12,10 +12,12 @@ func (s *service) startHTTPServer(
 	stop <-chan struct{},
 	commentNotifications chan<- *CommentNotificationRequest,
 	rewardNotifications chan<- *app.RewardNotificationRequest,
+	broadcastNotifications chan<- *app.BroadcastNotificationRequest,
 ) {
 	mux := http.NewServeMux()
 	s.addHTTPCommentNotificationHandler(mux, commentNotifications)
 	s.addHTTPRewardNotificationHandler(mux, rewardNotifications)
+	s.addHTTPBroadcastNotificationHandler(mux, broadcastNotifications)
 	server := &http.Server{
 		Addr:    ":9001",
 		Handler: mux,
@@ -64,6 +66,25 @@ func (s *service) addHTTPRewardNotificationHandler(mux *http.ServeMux, notificat
 			return
 		}
 		s.log.WithField("rewardee_id", n.RewardeeID).Info("reward notification request received")
+		notifications <- n
+		w.WriteHeader(http.StatusAccepted)
+	})
+}
+
+func (s *service) addHTTPBroadcastNotificationHandler(mux *http.ServeMux, notifications chan<- *app.BroadcastNotificationRequest) {
+	mux.HandleFunc("/sendBroadcastNotification", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			fmt.Printf("only POST method allowed received [%s]\n", r.Method)
+			return
+		}
+		n := &app.BroadcastNotificationRequest{}
+		err := json.NewDecoder(r.Body).Decode(n)
+		if err != nil {
+			s.log.WithError(err).Error("error decoding request")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		s.log.WithField("type", n.Type).Info("broadcast notification request received")
 		notifications <- n
 		w.WriteHeader(http.StatusAccepted)
 	})

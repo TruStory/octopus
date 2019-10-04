@@ -90,6 +90,15 @@ query ClaimArgumentQuery($argumentId: ID!) {
 }
 `
 
+const claimByIDQuery = `
+  query ClaimQuery($claimId: ID!) {
+	claim(id: $claimId) {
+		id
+		body
+	}
+}
+`
+
 const argumentSummaryByIDQuery = `
 query ClaimArgumentQuery($argumentId: ID!) {
   claimArgument(id: $argumentId) {
@@ -118,6 +127,14 @@ type ClaimArgumentResponse struct {
 			Participants []Creator `json:"participants"`
 		} `json:"claim"`
 	} `json:"claimArgument"`
+}
+
+// ClaimResponse is the response from the graphql endpoint.
+type ClaimResponse struct {
+	Claim struct {
+		ID   int64  `json:"id"`
+		Body string `json:"body"`
+	} `json:"claim"`
 }
 
 // ArgumentSummaryResponse is the response from the graphql endpoint.

@@ -5,7 +5,7 @@ require (
 	cloud.google.com/go/storage v1.0.0 // indirect
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
-	github.com/TruStory/truchain v0.1.28
+	github.com/TruStory/truchain v0.1.29-0.20191004101715-431cd5de725f
 	github.com/appleboy/gorush v1.11.2-0.20190923153638-1c82f5c90456
 	github.com/aws/aws-sdk-go v1.21.5
 	github.com/btcsuite/btcd v0.0.0-20190213025234-306aecffea32
@@ -17,9 +17,10 @@ require (
 	github.com/gernest/mention v2.0.0+incompatible
 	github.com/go-pg/migrations v6.7.3+incompatible
 	github.com/go-pg/pg v8.0.3+incompatible
-	github.com/gobuffalo/packr/v2 v2.7.0
+	github.com/gobuffalo/packr/v2 v2.7.1
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gogo/protobuf v1.3.0 // indirect
+	github.com/golang/groupcache v0.0.0-20191002201903-404acd9df4cc // indirect
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.7.2
@@ -28,6 +29,7 @@ require (
 	github.com/graphql-go/graphql v0.7.8 // indirect
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/joho/godotenv v1.3.0
+	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/julianshen/go-readability v0.0.0-20160929030430-accf5123e283 // indirect
 	github.com/julianshen/og v0.0.0-20170124022037-897162c55567
 	github.com/kylelemons/godebug v1.1.0 // indirect
@@ -58,17 +60,19 @@ require (
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	go.opencensus.io v0.22.1 // indirect
 	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
-	golang.org/x/exp v0.0.0-20190919035709-81c71964d733 // indirect
-	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
+	golang.org/x/exp v0.0.0-20191002040644-a1355ae1e2c3 // indirect
+	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
+	golang.org/x/net v0.0.0-20191003171128-d98b1b443823
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20191003212358-c178f38b412c // indirect
-	golang.org/x/tools v0.0.0-20191003162220-c56b4b191e2d // indirect
+	golang.org/x/tools v0.0.0-20191004211743-43d3a2ca2ae9 // indirect
 	google.golang.org/api v0.10.0 // indirect
-	google.golang.org/appengine v1.6.3 // indirect
-	google.golang.org/genproto v0.0.0-20190916214212-f660b8655731 // indirect
-	google.golang.org/grpc v1.23.1 // indirect
+	google.golang.org/appengine v1.6.4 // indirect
+	google.golang.org/genproto v0.0.0-20191002211648-c459b9ce5143 // indirect
+	google.golang.org/grpc v1.24.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/yaml.v2 v2.2.4 // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )
 
-go 1.13
+go 1.12

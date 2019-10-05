@@ -271,9 +271,11 @@ func (s *service) run(stop <-chan struct{}) {
 	notificationsCh := make(chan *Notification)
 	cNotificationsCh := make(chan *CommentNotificationRequest)
 	rNotificationsCh := make(chan *app.RewardNotificationRequest)
-	go s.startHTTPServer(stop, cNotificationsCh, rNotificationsCh)
+	bNotificationsCh := make(chan *app.BroadcastNotificationRequest)
+	go s.startHTTPServer(stop, cNotificationsCh, rNotificationsCh, bNotificationsCh)
 	go s.processCommentsNotifications(cNotificationsCh, notificationsCh)
 	go s.processRewardsNotifications(rNotificationsCh, notificationsCh)
+	go s.processBroadcastNotifications(bNotificationsCh, notificationsCh)
 	go s.notificationSender(notificationsCh, stop)
 	for {
 		select {

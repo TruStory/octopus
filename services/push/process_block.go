@@ -97,6 +97,22 @@ func (s *service) processExpiredStakes(data []byte, notifications chan<- *Notifi
 	}
 }
 
+func (s *service) processStakeLimitUpgrade(data []byte, notifications chan<- *Notification) {
+	var upgrade staking.StakeLimitUpgrade
+	err := staking.ModuleCodec.UnmarshalJSON(data, &upgrade)
+	if err != nil {
+		s.log.WithError(err).Error("error decoding stake limit upgrade")
+		return
+	}
+	notifications <- &Notification{
+		To: upgrade.Address.String(),
+		Msg: fmt.Sprintf("Congrats! You've earned a total of %s %s. Your weekly staking limits are increased to %d %s.",
+			humanReadable(upgrade.EarnedStake), db.CoinDisplayName, upgrade.NewLimit, db.CoinDisplayName,
+		),
+		Type:   db.NotificationStakeLimitIncreased,
+		Action: "Staking Limit Increased",
+	}
+}
 func (s *service) processUnjailedAccount(data []byte, notifications chan<- *Notification) {
 	notifications <- &Notification{
 		To:     string(data),
@@ -120,6 +136,12 @@ func (s *service) processBlockEvent(blockEvt types.EventDataNewBlock, notificati
 			for _, attr := range event.GetAttributes() {
 				if string(attr.Key) == staking.AttributeKeyExpiredStakes {
 					s.processExpiredStakes(attr.Value, notifications)
+				}
+			}
+		case staking.EventTypeStakeLimitIncreased:
+			for _, attr := range event.GetAttributes() {
+				if string(attr.Key) == staking.AttributeKeyStakeLimitUpgrade {
+					s.processStakeLimitUpgrade(attr.Value, notifications)
 				}
 			}
 		}

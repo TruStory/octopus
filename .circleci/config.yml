@@ -3,7 +3,7 @@ version: 2.1
 executors:
   go:
     docker:
-      - image: circleci/golang:1.13.1
+      - image: circleci/golang:1.12
     working_directory: /tmp/octopus
 
 jobs: # basic units of work in a run
@@ -18,7 +18,7 @@ jobs: # basic units of work in a run
       - run:
           name: Install linter
           command: |
-            GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
+            GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.0
       - run: make check_deps
       - run: make check_lint
       - run: make test
@@ -44,7 +44,7 @@ jobs: # basic units of work in a run
             - truapid
   test_migrations:
     docker:
-      - image: circleci/golang:1.13.1
+      - image: circleci/golang:1.12
         environment:
           PG_ADDR: localhost:5432
           PG_USER: postgres

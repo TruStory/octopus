@@ -16,7 +16,7 @@ func (ta *TruAPI) HandleMockRegistration(w http.ResponseWriter, r *http.Request)
 	// Get the mock Twitter User from the auth token
 	twitterUser := getMockTwitterUser()
 
-	user, err := RegisterTwitterUser(ta, twitterUser)
+	user, _, err := RegisterTwitterUser(ta, twitterUser)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
@@ -29,7 +29,7 @@ func (ta *TruAPI) HandleMockRegistration(w http.ResponseWriter, r *http.Request)
 	}
 
 	http.SetCookie(w, cookie)
-	response := createUserResponse(user)
+	response := createUserResponse(user, false)
 	render.Response(w, r, response, http.StatusOK)
 }
 

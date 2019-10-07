@@ -8,6 +8,10 @@ type ClaimOfTheDayID struct {
 
 // ClaimOfTheDayIDByCommunityID returns currently featured claim in each community
 func (c *Client) ClaimOfTheDayIDByCommunityID(communityID string) (int64, error) {
+	// personal home feed and all claims (discover) feed should return same Claim of the Day
+	if communityID == "home" {
+		communityID = "all"
+	}
 	claimOfTheDayID := new(ClaimOfTheDayID)
 	err := c.Model(claimOfTheDayID).Where("community_id = ?", communityID).Limit(1).Select()
 	if err != nil {

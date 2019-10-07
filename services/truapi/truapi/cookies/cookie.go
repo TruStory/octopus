@@ -21,6 +21,8 @@ const (
 	ReferrerCookieName string = "tru-referrer"
 	// AnonSessionCookieName to track anonymous users
 	AnonSessionCookieName string = "tru-session"
+	// UserSignedUpCookieName will be sent when a user just signed up
+	UserSignedUpCookieName string = "sign-up"
 	// SessionDuration defines expiration time so we can track users that come back
 	SessionDuration time.Duration = time.Hour * 24 * 365
 
@@ -67,6 +69,19 @@ func GetLogoutCookie(apiCtx truCtx.TruAPIContext) *http.Cookie {
 		MaxAge:   0,
 	}
 
+	return &cookie
+}
+
+// GetUserSignedUpCookie returns the http cookie that identifies user sign up
+func GetUserSignedUpCookie(apiCtx truCtx.TruAPIContext) *http.Cookie {
+	cookie := http.Cookie{
+		Name:    UserSignedUpCookieName,
+		Path:    "/",
+		Value:   "true",
+		Expires: time.Now().Add(time.Minute * 5),
+		Domain:  apiCtx.Config.Host.Name,
+		MaxAge:  0,
+	}
 	return &cookie
 }
 

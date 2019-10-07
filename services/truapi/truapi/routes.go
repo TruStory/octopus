@@ -56,6 +56,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/claim_of_the_day", WrapHandler(ta.HandleClaimOfTheDayID))
 	api.Handle("/claim/image", WrapHandler(ta.HandleClaimImage))
 	api.HandleFunc("/spotlight", ta.HandleSpotlight)
+	api.HandleFunc("/request_tru", ta.HandleRequestTru)
 
 	// users
 	api.HandleFunc("/user", ta.HandleUserDetails)

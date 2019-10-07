@@ -6,14 +6,15 @@ import (
 
 // AppConfig is the config for the app
 type AppConfig struct {
-	Name             string
-	URL              string
-	MockRegistration bool   `mapstructure:"mock-registration"`
-	UploadURL        string `mapstructure:"upload-url"`
-	S3AssetsURL      string `mapstructure:"s3-assets-url"`
-	MixpanelToken    string `mapstructure:"mixpanel-token"`
-	LiveDebateURL    string `mapstructure:"live-debate-url"`
-	SlackWebhook     string `mapstructure:"slack-webhook"`
+	Name                   string
+	URL                    string
+	MockRegistration       bool   `mapstructure:"mock-registration"`
+	UploadURL              string `mapstructure:"upload-url"`
+	S3AssetsURL            string `mapstructure:"s3-assets-url"`
+	MixpanelToken          string `mapstructure:"mixpanel-token"`
+	LiveDebateURL          string `mapstructure:"live-debate-url"`
+	SlackWebhook           string `mapstructure:"slack-webhook"`
+	RequestTruSlackWebhook string `mapstructure:"request-tru-slack-webhook"`
 }
 
 // CookieConfig is the config for the cookie

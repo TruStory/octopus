@@ -118,7 +118,7 @@ func (s *service) processUnjailedAccount(data []byte, notifications chan<- *Noti
 		To:     string(data),
 		Msg:    "Hooray you're out of timeout!",
 		Type:   db.NotificationUnjailed,
-		Action: "Unjailed",
+		Action: "Freedom",
 	}
 }
 

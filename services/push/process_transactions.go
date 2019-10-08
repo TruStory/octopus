@@ -166,7 +166,7 @@ func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
 				TypeID: argumentID,
 				Type:   db.NotificationJailed,
 				Meta:   meta,
-				Action: "Jailed",
+				Action: "Timeout",
 			}
 		}
 	}

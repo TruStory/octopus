@@ -116,7 +116,7 @@ func (s *service) processStakeLimitUpgrade(data []byte, notifications chan<- *No
 func (s *service) processUnjailedAccount(data []byte, notifications chan<- *Notification) {
 	notifications <- &Notification{
 		To:     string(data),
-		Msg:    "Hooray you got out of jail!",
+		Msg:    "Hooray you're out of timeout!",
 		Type:   db.NotificationUnjailed,
 		Action: "Unjailed",
 	}

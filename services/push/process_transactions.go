@@ -162,7 +162,7 @@ func (s *service) notifySlashes(punishResults []slashing.PunishmentResult,
 		if p.Type == slashing.PunishmentJailed {
 			notifications <- &Notification{
 				To:     p.AppAccAddress.String(),
-				Msg:    "You've been slashed too many times and sent to jail. Basic privileges will be stripped.",
+				Msg:    "You've been slashed too many times and have been put in timeout. Basic privileges will be stripped.",
 				TypeID: argumentID,
 				Type:   db.NotificationJailed,
 				Meta:   meta,

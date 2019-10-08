@@ -48,7 +48,6 @@ func (s *service) sendNotification(notification PushNotification, tokens []strin
 	}
 
 	if notification.Platform == "android" {
-		fmt.Println("sending for android")
 		p = 2
 	}
 	if p == 0 {

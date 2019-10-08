@@ -206,6 +206,18 @@ func parseHighlightableFromRequest(request CreateHighlightRequest) (string, int6
 			return highlightableType, highlightableID, nil
 		}
 
+		// if argument comment
+		matches = argumentCommentRegex.FindStringSubmatch(request.HighlightedURL)
+		if len(matches) == REGEX_MATCHES_ARGUMENT_COMMENT {
+			highlightableType := "comment"
+			highlightableID, err := strconv.ParseInt(matches[3], 10, 64)
+			if err != nil {
+				return "", 0, err
+			}
+
+			return highlightableType, highlightableID, nil
+		}
+
 		return "", 0, errors.New("highlighted url not supported yet")
 	}
 

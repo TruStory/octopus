@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/appleboy/go-fcm"
 	"github.com/appleboy/gorush/gorush"
 	"github.com/machinebox/graphql"
 	"github.com/sirupsen/logrus"
@@ -45,10 +46,11 @@ func (s *service) sendNotification(notification PushNotification, tokens []strin
 	if notification.Platform == "ios" {
 		p = 1
 	}
-	// TODO: Enable when android is supported
-	// if notification.Platform == "android" {
-	// 	p = 2
-	// }
+
+	if notification.Platform == "android" {
+		fmt.Println("sending for android")
+		p = 2
+	}
 	if p == 0 {
 		return nil, fmt.Errorf("platform not supported")
 	}
@@ -58,10 +60,16 @@ func (s *service) sendNotification(notification PushNotification, tokens []strin
 		Badge:    intPtr(1),
 		Topic:    s.apnsTopic,
 		Sound:    "default",
+		Priority: "high",
 		Alert: gorush.Alert{
 			Title:    notification.Title,
 			Subtitle: notification.Subtitle,
 			Body:     notification.Body,
+		},
+		Notification: fcm.Notification{
+			Title:     notification.Title,
+			Body:      notification.Body,
+			ChannelID: "all",
 		},
 		Data: notification.NotificationData.ToGorushData(),
 	}
@@ -153,6 +161,7 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 				Title: title,
 				Body:  stripmd.Strip(msg),
 				NotificationData: NotificationData{
+					Title:     title,
 					ID:        notificationEvent.ID,
 					TypeID:    notification.TypeID,
 					Timestamp: notificationEvent.Timestamp,
@@ -166,6 +175,7 @@ func (s *service) notificationSender(notifications <-chan *Notification, stop <-
 
 			if notification.Action != "" {
 				pushNotification.Subtitle = notification.Action
+				pushNotification.NotificationData.Subtitle = notification.Action
 			}
 			for p, t := range tokens {
 				pushNotification.Platform = p

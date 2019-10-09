@@ -116,12 +116,12 @@ func (c *Client) UserLeaderboardProfile(address string) (*LeaderboardTopUser, er
 		return nil, err
 	}
 
-	userProfile := &LeaderboardTopUser{
+	userLeaderboardProfile := &LeaderboardTopUser{
 		Address:        metric.Address,
 		Earned:         metric.Earned,
 		AgreesGiven:    metric.AgreesGiven,
 		AgreesReceived: metric.AgreesReceived,
 	}
 
-	return userProfile, nil
+	return userLeaderboardProfile, nil
 }

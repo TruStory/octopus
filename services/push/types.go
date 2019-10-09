@@ -21,7 +21,9 @@ type Notification struct {
 
 // NotificationData represents the data relevant to the app.
 type NotificationData struct {
-	ID int64 `json:"id"`
+	Title    string `json:"title"`
+	Subtitle string `json:"subtitle"`
+	ID       int64  `json:"id"`
 	// StoryID
 	TypeID    int64               `json:"typeId"`
 	Timestamp time.Time           `json:"timestamp"`

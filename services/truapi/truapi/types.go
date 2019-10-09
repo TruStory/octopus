@@ -226,7 +226,7 @@ type Settings struct {
 
 var NotificationIcons = map[db.NotificationType]string{
 	db.NotificationEarnedStake:          "earned_trustake.png",
-	db.NotificationJailed:               "jailed.png",
+	db.NotificationJailed:               "timeout.png",
 	db.NotificationNotHelpful:           "not_helpful.png",
 	db.NotificationSlashed:              "slashed.png",
 	db.NotificationUnjailed:             "unjailed.png",

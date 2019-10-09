@@ -951,6 +951,15 @@ func (ta *TruAPI) agreesResolver(ctx context.Context, q queryByAddress) []stakin
 	return agrees
 }
 
+func (ta *TruAPI) agreesReceivedResolver(ctx context.Context, address string) int64 {
+	userProfile, err := ta.DBClient.UserLeaderboardProfile(address)
+	if err != nil {
+		return 0
+	}
+
+	return userProfile.AgreesReceived
+}
+
 func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByAddress) []bank.Transaction {
 	creator, err := sdk.AccAddressFromBech32(q.ID)
 	if err != nil {

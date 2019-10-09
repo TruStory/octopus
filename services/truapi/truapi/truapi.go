@@ -229,8 +229,8 @@ func (ta *TruAPI) RegisterResolvers() {
 		"totalAgrees": func(ctx context.Context, q AppAccount) int {
 			return len(ta.agreesResolver(ctx, queryByAddress{ID: q.Address}))
 		},
-		"totalAgreesReceived": func(ctx context.Context, q AppAccount) int {
-			return 0;
+		"totalAgreesReceived": func(ctx context.Context, q AppAccount) int64 {
+			return ta.agreesReceivedResolver(ctx, q.Address)
 		},
 		"earnedBalance": func(ctx context.Context, q AppAccount) sdk.Coin {
 			return ta.earnedBalanceResolver(ctx, queryByAddress{ID: q.Address})

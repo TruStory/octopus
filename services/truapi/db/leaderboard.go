@@ -103,3 +103,27 @@ func (c *Client) Leaderboard(since time.Time, sortBy string, limit int, excluded
 	}
 	return topUsers, nil
 }
+
+// UserLeaderboardProfile fetches user profile by username
+func (c *Client) UserLeaderboardProfile(address string) (*LeaderboardTopUser, error) {
+	userProfile := new(LeaderboardTopUser)
+
+	metric := &LeaderboardUserMetric{}
+	err := c.Model(metric).Where("address = ?", address).First()
+
+	if err == pg.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	userProfile = &LeaderboardTopUser{
+		Address:        metric.Address,
+		Earned:         metric.Earned,
+		AgreesGiven:    metric.AgreesGiven,
+		AgreesReceived: metric.AgreesReceived,
+	}
+
+	return userProfile, nil
+}

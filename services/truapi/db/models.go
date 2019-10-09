@@ -121,6 +121,7 @@ type Queries interface {
 	UpsertLeaderboardMetric(tx *pg.Tx, metric *LeaderboardUserMetric) error
 	UpsertLeaderboardProcessedDate(tx *pg.Tx, metric *LeaderboardProcessedDate) error
 	UserRepliesStats(date time.Time) ([]UserRepliesStats, error)
+	UserLeaderboardProfile(address string) (*LeaderboardTopUser, error)
 
 	// deprecated, use UserProfileByAddress/UserProfileByUsername
 	TwitterProfileByAddress(addr string) (*TwitterProfile, error)

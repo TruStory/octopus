@@ -106,8 +106,6 @@ func (c *Client) Leaderboard(since time.Time, sortBy string, limit int, excluded
 
 // UserLeaderboardProfile fetches user profile by username
 func (c *Client) UserLeaderboardProfile(address string) (*LeaderboardTopUser, error) {
-	userProfile := new(LeaderboardTopUser)
-
 	metric := &LeaderboardUserMetric{}
 	err := c.Model(metric).Where("address = ?", address).First()
 
@@ -118,7 +116,7 @@ func (c *Client) UserLeaderboardProfile(address string) (*LeaderboardTopUser, er
 		return nil, err
 	}
 
-	userProfile = &LeaderboardTopUser{
+	userProfile := &LeaderboardTopUser{
 		Address:        metric.Address,
 		Earned:         metric.Earned,
 		AgreesGiven:    metric.AgreesGiven,

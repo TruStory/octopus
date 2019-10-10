@@ -952,12 +952,19 @@ func (ta *TruAPI) agreesResolver(ctx context.Context, q queryByAddress) []stakin
 }
 
 func (ta *TruAPI) agreesReceivedResolver(ctx context.Context, address string) int64 {
-	userProfile, err := ta.DBClient.UserLeaderboardProfile(address)
+	limit := ta.APIContext.Config.Leaderboard.TopDisplaying
+	since := time.Time{}
+
+	
+	userData, err := ta.DBClient.Leaderboard(since, "1", limit, ta.APIContext.Config.Community.InactiveCommunities, address)
 	if err != nil {
 		return 0
 	}
+	if len(userData) == 0 {
+		return 0
+	}
 
-	return userProfile.AgreesReceived
+	return userData[0].AgreesReceived
 }
 
 func (ta *TruAPI) appAccountTransactionsResolver(ctx context.Context, q queryByAddress) []bank.Transaction {

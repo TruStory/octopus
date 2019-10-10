@@ -81,7 +81,7 @@ func (c *Client) FeedLeaderboardInTransaction(fn func(*pg.Tx) error) (err error)
 	return err
 }
 
-func (c *Client) Leaderboard(since time.Time, sortBy string, limit int, excludedCommunities []string) ([]LeaderboardTopUser, error) {
+func (c *Client) Leaderboard(since time.Time, sortBy string, limit int, excludedCommunities []string, address string) ([]LeaderboardTopUser, error) {
 	topUsers := make([]LeaderboardTopUser, 0)
 	q := c.Model((*LeaderboardUserMetric)(nil)).
 		Column("address").
@@ -90,6 +90,9 @@ func (c *Client) Leaderboard(since time.Time, sortBy string, limit int, excluded
 		ColumnExpr("SUM(agrees_given) agrees_given")
 	if len(excludedCommunities) > 0 {
 		q = q.Where("community_id  not in(?)", pg.In(excludedCommunities))
+	}
+	if address != "" {
+		q.Where("address = ?", address)
 	}
 	if !since.IsZero() {
 		q = q.Where("date >= ?", since)
@@ -102,26 +105,4 @@ func (c *Client) Leaderboard(since time.Time, sortBy string, limit int, excluded
 		return topUsers, err
 	}
 	return topUsers, nil
-}
-
-// UserLeaderboardProfile fetches user profile by username
-func (c *Client) UserLeaderboardProfile(address string) (*LeaderboardTopUser, error) {
-	metric := &LeaderboardUserMetric{}
-	err := c.Model(metric).Where("address = ?", address).First()
-
-	if err == pg.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	userLeaderboardProfile := &LeaderboardTopUser{
-		Address:        metric.Address,
-		Earned:         metric.Earned,
-		AgreesGiven:    metric.AgreesGiven,
-		AgreesReceived: metric.AgreesReceived,
-	}
-
-	return userLeaderboardProfile, nil
 }

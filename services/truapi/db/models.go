@@ -115,7 +115,7 @@ type Queries interface {
 	UserProfileByUsername(username string) (*UserProfile, error)
 	ClaimViewsStats(date time.Time) ([]ClaimViewsStats, error)
 	ClaimRepliesStats(date time.Time) ([]ClaimRepliesStats, error)
-	Leaderboard(since time.Time, sortBy string, limit int, excludedCommunities []string) ([]LeaderboardTopUser, error)
+	Leaderboard(since time.Time, sortBy string, limit int, excludedCommunities []string, address string) ([]LeaderboardTopUser, error)
 	LastLeaderboardProcessedDate() (*LeaderboardProcessedDate, error)
 	FeedLeaderboardInTransaction(fn func(*pg.Tx) error) error
 	UpsertLeaderboardMetric(tx *pg.Tx, metric *LeaderboardUserMetric) error

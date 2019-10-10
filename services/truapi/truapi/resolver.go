@@ -61,6 +61,7 @@ type queryClaimArgumentParams struct {
 	ClaimID uint64         `graphql:"id,optional"`
 	Address *string        `graphql:"address,optional"`
 	Filter  ArgumentFilter `graphql:"filter,optional"`
+	Sort    ArgumentSort   `graphql:"sort,optional"`
 }
 
 type queryByCommunityIDAndFeedFilter struct {
@@ -525,6 +526,20 @@ func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgume
 		} else {
 			filteredArguments = append(filteredArguments, argument)
 		}
+	}
+
+	if q.Sort == ArgumentBest {
+		sort.Slice(filteredArguments, func(i, j int) bool {
+			return filteredArguments[i].TotalStake.IsGTE(filteredArguments[j].TotalStake)
+		})
+	} else if q.Sort == ArgumentLatest {
+		sort.Slice(filteredArguments, func(i, j int) bool {
+			return filteredArguments[j].CreatedTime.Before(filteredArguments[i].CreatedTime)
+		})
+	} else {
+		sort.Slice(filteredArguments, func(i, j int) bool {
+			return ta.argumentTrendingScore(ctx, filteredArguments[i]) > ta.argumentTrendingScore(ctx, filteredArguments[j])
+		})
 	}
 
 	return filteredArguments

@@ -34,6 +34,16 @@ const (
 	ArgumentAgreed
 )
 
+// ArgumentSort defines sort order for claimArguments
+type ArgumentSort int64
+
+// List of ArgumentSort types
+const (
+	ArgumentTrending ArgumentSort = iota
+	ArgumentLatest
+	ArgumentBest
+)
+
 type LeaderboardMetricFilter int64
 type LeaderboardDateFilter int64
 

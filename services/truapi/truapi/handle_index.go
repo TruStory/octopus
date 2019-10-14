@@ -22,13 +22,14 @@ const (
 	defaultDescription = "TruStory is a social network to debate with skin in the game"
 	previewDirectory   = "communities/previews" // full url format: S3_URL/communities/previews/PREVIEW.jpeg
 
-	REGEX_MATCHES_CLAIM            = 2
-	REGEX_MATCHES_CLAIM_ARGUMENT   = 3
-	REGEX_MATCHES_CLAIM_COMMENT    = 2
-	REGEX_MATCHES_ARGUMENT_COMMENT = 4
-	REGEX_MATCHES_COMMUNITY        = 2
-	REGEX_MATCHES_PROFILE          = 2
-	REGEX_MATCHES_HIGHLIGHT        = 4
+	REGEX_MATCHES_CLAIM              = 2
+	REGEX_MATCHES_CLAIM_ARGUMENT     = 3
+	REGEX_MATCHES_CLAIM_COMMENT      = 2
+	REGEX_MATCHES_ARGUMENT_COMMENT   = 4
+	REGEX_MATCHES_COMMUNITY          = 2
+	REGEX_MATCHES_PROFILE            = 2
+	REGEX_MATCHES_HIGHLIGHT_ARGUMENT = 4
+	REGEX_MATCHES_HIGHLIGHT_COMMENT  = 4
 )
 
 var (
@@ -39,6 +40,7 @@ var (
 	communityRegex              = regexp.MustCompile("/community/([^/]+)")
 	profileRegex                = regexp.MustCompile("/profile/([a-z0-9]+)/?$")
 	claimArgumentHighlightRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/highlight/([0-9]+)/?$")
+	claimCommentHighlightRegex  = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/highlight/([0-9]+)/?$")
 )
 
 // Tags defines the struct containing all the request Meta Tags for a page
@@ -161,7 +163,7 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 
 	// /claim/xxx/argument/xxx/highlight/xxx
 	matches = claimArgumentHighlightRegex.FindStringSubmatch(route)
-	if len(matches) == REGEX_MATCHES_HIGHLIGHT {
+	if len(matches) == REGEX_MATCHES_HIGHLIGHT_ARGUMENT {
 		claimID, err := strconv.ParseUint(matches[1], 10, 64)
 		if err != nil {
 			// if error, return the default tags
@@ -179,6 +181,32 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 		}
 
 		metaTags, err := makeClaimArgumentHighlightMetaTags(ta, route, claimID, argumentID, highlightID)
+		if err != nil {
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		return compile(index, *metaTags)
+	}
+
+	// /claim/xxx/comment/xxx/highlight/xxx
+	matches = claimCommentHighlightRegex.FindStringSubmatch(route)
+	if len(matches) == REGEX_MATCHES_HIGHLIGHT_COMMENT {
+		claimID, err := strconv.ParseUint(matches[1], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		commentID, err := strconv.ParseInt(matches[2], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+		highlightID, err := strconv.ParseInt(matches[3], 10, 64)
+		if err != nil {
+			// if error, return the default tags
+			return compile(index, makeDefaultMetaTags(ta, route))
+		}
+
+		metaTags, err := makeClaimCommentHighlightMetaTags(ta, route, claimID, commentID, highlightID)
 		if err != nil {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
@@ -289,6 +317,34 @@ func makeClaimArgumentHighlightMetaTags(ta *TruAPI, route string, claimID uint64
 	}
 	return &Tags{
 		Title:       fmt.Sprintf("@%s made an argument", creatorObj.Username),
+		Description: html.EscapeString(stripmd.Strip(highlight.Text)),
+		Image:       highlight.ImageURL,
+		URL:         joinPath(ta.APIContext.Config.App.URL, route),
+	}, nil
+}
+
+func makeClaimCommentHighlightMetaTags(ta *TruAPI, route string, claimID uint64, commentID int64, highlightID int64) (*Tags, error) {
+	commentObj, err := ta.DBClient.CommentByID(commentID)
+	if commentObj == nil || err != nil {
+		return nil, err
+	}
+	creatorObj, err := ta.DBClient.UserByAddress(commentObj.Creator)
+	if creatorObj == nil || err != nil {
+		// if error, return default
+		return nil, err
+	}
+	highlight := db.Highlight{ID: highlightID}
+	err = ta.DBClient.Find(&highlight)
+	if err != nil {
+		return nil, err
+	}
+
+	if highlight.ImageURL == "" {
+		// for the rare edge cases where the image caching has failed, we'll render the preview on the fly
+		highlight.ImageURL = fmt.Sprintf("%s/api/v1/spotlight?highlight_id=%v", ta.APIContext.Config.App.URL, highlightID)
+	}
+	return &Tags{
+		Title:       fmt.Sprintf("@%s posted a comment", creatorObj.Username),
 		Description: html.EscapeString(stripmd.Strip(highlight.Text)),
 		Image:       highlight.ImageURL,
 		URL:         joinPath(ta.APIContext.Config.App.URL, route),

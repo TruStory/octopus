@@ -78,11 +78,26 @@ func (a *API) Use(mw func(http.Handler) http.Handler) {
 	a.router.Use(mw)
 }
 
+func (a *API) redirectHTTPS() http.Handler {
+	if !a.apiCtx.Config.Host.HTTPSRedirect {
+		return a.router
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		forwarded := r.Header.Get("X-Forwarded-Proto")
+		if forwarded != "https" {
+			url := fmt.Sprintf("https://%s%s", r.Host, r.URL.Path)
+			http.Redirect(w, r, url, http.StatusMovedPermanently)
+			return
+		}
+		a.router.ServeHTTP(w, r)
+	})
+}
+
 // ListenAndServe serves HTTP using the API router
 func (a *API) ListenAndServe(addr string) error {
 	letsEncryptEnabled := a.apiCtx.Config.Host.HTTPSEnabled
 	if !letsEncryptEnabled {
-		return http.ListenAndServe(addr, a.router)
+		return http.ListenAndServe(addr, a.redirectHTTPS())
 	}
 	return a.listenAndServeTLS()
 }
@@ -91,11 +106,11 @@ func (a *API) listenAndServeTLS() error {
 	m := &autocert.Manager{
 		Cache:      autocert.DirCache(a.apiCtx.Config.Host.HTTPSCacheDir),
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(a.apiCtx.Config.Host.Name),
+		HostPolicy: autocert.HostWhitelist(a.apiCtx.Config.Host.HTTPSDomainWhitelist...),
 	}
 	httpServer := &http.Server{
 		Addr:    ":http",
-		Handler: http.HandlerFunc(redirectHandler),
+		Handler: a.redirectHTTPS(),
 	}
 	secureServer := &http.Server{
 		Addr:      ":https",
@@ -118,11 +133,6 @@ func (a *API) listenAndServeTLS() error {
 	})
 
 	return g.Wait()
-}
-
-func redirectHandler(w http.ResponseWriter, r *http.Request) {
-	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.Path)
-	http.Redirect(w, r, url, http.StatusMovedPermanently)
 }
 
 // RegisterKey generates a new address/account for a public key

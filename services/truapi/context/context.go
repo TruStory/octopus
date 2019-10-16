@@ -41,11 +41,12 @@ type FlagConfig struct {
 
 // HostConfig is the config for the server host
 type HostConfig struct {
-	Name          string
-	Port          int
-	HTTPSRedirect bool   `mapstructure:"https-redirect"`
-	HTTPSEnabled  bool   `mapstructure:"https-enabled"`
-	HTTPSCacheDir string `mapstructure:"https-cache-dir"`
+	Name                 string
+	Port                 int
+	HTTPSRedirect        bool     `mapstructure:"https-redirect"`
+	HTTPSEnabled         bool     `mapstructure:"https-enabled"`
+	HTTPSDomainWhitelist []string `mapstructure:"https-domain-whitelist"`
+	HTTPSCacheDir        string   `mapstructure:"https-cache-dir"`
 }
 
 // PushConfig is the config for push notifications

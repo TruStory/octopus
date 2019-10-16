@@ -83,7 +83,8 @@ func (a *API) redirectHTTPS() http.Handler {
 		return a.router
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("X-Forwarded-Proto") == "http" {
+		forwarded := r.Header.Get("X-Forwarded-Proto")
+		if forwarded != "https" {
 			url := fmt.Sprintf("https://%s%s", r.Host, r.URL.Path)
 			http.Redirect(w, r, url, http.StatusMovedPermanently)
 			return
@@ -105,11 +106,11 @@ func (a *API) listenAndServeTLS() error {
 	m := &autocert.Manager{
 		Cache:      autocert.DirCache(a.apiCtx.Config.Host.HTTPSCacheDir),
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(a.apiCtx.Config.Host.Name),
+		HostPolicy: autocert.HostWhitelist(a.apiCtx.Config.Host.HTTPSDomainWhitelist...),
 	}
 	httpServer := &http.Server{
 		Addr:    ":http",
-		Handler: http.HandlerFunc(redirectHandler),
+		Handler: a.redirectHTTPS(),
 	}
 	secureServer := &http.Server{
 		Addr:      ":https",

@@ -210,6 +210,32 @@ jobs: # basic units of work in a run
           command: |
             cd actions/snowball
             make run
+  run_postoffice_verification_attempt:
+    executor: go
+    steps:
+      - checkout
+      - run:
+          name: Set env vars
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+                echo "export PG_HOST=$PG_HOSTNAME_PROD" >> $BASH_ENV
+                echo "export PG_USER=$PG_USER_PROD" >> $BASH_ENV
+                echo "export PG_USER_PW=$PG_USER_PW_PROD" >> $BASH_ENV
+                echo "export PG_DB_NAME=$PG_DB_NAME_PROD" >> $BASH_ENV
+                echo "export APP_URL=$BETA_URL" >> $BASH_ENV
+            elif [ "${CIRCLE_BRANCH}" == "develop" ]
+            then
+                echo "export PG_HOST=$PG_ADDR_DEVNET" >> $BASH_ENV
+                echo "export PG_USER=$PG_USER_DEVNET" >> $BASH_ENV
+                echo "export PG_USER_PW=$PG_USER_PW_DEVNET" >> $BASH_ENV
+                echo "export PG_DB_NAME=$PG_DB_NAME_DEVNET" >> $BASH_ENV
+                echo "export APP_URL=$DEVNET_URL" >> $BASH_ENV
+            fi
+      - run:
+          name: Run postoffice (verification attempt) action
+          command: |
+            cd actions/postoffice
+            make run_verification_attempt
 workflows:
   version: 2
   build-workflow:
@@ -282,3 +308,15 @@ workflows:
                 - develop
     jobs:
       - run_snowball
+  postoffice_verification_attempt:
+    triggers:
+      - schedule:
+          # 1 am in PDT
+          cron: "0 7 * * *"
+          filters:
+            branches:
+              only:
+                - master
+                - develop
+    jobs:
+      - run_postoffice_verification_attempt

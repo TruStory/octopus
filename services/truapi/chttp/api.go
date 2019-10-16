@@ -83,6 +83,10 @@ func (a *API) redirectHTTPS() http.Handler {
 		return a.router
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/liveness-probe/status" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		forwarded := r.Header.Get("X-Forwarded-Proto")
 		if forwarded != "https" {
 			url := fmt.Sprintf("https://%s%s", r.Host, r.URL.Path)

@@ -44,6 +44,7 @@ require (
 	github.com/prometheus/common v0.7.0 // indirect
 	github.com/prometheus/procfs v0.0.5 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
+	github.com/rogpeppe/go-internal v1.5.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/samsarahq/go v0.0.0-20190126203740-720caea591c9 // indirect
 	github.com/samsarahq/thunder v0.5.1-0.20190814161136-ef9b23e4cfcb
@@ -60,13 +61,13 @@ require (
 	github.com/vektah/dataloaden v0.3.0
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	go.opencensus.io v0.22.1 // indirect
-	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/exp v0.0.0-20191002040644-a1355ae1e2c3 // indirect
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
 	golang.org/x/net v0.0.0-20191003171128-d98b1b443823
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20191003212358-c178f38b412c // indirect
-	golang.org/x/tools v0.0.0-20191004211743-43d3a2ca2ae9 // indirect
+	golang.org/x/sys v0.0.0-20191010194322-b09406accb47 // indirect
+	golang.org/x/tools v0.0.0-20191016194801-f0068bd333b2 // indirect
 	google.golang.org/api v0.10.0 // indirect
 	google.golang.org/appengine v1.6.4 // indirect
 	google.golang.org/genproto v0.0.0-20191002211648-c459b9ce5143 // indirect
@@ -76,4 +77,4 @@ require (
 	mellium.im/sasl v0.2.1 // indirect
 )
 
-go 1.12
+go 1.13

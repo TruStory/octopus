@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/TruStory/octopus/actions/postoffice/campaigns"
 
+	truCtx "github.com/TruStory/octopus/services/truapi/context"
+	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/postman"
 )
 
@@ -15,6 +18,7 @@ var registry = make(map[string]campaigns.Campaign)
 
 func init() {
 	registry["waitlist-approval"] = (*campaigns.WaitlistApprovalCampaign)(nil)
+	registry["verification-attempt"] = (*campaigns.VerificationAttemptCampaign)(nil)
 }
 
 func main() {
@@ -36,7 +40,29 @@ func main() {
 		os.Exit(1)
 	}
 
-	for _, recipient := range campaign.GetRecipients() {
+	dbPort, err := strconv.Atoi(getEnv("PG_PORT", "5432"))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	config := truCtx.Config{
+		Database: truCtx.DatabaseConfig{
+			Host: getEnv("PG_HOST", "localhost"),
+			Port: dbPort,
+			User: getEnv("PG_USER", "postgres"),
+			Pass: getEnv("PG_USER_PW", ""),
+			Name: getEnv("PG_DB_NAME", "trudb"),
+			Pool: 25,
+		},
+	}
+	dbClient := db.NewDBClient(config)
+
+	recipients, err := campaign.GetRecipients(dbClient)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+
+	for _, recipient := range recipients {
 		fmt.Printf("Sending email to... %s", recipient.Email)
 
 		message, err := campaign.GetMessage(client, recipient)
@@ -46,6 +72,13 @@ func main() {
 		}
 
 		if err = client.Deliver(*message); err != nil {
+			log.Fatal(err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("... post processing...")
+		err = campaign.RunPostProcess(dbClient, recipient)
+		if err != nil {
 			log.Fatal(err)
 			os.Exit(1)
 		}
@@ -59,4 +92,12 @@ func mustEnv(env string) string {
 		panic(fmt.Sprintf("must provide %s variable", env))
 	}
 	return val
+}
+
+func getEnv(env, defaultValue string) string {
+	val := os.Getenv(env)
+	if val != "" {
+		return val
+	}
+	return defaultValue
 }

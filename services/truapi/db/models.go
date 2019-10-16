@@ -63,6 +63,7 @@ type Mutations interface {
 	UsersWithIncompleteJourney() ([]User, error)
 	UpdateUserJourney(id int64, journey []UserJourneyStep) error
 	RecordRewardLedgerEntry(userID int64, direction RewardLedgerEntryDirection, amount int64, currency RewardLedgerEntryCurrency) (*RewardLedgerEntry, error)
+	RecordVerificationAttempt(id int64) error
 }
 
 // Queries read from the database
@@ -121,6 +122,7 @@ type Queries interface {
 	UpsertLeaderboardMetric(tx *pg.Tx, metric *LeaderboardUserMetric) error
 	UpsertLeaderboardProcessedDate(tx *pg.Tx, metric *LeaderboardProcessedDate) error
 	UserRepliesStats(date time.Time) ([]UserRepliesStats, error)
+	UnverifiedNewUsers() ([]User, error)
 
 	// deprecated, use UserProfileByAddress/UserProfileByUsername
 	TwitterProfileByAddress(addr string) (*TwitterProfile, error)

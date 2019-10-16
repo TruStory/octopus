@@ -22,27 +22,27 @@ const (
 	defaultDescription = "TruStory is a social network to debate with skin in the game"
 	previewDirectory   = "communities/previews" // full url format: S3_URL/communities/previews/PREVIEW.jpeg
 
-	REGEX_MATCHES_CLAIM                    = 2
-	REGEX_MATCHES_CLAIM_ARGUMENT           = 3
-	REGEX_MATCHES_CLAIM_COMMENT            = 2
-	REGEX_MATCHES_ARGUMENT_COMMENT         = 4
-	REGEX_MATCHES_COMMUNITY                = 2
-	REGEX_MATCHES_PROFILE                  = 2
-	REGEX_MATCHES_HIGHLIGHT_ARGUMENT       = 4
-	REGEX_MATCHES_HIGHLIGHT_COMMENT        = 4
-	REGEX_MATCHES_HIGHLIGHT_ARGUMENT_REPLY = 6
+	REGEX_MATCHES_CLAIM                      = 2
+	REGEX_MATCHES_CLAIM_ARGUMENT             = 3
+	REGEX_MATCHES_CLAIM_COMMENT              = 2
+	REGEX_MATCHES_ARGUMENT_COMMENT           = 4
+	REGEX_MATCHES_COMMUNITY                  = 2
+	REGEX_MATCHES_PROFILE                    = 2
+	REGEX_MATCHES_HIGHLIGHT_ARGUMENT         = 4
+	REGEX_MATCHES_HIGHLIGHT_COMMENT          = 4
+	REGEX_MATCHES_HIGHLIGHT_ARGUMENT_COMMENT = 6
 )
 
 var (
-	claimRegex                       = regexp.MustCompile("/claim/([0-9]+)/?$")
-	claimArgumentRegex               = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
-	claimCommentRegex                = regexp.MustCompile("/claim/[0-9]+/comment/([0-9]+)/?$")
-	argumentCommentRegex             = regexp.MustCompile("/claim/[0-9]+/argument/([0-9]+)/element/([0-9]+)/comment/([0-9]+)/?$")
-	communityRegex                   = regexp.MustCompile("/community/([^/]+)")
-	profileRegex                     = regexp.MustCompile("/profile/([a-z0-9]+)/?$")
-	claimArgumentHighlightRegex      = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/highlight/([0-9]+)/?$")
-	claimCommentHighlightRegex       = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/highlight/([0-9]+)/?$")
-	claimArgumentReplyHighlightRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/element/([0-9]+)/comment/([0-9]+)/highlight/([0-9]+)/?$")
+	claimRegex                    = regexp.MustCompile("/claim/([0-9]+)/?$")
+	claimArgumentRegex            = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/?$")
+	claimCommentRegex             = regexp.MustCompile("/claim/[0-9]+/comment/([0-9]+)/?$")
+	argumentCommentRegex          = regexp.MustCompile("/claim/[0-9]+/argument/([0-9]+)/element/([0-9]+)/comment/([0-9]+)/?$")
+	communityRegex                = regexp.MustCompile("/community/([^/]+)")
+	profileRegex                  = regexp.MustCompile("/profile/([a-z0-9]+)/?$")
+	claimArgumentHighlightRegex   = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/highlight/([0-9]+)/?$")
+	claimCommentHighlightRegex    = regexp.MustCompile("/claim/([0-9]+)/comment/([0-9]+)/highlight/([0-9]+)/?$")
+	argumentCommentHighlightRegex = regexp.MustCompile("/claim/([0-9]+)/argument/([0-9]+)/element/([0-9]+)/comment/([0-9]+)/highlight/([0-9]+)/?$")
 )
 
 // Tags defines the struct containing all the request Meta Tags for a page
@@ -192,11 +192,6 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 	// /claim/xxx/comment/xxx/highlight/xxx
 	matches = claimCommentHighlightRegex.FindStringSubmatch(route)
 	if len(matches) == REGEX_MATCHES_HIGHLIGHT_COMMENT {
-		claimID, err := strconv.ParseUint(matches[1], 10, 64)
-		if err != nil {
-			// if error, return the default tags
-			return compile(index, makeDefaultMetaTags(ta, route))
-		}
 		commentID, err := strconv.ParseInt(matches[2], 10, 64)
 		if err != nil {
 			// if error, return the default tags
@@ -208,7 +203,7 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
 
-		metaTags, err := makeClaimCommentHighlightMetaTags(ta, route, claimID, commentID, highlightID)
+		metaTags, err := makeClaimCommentHighlightMetaTags(ta, route, commentID, highlightID)
 		if err != nil {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
@@ -216,13 +211,8 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 	}
 
 	// /claim/xxx/argument/xxx/element/xxx/comment/xxx/highlight/xxx
-	matches = claimArgumentReplyHighlightRegex.FindStringSubmatch(route)
-	if len(matches) == REGEX_MATCHES_HIGHLIGHT_ARGUMENT_REPLY {
-		claimID, err := strconv.ParseUint(matches[1], 10, 64)
-		if err != nil {
-			// if error, return the default tags
-			return compile(index, makeDefaultMetaTags(ta, route))
-		}
+	matches = argumentCommentHighlightRegex.FindStringSubmatch(route)
+	if len(matches) == REGEX_MATCHES_HIGHLIGHT_ARGUMENT_COMMENT {
 		commentID, err := strconv.ParseInt(matches[4], 10, 64)
 		if err != nil {
 			// if error, return the default tags
@@ -234,7 +224,7 @@ func renderMetaTags(ta *TruAPI, index []byte, route string) []byte {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
 
-		metaTags, err := makeClaimCommentHighlightMetaTags(ta, route, claimID, commentID, highlightID)
+		metaTags, err := makeClaimCommentHighlightMetaTags(ta, route, commentID, highlightID)
 		if err != nil {
 			return compile(index, makeDefaultMetaTags(ta, route))
 		}
@@ -351,7 +341,7 @@ func makeClaimArgumentHighlightMetaTags(ta *TruAPI, route string, claimID uint64
 	}, nil
 }
 
-func makeClaimCommentHighlightMetaTags(ta *TruAPI, route string, claimID uint64, commentID int64, highlightID int64) (*Tags, error) {
+func makeClaimCommentHighlightMetaTags(ta *TruAPI, route string, commentID int64, highlightID int64) (*Tags, error) {
 	commentObj, err := ta.DBClient.CommentByID(commentID)
 	if commentObj == nil || err != nil {
 		return nil, err

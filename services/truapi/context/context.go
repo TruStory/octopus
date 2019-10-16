@@ -43,6 +43,7 @@ type FlagConfig struct {
 type HostConfig struct {
 	Name          string
 	Port          int
+	HTTPSRedirect bool   `mapstructure:"https-redirect"`
 	HTTPSEnabled  bool   `mapstructure:"https-enabled"`
 	HTTPSCacheDir string `mapstructure:"https-cache-dir"`
 }

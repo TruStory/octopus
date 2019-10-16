@@ -78,11 +78,25 @@ func (a *API) Use(mw func(http.Handler) http.Handler) {
 	a.router.Use(mw)
 }
 
+func (a *API) redirectHTTPS() http.Handler {
+	if !a.apiCtx.Config.Host.HTTPSRedirect {
+		return a.router
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Forwarded-Proto") == "http" {
+			url := fmt.Sprintf("https://%s%s", r.Host, r.URL.Path)
+			http.Redirect(w, r, url, http.StatusMovedPermanently)
+			return
+		}
+		a.router.ServeHTTP(w, r)
+	})
+}
+
 // ListenAndServe serves HTTP using the API router
 func (a *API) ListenAndServe(addr string) error {
 	letsEncryptEnabled := a.apiCtx.Config.Host.HTTPSEnabled
 	if !letsEncryptEnabled {
-		return http.ListenAndServe(addr, a.router)
+		return http.ListenAndServe(addr, a.redirectHTTPS())
 	}
 	return a.listenAndServeTLS()
 }

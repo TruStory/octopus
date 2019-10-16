@@ -135,11 +135,6 @@ func (a *API) listenAndServeTLS() error {
 	return g.Wait()
 }
 
-func redirectHandler(w http.ResponseWriter, r *http.Request) {
-	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.Path)
-	http.Redirect(w, r, url, http.StatusMovedPermanently)
-}
-
 // RegisterKey generates a new address/account for a public key
 func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (accAddr sdk.AccAddress, err error) {
 

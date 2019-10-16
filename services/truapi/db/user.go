@@ -16,9 +16,6 @@ import (
 // InvitedUserDefaultName is the default name given to the invited user
 const InvitedUserDefaultName = "<invited user>"
 
-// NewUserPeriod is the period for which the user will be considered new
-const NewUserPeriod = 7 // days
-
 // StepsToCompleteJourney denotes the number of steps one user has to complete to be considered active
 const StepsToCompleteJourney = 4 // signup, write an argument, receive five agrees, give an agree
 
@@ -875,13 +872,13 @@ func (c *Client) UpdateUserJourney(id int64, journey []UserJourneyStep) error {
 	return nil
 }
 
-// UnverifiedNewUsers returns unverified new users (7 days threshold)
-func (c *Client) UnverifiedNewUsers() ([]User, error) {
+// UnverifiedUsersWithinDays returns unverified new users (7 days threshold)
+func (c *Client) UnverifiedUsersWithinDays(days int64) ([]User, error) {
 	users := make([]User, 0)
 	err := c.Model(&users).
-		Where("password IS NOT NULL").                                  // not the twitter user
-		Where("verified_at IS NULL").                                   // not yet verified
-		Where("created_at > NOW() - interval '? days'", NewUserPeriod). // is new
+		Where("password IS NOT NULL").                         // not the twitter user
+		Where("verified_at IS NULL").                          // not yet verified
+		Where("created_at > NOW() - interval '? days'", days). // is new
 		Select()
 	if err != nil {
 		return users, err

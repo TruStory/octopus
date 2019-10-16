@@ -17,16 +17,19 @@ type VerificationAttemptCampaign struct{}
 
 // GetRecipients returns all the recipients of the campaign
 func (campaign *VerificationAttemptCampaign) GetRecipients(dbClient *db.Client) (Recipients, error) {
-	users, err := dbClient.UnverifiedNewUsers()
+	period, err := strconv.Atoi(getEnv("VERIFICATION_PERIOD", "7"))
 	if err != nil {
 		return Recipients{}, err
 	}
-
 	limit, err := strconv.Atoi(getEnv("VERIFICATION_ATTEMPT_LIMIT", "3"))
 	if err != nil {
 		return Recipients{}, err
 	}
 	delay, err := strconv.Atoi(getEnv("VERIFICATION_ATTEMPT_DELAY", "48"))
+	if err != nil {
+		return Recipients{}, err
+	}
+	users, err := dbClient.UnverifiedUsersWithinDays(int64(period))
 	if err != nil {
 		return Recipients{}, err
 	}

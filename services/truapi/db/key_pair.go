@@ -1,14 +1,19 @@
 package db
 
-import "github.com/go-pg/pg"
+import (
+	"errors"
+
+	"github.com/go-pg/pg"
+)
 
 // KeyPair is the private key associated with an account
 type KeyPair struct {
 	Timestamps
-	ID         int64  `json:"id"`
-	UserID     int64  `json:"user_id"`
-	PrivateKey string `json:"private_key"`
-	PublicKey  string `json:"public_key"`
+	ID                  int64  `json:"id"`
+	UserID              int64  `json:"user_id"`
+	PrivateKey          string `json:"private_key"`
+	PublicKey           string `json:"public_key"`
+	EncryptedPrivateKey string `json:"encrypted_private_key"`
 }
 
 // KeyPairByUserID returns the key-pair for the user
@@ -25,4 +30,20 @@ func (c *Client) KeyPairByUserID(userID int64) (*KeyPair, error) {
 	}
 
 	return keyPair, nil
+}
+
+func (c *Client) ReplacePrivateKeyWithEncryptedPrivateKey(id int64, encryptedPrivateKey string) error {
+	var keyPair KeyPair
+	result, err := c.Model(&keyPair).
+		Where("id = ?", id).
+		Set("encrypted_private_key = ?, private_key = ''", encryptedPrivateKey).
+		Update()
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return errors.New("key pair not found")
+	}
+
+	return nil
 }

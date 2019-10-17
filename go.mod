@@ -5,7 +5,7 @@ require (
 	cloud.google.com/go/storage v1.0.0 // indirect
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
-	github.com/TruStory/truchain v0.1.29-0.20191004101715-431cd5de725f
+	github.com/TruStory/truchain v0.1.29-0.20191017212340-ac458711f273
 	github.com/appleboy/go-fcm v0.1.4
 	github.com/appleboy/gorush v1.11.2
 	github.com/aws/aws-sdk-go v1.21.5

@@ -28,8 +28,9 @@ github.com/PuerkitoBio/goquery v1.5.0 h1:uGvmFXOA73IKluu/F84Xd1tt/z07GYm8X49XKHP
 github.com/PuerkitoBio/goquery v1.5.0/go.mod h1:qD2PgZ9lccMbQlc7eEOjaeRlFQON7xY8kdmcsrnKqMg=
 github.com/Sereal/Sereal v0.0.0-20190606082811-cf1bab6c7a3a h1:r3TT14Z4rWYwW2U8F1DkyM0dpvafwUsye+X3j1J5U3g=
 github.com/Sereal/Sereal v0.0.0-20190606082811-cf1bab6c7a3a/go.mod h1:D0JMgToj/WdxCgd30Kc1UcA9E+WdZoJqeVOuYW7iTBM=
-github.com/TruStory/truchain v0.1.29-0.20191004101715-431cd5de725f h1:hlNc1Qqsf/eIQRe+GoLoMbhj05l0s0dVPHZ3oidpA0Q=
-github.com/TruStory/truchain v0.1.29-0.20191004101715-431cd5de725f/go.mod h1:ATzwMkKpuZbUc17WhdjsbMNbrcdKqmDTKA6b0BzxDlA=
+github.com/TruStory/truchain v0.1.28 h1:856mDj144fJY5RSo1KGTcmHmeOltsWbLyx52lLxxlq8=
+github.com/TruStory/truchain v0.1.29-0.20191017212340-ac458711f273 h1:lemUrbQEG7WxdGUQW8HAvwmaB5+9W3ZCs8kkxFisSyY=
+github.com/TruStory/truchain v0.1.29-0.20191017212340-ac458711f273/go.mod h1:ATzwMkKpuZbUc17WhdjsbMNbrcdKqmDTKA6b0BzxDlA=
 github.com/VividCortex/gohistogram v1.0.0 h1:6+hBz+qvs0JOrrNhhmR7lFxo5sINxBCGXrdtl/UvroE=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=

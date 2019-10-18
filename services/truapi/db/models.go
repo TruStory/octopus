@@ -63,6 +63,7 @@ type Mutations interface {
 	UsersWithIncompleteJourney() ([]User, error)
 	UpdateUserJourney(id int64, journey []UserJourneyStep) error
 	RecordRewardLedgerEntry(userID int64, direction RewardLedgerEntryDirection, amount int64, currency RewardLedgerEntryCurrency) (*RewardLedgerEntry, error)
+	ReplacePrivateKeyWithEncryptedPrivateKey(id int64, encryptedPrivateKey string) error
 }
 
 // Queries read from the database

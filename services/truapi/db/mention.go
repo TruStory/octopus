@@ -11,7 +11,7 @@ import (
 
 // replace @cosmosaddr with profile link [@username](https://app.trustory.io/profile/cosmosaddr)
 func (c *Client) replaceAddressesWithProfileURLs(body string) (string, error) {
-	profileURLPrefix := path.Join(c.config.Host.Name, "profile")
+	profileURLPrefix := path.Join(c.config.Host.Domain, "profile")
 	profileURLsByAddress, err := c.mapAddressesToProfileURLs(body, profileURLPrefix)
 	if err != nil {
 		return "", err

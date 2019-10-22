@@ -11,8 +11,9 @@ import (
 )
 
 type Campaign interface {
-	GetRecipients() Recipients
+	GetRecipients(dbClient *db.Client) Recipients
 	GetMessage(client *postman.Postman, recipient Recipient) (*postman.Message, error)
+	RunPostProcess(dbClient *db.Client, recipient Recipient) error
 }
 ```
 
@@ -21,6 +22,7 @@ The `Recipient` struct looks like:
 ```go
 type Recipient struct {
 	Email string
+	User  *db.User
 }
 
 type Recipients []Recipient

@@ -10,6 +10,10 @@ import (
 	"strings"
 	"unicode"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/crypto/secp256k1"
+
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/postman/messages"
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
@@ -27,6 +31,7 @@ type UserResponse struct {
 	UserProfile *UserProfileResponse `json:"userProfile"`
 	Group       string               `json:"group"`
 	SignedUp    bool                 `json:"signedUp"`
+	PrivateKey  string               `json:"privateKey"`
 }
 
 // VerificationRespose represents the response sent when a users verifies the email
@@ -44,13 +49,20 @@ type UserProfileResponse struct {
 	Bio       string `json:"bio"`
 }
 
+// RegistrationKeyPair is the key pair that is required for registration
+type RegistrationKeyPair struct {
+	PrivateKey string `json:"private_key"` // it is an encrypted version
+	PublicKey  string `json:"public_key"`  // we'll use it to calculate the address on the server
+}
+
 // RegisterUserRequest represents the schema of the http request to create a new user
 type RegisterUserRequest struct {
-	FullName   string `json:"full_name"`
-	Email      string `json:"email"`
-	Password   string `json:"password"`
-	Username   string `json:"username"`
-	ReferredBy string `json:"referred_by"`
+	FullName   string              `json:"full_name"`
+	Email      string              `json:"email"`
+	Password   string              `json:"password"`
+	Username   string              `json:"username"`
+	ReferredBy string              `json:"referred_by"`
+	KeyPair    RegistrationKeyPair `json:"key_pair"`
 }
 
 // VerifyUserViaTokenRequest updates a user via one-time use token
@@ -107,7 +119,6 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 
 	// ensure email is lowercase
 	request.Email = strings.ToLower(request.Email)
-
 	err = validateRegisterRequest(request)
 	if err != nil {
 		render.LoginError(
@@ -169,6 +180,16 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// adding the key pair
+	keyPair := makeKeyPairFromRequest(request.KeyPair)
+	keyPair.UserID = user.ID
+	address, err := ta.registerUserOnChain(user, keyPair)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user.Address = address.String()
+
 	err = sendVerificationEmail(ta, *user)
 	if err != nil {
 		render.LoginError(w, r, ErrCannotSendEmail, http.StatusInternalServerError)
@@ -223,7 +244,11 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 
 	// user is already registered on the chain and has an address
 	if user.Address != "" {
-		userResponse := createUserResponse(user, false)
+		userResponse, err := ta.createUserResponse(user, false)
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		resp := VerificationRespose{
 			User:     userResponse,
 			Verified: true,
@@ -240,30 +265,12 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	keyPair.UserID = user.ID
-
-	// registering the keypair
-	pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	address, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
+	address, err := ta.registerUserOnChain(user, keyPair)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// adding the keypair in the database
-	err = ta.DBClient.Add(keyPair)
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = ta.DBClient.AddAddressToUser(request.ID, address.String())
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	// follow all communities by default
 	communities := ta.communitiesResolver(ctx)
 	communityIDs := make([]string, 0)
@@ -282,7 +289,11 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	user.Address = address.String()
-	userResponse := createUserResponse(user, false)
+	userResponse, err := ta.createUserResponse(user, false)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	resp := VerificationRespose{
 		User:     userResponse,
 		Verified: true,
@@ -387,13 +398,22 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := createUserResponse(user, false)
+	response, err := ta.createUserResponse(user, false)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	render.Response(w, r, response, http.StatusOK)
 }
 
-func createUserResponse(user *db.User, singedUp bool) UserResponse {
+func (ta *TruAPI) createUserResponse(user *db.User, singedUp bool) (UserResponse, error) {
 	largeURI := strings.Replace(user.AvatarURL, "_bigger", "_200x200", 1)
 	largeURI = strings.Replace(largeURI, "http://", "https://", 1)
+
+	keyPair, err := ta.DBClient.KeyPairByUserID(user.ID)
+	if err != nil {
+		return UserResponse{}, err
+	}
 
 	return UserResponse{
 		UserID:      user.ID,
@@ -408,8 +428,35 @@ func createUserResponse(user *db.User, singedUp bool) UserResponse {
 			FullName:  user.FullName,
 			Username:  user.Username,
 		},
-		SignedUp: singedUp,
+		SignedUp:   singedUp,
+		PrivateKey: keyPair.EncryptedPrivateKey,
+	}, nil
+}
+
+func (ta *TruAPI) registerUserOnChain(user *db.User, keyPair *db.KeyPair) (sdk.AccAddress, error) {
+	// registering the keypair
+	pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
+	if err != nil {
+		return nil, err
+		// render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		// return
 	}
+	address, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
+	if err != nil {
+		return nil, err
+	}
+
+	// adding the keypair in the database
+	err = ta.DBClient.Add(keyPair)
+	if err != nil {
+		return nil, err
+	}
+	err = ta.DBClient.AddAddressToUser(user.ID, address.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return address, nil
 }
 
 func validateRegisterRequest(request RegisterUserRequest) error {
@@ -417,6 +464,8 @@ func validateRegisterRequest(request RegisterUserRequest) error {
 	request.Email = strings.TrimSpace(request.Email)
 	request.Username = strings.TrimSpace(request.Username)
 	request.Password = strings.TrimSpace(request.Password)
+	request.KeyPair.PrivateKey = strings.TrimSpace(request.KeyPair.PrivateKey)
+	request.KeyPair.PublicKey = strings.TrimSpace(request.KeyPair.PublicKey)
 
 	if request.FullName == "" {
 		return errors.New("first name cannot be empty")
@@ -441,6 +490,15 @@ func validateRegisterRequest(request RegisterUserRequest) error {
 	}
 
 	err := validatePassword(request.Password)
+	if err != nil {
+		return err
+	}
+
+	if request.KeyPair.PrivateKey == "" || request.KeyPair.PublicKey == "" {
+		return errors.New("key pair cannot be empty")
+	}
+
+	err = validateKeyPair(request.KeyPair)
 	if err != nil {
 		return err
 	}
@@ -489,6 +547,29 @@ func validatePassword(password string) error {
 	}
 
 	return nil
+}
+
+func validateKeyPair(keyPair RegistrationKeyPair) error {
+	pk, err := newPubKey(keyPair.PublicKey)
+	if err != nil {
+		return err
+	}
+	_, err = sdk.AccAddressFromHex(pk.Address().String())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func newPubKey(pk string) (res crypto.PubKey, err error) {
+	pkBytes, err := hex.DecodeString(pk)
+	if err != nil {
+		return
+	}
+	var pkSecp secp256k1.PubKeySecp256k1
+	copy(pkSecp[:], pkBytes[:])
+	return pkSecp, nil
 }
 
 func sendVerificationEmail(ta *TruAPI, user db.User) error {

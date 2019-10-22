@@ -33,10 +33,10 @@ func (c *Client) KeyPairByUserID(userID int64) (*KeyPair, error) {
 }
 
 // ReplacePrivateKeyWithEncryptedPrivateKey replaces the plain private key with the encrypted version
-func (c *Client) ReplacePrivateKeyWithEncryptedPrivateKey(id int64, encryptedPrivateKey string) error {
+func (c *Client) ReplacePrivateKeyWithEncryptedPrivateKey(userID int64, encryptedPrivateKey string) error {
 	var keyPair KeyPair
 	result, err := c.Model(&keyPair).
-		Where("id = ?", id).
+		Where("user_id = ?", userID).
 		Set("encrypted_private_key = ?, private_key = ''", encryptedPrivateKey).
 		Update()
 	if err != nil {

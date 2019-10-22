@@ -59,7 +59,11 @@ func (ta *TruAPI) HandleUserAuthentication(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	response := createUserResponse(user, false)
+	response, err := ta.createUserResponse(user, false)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	http.SetCookie(w, cookie)
 	render.Response(w, r, response, http.StatusOK)
 }

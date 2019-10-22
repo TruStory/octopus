@@ -95,7 +95,11 @@ func (ta *TruAPI) HandleRegistration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, cookie)
-	response := createUserResponse(user, new)
+	response, err := ta.createUserResponse(user, new)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	render.Response(w, r, response, http.StatusOK)
 }
 
@@ -246,6 +250,14 @@ func makeNewKeyPair() (*db.KeyPair, error) {
 		PrivateKey: fmt.Sprintf("%x", newKeyPair.Serialize()),
 		PublicKey:  fmt.Sprintf("%x", pubKey.SerializeCompressed()),
 	}, nil
+}
+
+func makeKeyPairFromRequest(keyPair RegistrationKeyPair) *db.KeyPair {
+	return &db.KeyPair{
+		PrivateKey:          "",
+		PublicKey:           keyPair.PublicKey,
+		EncryptedPrivateKey: keyPair.PrivateKey,
+	}
 }
 
 func getTwitterUser(apiCtx truCtx.TruAPIContext, authToken string, authTokenSecret string) (*twitter.User, error) {

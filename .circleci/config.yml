@@ -217,20 +217,11 @@ jobs: # basic units of work in a run
       - run:
           name: Set env vars
           command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
-                echo "export PG_HOST=$PG_HOSTNAME_PROD" >> $BASH_ENV
-                echo "export PG_USER=$PG_USER_PROD" >> $BASH_ENV
-                echo "export PG_USER_PW=$PG_USER_PW_PROD" >> $BASH_ENV
-                echo "export PG_DB_NAME=$PG_DB_NAME_PROD" >> $BASH_ENV
-                echo "export APP_URL=$BETA_URL" >> $BASH_ENV
-            elif [ "${CIRCLE_BRANCH}" == "develop" ]
-            then
-                echo "export PG_HOST=$PG_ADDR_DEVNET" >> $BASH_ENV
-                echo "export PG_USER=$PG_USER_DEVNET" >> $BASH_ENV
-                echo "export PG_USER_PW=$PG_USER_PW_DEVNET" >> $BASH_ENV
-                echo "export PG_DB_NAME=$PG_DB_NAME_DEVNET" >> $BASH_ENV
-                echo "export APP_URL=$DEVNET_URL" >> $BASH_ENV
-            fi
+            echo "export PG_HOST=$PG_HOSTNAME_PROD" >> $BASH_ENV
+            echo "export PG_USER=$PG_USER_PROD" >> $BASH_ENV
+            echo "export PG_USER_PW=$PG_USER_PW_PROD" >> $BASH_ENV
+            echo "export PG_DB_NAME=$PG_DB_NAME_PROD" >> $BASH_ENV
+            echo "export APP_URL=$BETA_URL" >> $BASH_ENV
       - run:
           name: Run postoffice (verification attempt) action
           command: |
@@ -317,6 +308,5 @@ workflows:
             branches:
               only:
                 - master
-                - develop
     jobs:
       - run_postoffice_verification_attempt

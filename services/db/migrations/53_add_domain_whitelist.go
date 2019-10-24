@@ -20,7 +20,7 @@ func init() {
 		return err
 	}, func(db migrations.DB) error {
 		fmt.Println("dropping domain_whitelists table...")
-		_, err := db.Exec(`DROP TABLE domain_whitelist`)
+		_, err := db.Exec(`DROP TABLE domain_whitelists`)
 		return err
 	})
 }

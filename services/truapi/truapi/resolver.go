@@ -510,7 +510,19 @@ func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgume
 		return []staking.Argument{}
 	}
 	filteredArguments := make([]staking.Argument, 0)
-	for _, argument := range arguments {
+	// remove unhelpful arguments from being processed by the algorithms
+	// will be appended to the end result
+	unhelpful := make([]staking.Argument, 0)
+	resultArguments := make([]staking.Argument, 0)
+	for _, arg := range arguments {
+		if arg.IsUnhelpful {
+			unhelpful = append(unhelpful, arg)
+			continue
+		}
+		resultArguments = append(resultArguments, arg)
+	}
+
+	for _, argument := range resultArguments {
 		if q.Filter == ArgumentCreated {
 			if argument.Creator.String() == *q.Address {
 				filteredArguments = append(filteredArguments, argument)
@@ -542,6 +554,7 @@ func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgume
 		})
 	}
 
+	filteredArguments = append(filteredArguments, unhelpful...)
 	return filteredArguments
 }
 
@@ -970,7 +983,6 @@ func (ta *TruAPI) agreesReceivedResolver(ctx context.Context, address string) in
 	limit := ta.APIContext.Config.Leaderboard.TopDisplaying
 	since := time.Time{}
 
-	
 	userData, err := ta.DBClient.Leaderboard(since, "1", limit, ta.APIContext.Config.Community.InactiveCommunities, address)
 	if err != nil {
 		return 0

@@ -510,19 +510,7 @@ func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgume
 		return []staking.Argument{}
 	}
 	filteredArguments := make([]staking.Argument, 0)
-	// remove unhelpful arguments from being processed by the algorithms
-	// will be appended to the end result
-	unhelpful := make([]staking.Argument, 0)
-	resultArguments := make([]staking.Argument, 0)
-	for _, arg := range arguments {
-		if arg.IsUnhelpful {
-			unhelpful = append(unhelpful, arg)
-			continue
-		}
-		resultArguments = append(resultArguments, arg)
-	}
-
-	for _, argument := range resultArguments {
+	for _, argument := range arguments {
 		if q.Filter == ArgumentCreated {
 			if argument.Creator.String() == *q.Address {
 				filteredArguments = append(filteredArguments, argument)
@@ -539,23 +527,32 @@ func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgume
 			filteredArguments = append(filteredArguments, argument)
 		}
 	}
-
+	// remove unhelpful arguments from being processed by the algorithms
+	// will be appended to the end result
+	unhelpful := make([]staking.Argument, 0)
+	resultArguments := make([]staking.Argument, 0)
+	for _, arg := range filteredArguments {
+		if arg.IsUnhelpful {
+			unhelpful = append(unhelpful, arg)
+			continue
+		}
+		resultArguments = append(resultArguments, arg)
+	}
 	if q.Sort == ArgumentBest {
-		sort.Slice(filteredArguments, func(i, j int) bool {
-			return filteredArguments[i].TotalStake.IsGTE(filteredArguments[j].TotalStake)
+		sort.Slice(resultArguments, func(i, j int) bool {
+			return resultArguments[i].TotalStake.IsGTE(resultArguments[j].TotalStake)
 		})
 	} else if q.Sort == ArgumentLatest {
-		sort.Slice(filteredArguments, func(i, j int) bool {
-			return filteredArguments[j].CreatedTime.Before(filteredArguments[i].CreatedTime)
+		sort.Slice(resultArguments, func(i, j int) bool {
+			return resultArguments[j].CreatedTime.Before(resultArguments[i].CreatedTime)
 		})
 	} else {
-		sort.Slice(filteredArguments, func(i, j int) bool {
-			return ta.argumentTrendingScore(ctx, filteredArguments[i]) > ta.argumentTrendingScore(ctx, filteredArguments[j])
+		sort.Slice(resultArguments, func(i, j int) bool {
+			return ta.argumentTrendingScore(ctx, resultArguments[i]) > ta.argumentTrendingScore(ctx, resultArguments[j])
 		})
 	}
-
-	filteredArguments = append(filteredArguments, unhelpful...)
-	return filteredArguments
+	resultArguments = append(resultArguments, unhelpful...)
+	return resultArguments
 }
 
 func (ta *TruAPI) claimArgumentResolver(ctx context.Context, q queryByArgumentID) *staking.Argument {

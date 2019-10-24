@@ -876,6 +876,7 @@ func (c *Client) UpdateUserJourney(id int64, journey []UserJourneyStep) error {
 func (c *Client) UnverifiedUsersWithinDays(days int64) ([]User, error) {
 	users := make([]User, 0)
 	err := c.Model(&users).
+		Where("blacklisted_at IS NULL").                       // not blacklisted
 		Where("password IS NOT NULL").                         // not the twitter user
 		Where("verified_at IS NULL").                          // not yet verified
 		Where("created_at > NOW() - interval '? days'", days). // is new

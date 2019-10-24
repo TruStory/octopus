@@ -127,6 +127,8 @@ type Queries interface {
 	// deprecated, use UserProfileByAddress/UserProfileByUsername
 	TwitterProfileByAddress(addr string) (*TwitterProfile, error)
 	TwitterProfileByUsername(username string) (*TwitterProfile, error)
+
+	IsDomainWhitelisted(domain string) (bool, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

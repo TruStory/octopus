@@ -17,10 +17,10 @@ var (
 
 func (ta *TruAPI) claimTrendingScore(ctx context.Context, claim claim.Claim) float64 {
 	totalStaked := claim.TotalBacked.Add(claim.TotalChallenged).Amount.Quo(sdk.NewInt(app.Shanev)).Int64()
-	return ta.trendingScore(ctx, totalStaked, claim.CreatedTime)
+	return ta.trendingScore(ctx, totalStaked, claim.FirstArgumentTime)
 }
 
-// argument trending score based on hacker news implementation 
+// argument trending score based on hacker news implementation
 // https://medium.com/hacking-and-gonzo/how-hacker-news-ranking-algorithm-works-1d9b0cf2c08d
 func (ta *TruAPI) argumentTrendingScore(ctx context.Context, argument staking.Argument) float64 {
 	return float64(argument.UpvotedCount) / math.Pow(time.Since(argument.CreatedTime).Hours()+2, 1.8)

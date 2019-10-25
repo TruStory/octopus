@@ -92,6 +92,11 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	// Register routes for Trustory React web app
 	fs := http.FileServer(http.Dir(apiCtx.Config.Web.Directory))
 
+	// add specific route for file
+	ta.Handle("/apple-app-site-association", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		http.ServeFile(w, r, filepath.Join(apiCtx.Config.Web.Directory, "apple-app-site-association"))
+	}))
 	ta.PathPrefix("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		webDirectory := apiCtx.Config.Web.Directory
 		// if it is not requesting a file with a valid extension serve the index

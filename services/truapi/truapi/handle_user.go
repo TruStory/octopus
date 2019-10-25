@@ -94,6 +94,7 @@ var (
 	ErrInvalidPassword          = render.TruError{Code: 106, Message: "Invalid password."}
 	ErrUserNotFound             = render.TruError{Code: 107, Message: "User not found."}
 	ErrRegistration             = render.TruError{Code: 108, Message: "Registration error."}
+	ErrInvalidEmail             = render.TruError{Code: 109, Message: "Invalid email."}
 )
 
 // HandleUserDetails takes a `UserRequest` and returns a `UserResponse`
@@ -106,6 +107,18 @@ func (ta *TruAPI) HandleUserDetails(w http.ResponseWriter, r *http.Request) {
 	default:
 		ta.getUserDetails(w, r)
 	}
+}
+
+func getEmailDomain(email string) string {
+	e := strings.TrimSpace(email)
+	if e == "" {
+		return ""
+	}
+	parts := strings.Split(e, "@")
+	if len(parts) < 2 {
+		return ""
+	}
+	return parts[len(parts)-1]
 }
 
 func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
@@ -124,6 +137,21 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		render.LoginError(
 			w, r,
 			render.TruError{Code: ErrRegistration.Code, Message: err.Error()},
+			http.StatusBadRequest)
+
+		return
+	}
+	// check domain is in whitelist
+	whitelisted, err := ta.DBClient.IsDomainWhitelisted(getEmailDomain(request.Email))
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !whitelisted {
+		log.Println("Registration failed because domain is not in the whitelist ", request.Email)
+		render.LoginError(
+			w, r,
+			render.TruError{Code: ErrInvalidEmail.Code, Message: ErrInvalidEmail.Error()},
 			http.StatusBadRequest)
 
 		return

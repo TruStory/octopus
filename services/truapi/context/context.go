@@ -42,6 +42,7 @@ type FlagConfig struct {
 // HostConfig is the config for the server host
 type HostConfig struct {
 	Name                 string
+	Domain               string
 	Port                 int
 	HTTPSRedirect        bool     `mapstructure:"https-redirect"`
 	HTTPSEnabled         bool     `mapstructure:"https-enabled"`

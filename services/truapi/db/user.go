@@ -47,24 +47,26 @@ func (ug UserGroup) String() string {
 type User struct {
 	Timestamps
 
-	ID                  int64      `json:"id"`
-	FullName            string     `json:"full_name"`
-	Username            string     `json:"username"`
-	Email               string     `json:"email"`
-	Bio                 string     `json:"bio"`
-	AvatarURL           string     `json:"avatar_url"`
-	Address             string     `json:"address"`
-	InvitesLeft         int64      `json:"invites_left"`
-	Password            string     `json:"-" graphql:"-"`
-	ReferredBy          int64      `json:"referred_by"`
-	Token               string     `json:"-" graphql:"-"`
-	ApprovedAt          time.Time  `json:"approved_at" graphql:"-"`
-	RejectedAt          time.Time  `json:"rejected_at" graphql:"-"`
-	VerifiedAt          time.Time  `json:"verified_at" graphql:"-"`
-	BlacklistedAt       time.Time  `json:"blacklisted_at" graphql:"-"`
-	LastAuthenticatedAt *time.Time `json:"last_authenticated_at" graphql:"-"`
-	UserGroup           UserGroup  `json:"user_group"`
-	Meta                UserMeta   `json:"meta"`
+	ID                        int64      `json:"id"`
+	FullName                  string     `json:"full_name"`
+	Username                  string     `json:"username"`
+	Email                     string     `json:"email"`
+	Bio                       string     `json:"bio"`
+	AvatarURL                 string     `json:"avatar_url"`
+	Address                   string     `json:"address"`
+	InvitesLeft               int64      `json:"invites_left"`
+	Password                  string     `json:"-" graphql:"-"`
+	ReferredBy                int64      `json:"referred_by"`
+	Token                     string     `json:"-" graphql:"-"`
+	ApprovedAt                time.Time  `json:"approved_at" graphql:"-"`
+	RejectedAt                time.Time  `json:"rejected_at" graphql:"-"`
+	VerifiedAt                time.Time  `json:"verified_at" graphql:"-"`
+	BlacklistedAt             time.Time  `json:"blacklisted_at" graphql:"-"`
+	LastAuthenticatedAt       *time.Time `json:"last_authenticated_at" graphql:"-"`
+	UserGroup                 UserGroup  `json:"user_group"`
+	LastVerificationAttemptAt time.Time  `json:"last_verification_attempt_at" graphql:"-"`
+	VerificationAttemptCount  int        `json:"verification_attempt_count"`
+	Meta                      UserMeta   `json:"meta"`
 }
 
 // UserMeta holds user meta data
@@ -275,6 +277,8 @@ func (c *Client) RegisterUser(user *User, referrerCode, defaultAvatarURL string)
 	user.Password = string(hashedPassword)
 	user.Token = hex.EncodeToString(token)
 	user.ApprovedAt = time.Now()
+	user.LastVerificationAttemptAt = time.Now()
+	user.VerificationAttemptCount = 1
 
 	referrer, err := c.UserByAddress(referrerCode)
 	if err != nil {
@@ -861,6 +865,38 @@ func (c *Client) UpdateUserJourney(id int64, journey []UserJourneyStep) error {
 	meta.Journey = journey
 
 	err = c.SetUserMeta(id, &meta)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UnverifiedUsersWithinDays returns unverified new users (7 days threshold)
+func (c *Client) UnverifiedUsersWithinDays(days int64) ([]User, error) {
+	users := make([]User, 0)
+	err := c.Model(&users).
+		Where("blacklisted_at IS NULL").                       // not blacklisted
+		Where("password IS NOT NULL").                         // not the twitter user
+		Where("verified_at IS NULL").                          // not yet verified
+		Where("created_at > NOW() - interval '? days'", days). // is new
+		Select()
+	if err != nil {
+		return users, err
+	}
+
+	return users, nil
+}
+
+// RecordVerificationAttempt records a verification attempt
+func (c *Client) RecordVerificationAttempt(id int64) error {
+	var user User
+	_, err := c.Model(&user).
+		Where("id = ?", id).
+		Set("last_verification_attempt_at = NOW()").
+		Set("verification_attempt_count = verification_attempt_count + 1").
+		Update()
+
 	if err != nil {
 		return err
 	}

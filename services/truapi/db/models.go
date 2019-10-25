@@ -64,6 +64,7 @@ type Mutations interface {
 	UpdateUserJourney(id int64, journey []UserJourneyStep) error
 	RecordRewardLedgerEntry(userID int64, direction RewardLedgerEntryDirection, amount int64, currency RewardLedgerEntryCurrency) (*RewardLedgerEntry, error)
 	ReplacePrivateKeyWithEncryptedPrivateKey(id int64, encryptedPrivateKey string) error
+	RecordVerificationAttempt(id int64) error
 }
 
 // Queries read from the database
@@ -122,10 +123,13 @@ type Queries interface {
 	UpsertLeaderboardMetric(tx *pg.Tx, metric *LeaderboardUserMetric) error
 	UpsertLeaderboardProcessedDate(tx *pg.Tx, metric *LeaderboardProcessedDate) error
 	UserRepliesStats(date time.Time) ([]UserRepliesStats, error)
+	UnverifiedUsersWithinDays(days int64) ([]User, error)
 
 	// deprecated, use UserProfileByAddress/UserProfileByUsername
 	TwitterProfileByAddress(addr string) (*TwitterProfile, error)
 	TwitterProfileByUsername(username string) (*TwitterProfile, error)
+
+	IsDomainWhitelisted(domain string) (bool, error)
 }
 
 // Timestamps carries the default timestamp fields for any derived model

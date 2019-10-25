@@ -527,22 +527,32 @@ func (ta *TruAPI) claimArgumentsResolver(ctx context.Context, q queryClaimArgume
 			filteredArguments = append(filteredArguments, argument)
 		}
 	}
-
+	// remove unhelpful arguments from being processed by the algorithms
+	// will be appended to the end result
+	unhelpful := make([]staking.Argument, 0)
+	resultArguments := make([]staking.Argument, 0)
+	for _, arg := range filteredArguments {
+		if arg.IsUnhelpful {
+			unhelpful = append(unhelpful, arg)
+			continue
+		}
+		resultArguments = append(resultArguments, arg)
+	}
 	if q.Sort == ArgumentBest {
-		sort.Slice(filteredArguments, func(i, j int) bool {
-			return filteredArguments[i].TotalStake.IsGTE(filteredArguments[j].TotalStake)
+		sort.Slice(resultArguments, func(i, j int) bool {
+			return resultArguments[i].TotalStake.IsGTE(resultArguments[j].TotalStake)
 		})
 	} else if q.Sort == ArgumentLatest {
-		sort.Slice(filteredArguments, func(i, j int) bool {
-			return filteredArguments[j].CreatedTime.Before(filteredArguments[i].CreatedTime)
+		sort.Slice(resultArguments, func(i, j int) bool {
+			return resultArguments[j].CreatedTime.Before(resultArguments[i].CreatedTime)
 		})
 	} else {
-		sort.Slice(filteredArguments, func(i, j int) bool {
-			return ta.argumentTrendingScore(ctx, filteredArguments[i]) > ta.argumentTrendingScore(ctx, filteredArguments[j])
+		sort.Slice(resultArguments, func(i, j int) bool {
+			return ta.argumentTrendingScore(ctx, resultArguments[i]) > ta.argumentTrendingScore(ctx, resultArguments[j])
 		})
 	}
-
-	return filteredArguments
+	resultArguments = append(resultArguments, unhelpful...)
+	return resultArguments
 }
 
 func (ta *TruAPI) claimArgumentResolver(ctx context.Context, q queryByArgumentID) *staking.Argument {
@@ -970,7 +980,6 @@ func (ta *TruAPI) agreesReceivedResolver(ctx context.Context, address string) in
 	limit := ta.APIContext.Config.Leaderboard.TopDisplaying
 	since := time.Time{}
 
-	
 	userData, err := ta.DBClient.Leaderboard(since, "1", limit, ta.APIContext.Config.Community.InactiveCommunities, address)
 	if err != nil {
 		return 0

@@ -213,6 +213,8 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
+	cookie := cookies.GetLogoutCookie(ta.APIContext)
+	http.SetCookie(w, cookie)
 	err = ta.DBClient.VerifyUser(request.ID, request.Token)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
@@ -292,8 +294,6 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		Verified: true,
 		Created:  true,
 	}
-	cookie := cookies.GetLogoutCookie(ta.APIContext)
-	http.SetCookie(w, cookie)
 	render.Response(w, r, resp, http.StatusOK)
 }
 

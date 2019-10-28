@@ -292,6 +292,8 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		Verified: true,
 		Created:  true,
 	}
+	cookie := cookies.GetLogoutCookie(ta.APIContext)
+	http.SetCookie(w, cookie)
 	render.Response(w, r, resp, http.StatusOK)
 }
 

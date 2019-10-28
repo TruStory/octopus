@@ -50,7 +50,7 @@ func GetLoginCookie(apiCtx truCtx.TruAPIContext, user *db.User) (*http.Cookie, e
 		HttpOnly: true,
 		Value:    value,
 		Expires:  time.Now().Add(AuthenticatedSessionDuration),
-		Domain:   apiCtx.Config.Host.Name,
+		Domain:   apiCtx.Config.Host.Domain,
 	}
 
 	return &cookie, nil
@@ -65,7 +65,7 @@ func GetLogoutCookie(apiCtx truCtx.TruAPIContext) *http.Cookie {
 		HttpOnly: true,
 		Value:    "",
 		Expires:  time.Now(),
-		Domain:   apiCtx.Config.Host.Name,
+		Domain:   apiCtx.Config.Host.Domain,
 		MaxAge:   0,
 	}
 
@@ -79,7 +79,7 @@ func GetUserSignedUpCookie(apiCtx truCtx.TruAPIContext) *http.Cookie {
 		Path:    "/",
 		Value:   "true",
 		Expires: time.Now().Add(time.Minute * 5),
-		Domain:  apiCtx.Config.Host.Name,
+		Domain:  apiCtx.Config.Host.Domain,
 		MaxAge:  0,
 	}
 	return &cookie
@@ -143,7 +143,7 @@ func GetReferrerCookie(apiCtx truCtx.TruAPIContext, referrerCode string) *http.C
 		HttpOnly: true,
 		Value:    referrerCode,
 		Expires:  time.Now().Add(time.Second * 120),
-		Domain:   apiCtx.Config.Host.Name,
+		Domain:   apiCtx.Config.Host.Domain,
 	}
 
 	return &cookie
@@ -244,7 +244,7 @@ func GetAnonSessionCookie(apiCtx truCtx.TruAPIContext) (*http.Cookie, error) {
 		HttpOnly: true,
 		Value:    value,
 		Expires:  time.Now().Add(SessionDuration),
-		Domain:   apiCtx.Config.Host.Name,
+		Domain:   apiCtx.Config.Host.Domain,
 	}
 
 	return &cookie, nil
@@ -261,7 +261,7 @@ func AnonymousSessionHandler(apiCtx truCtx.TruAPIContext) func(http.Handler) htt
 					Path:     "/",
 					HttpOnly: true,
 					MaxAge:   -1,
-					Domain:   apiCtx.Config.Host.Name,
+					Domain:   apiCtx.Config.Host.Domain,
 				}
 
 				http.SetCookie(w, cookie)

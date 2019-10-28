@@ -1,7 +1,6 @@
 package truapi
 
 import (
-	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -91,7 +90,7 @@ func (ta *TruAPI) HandleUserDetails(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		ta.createNewUser(w, r)
 	case http.MethodPut:
-		ta.updateUserDetails(w, r)
+		ta.updateUserDetailsViaCookie(w, r)
 	default:
 		ta.getUserDetails(w, r)
 	}
@@ -206,37 +205,16 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 	render.Response(w, r, user, http.StatusOK)
 }
 
-func (ta *TruAPI) updateUserDetails(w http.ResponseWriter, r *http.Request) {
-	// There are two scenarios when a user can be updated:
-	// a.) When users are verifying their email address (via token)
-	// b.) When users are updating their profile (bio, photo, etc) from their account settings
-	// To update a user, either the user cookie has to be present (for [scenario b]),
-	// or a token has to be present (for [scenario a]).
-
-	// attempt to get the cookie
-	_, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
-	if err == http.ErrNoCookie {
-		// no cookie present; proceed via token
-		ta.verifyUserViaToken(w, r)
-		return
-	}
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	// cookie found, proceed via cookie
-	ta.updateUserDetailsViaCookie(w, r)
-}
-
 func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
+	ctx := ta.createContext(r.Context())
 	var request VerifyUserViaTokenRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
+	cookie := cookies.GetLogoutCookie(ta.APIContext)
+	http.SetCookie(w, cookie)
 	err = ta.DBClient.VerifyUser(request.ID, request.Token)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)

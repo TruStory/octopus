@@ -60,6 +60,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 
 	// users
 	api.HandleFunc("/user", ta.HandleUserDetails)
+	api.HandleFunc("/user/verify", ta.verifyUserViaToken).Methods(http.MethodPut)
 	api.HandleFunc("/users/blacklist", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleUserBlacklisting)))
 	api.HandleFunc("/users/password-reset", ta.HandleUserForgotPassword)
 	api.HandleFunc("/users/resend-email-verification", ta.HandleResendEmailVerification)

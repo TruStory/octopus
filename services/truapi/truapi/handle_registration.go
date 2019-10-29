@@ -252,14 +252,6 @@ func makeNewKeyPair() (*db.KeyPair, error) {
 	}, nil
 }
 
-func makeKeyPairFromRequest(keyPair RegistrationKeyPair) *db.KeyPair {
-	return &db.KeyPair{
-		PrivateKey:          "",
-		PublicKey:           keyPair.PublicKey,
-		EncryptedPrivateKey: keyPair.PrivateKey,
-	}
-}
-
 func getTwitterUser(apiCtx truCtx.TruAPIContext, authToken string, authTokenSecret string) (*twitter.User, error) {
 	ctx := context.Background()
 	config := oauth1.NewConfig(apiCtx.Config.Twitter.APIKey, apiCtx.Config.Twitter.APISecret)

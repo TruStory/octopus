@@ -69,6 +69,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/users/authentication", ta.HandleUserAuthentication)
 	api.HandleFunc("/users/onboard", ta.HandleUserOnboard)
 	api.HandleFunc("/users/journey", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleUserJourney)))
+	api.HandleFunc("/users/key", ta.HandleUserSetKey)
 	api.HandleFunc("/users/export", ta.HandleUserExport)
 
 	api.HandleFunc("/gift", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleGift)))

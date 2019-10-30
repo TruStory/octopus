@@ -656,15 +656,6 @@ func (ta *TruAPI) HandleUserClaims(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	type ClaimMetric struct {
-		ID                      uint64
-		CreatedDate             time.Time
-		Community               string
-		Creator                 string
-		ParticipantsTarget      map[string]bool
-		ParticipantsPreviousDay map[string]bool
-	}
 	previousDay := targetDate.Add(-24 * time.Hour)
 	for _, claim := range claims {
 		if !claim.CreatedTime.Before(targetDate) {
@@ -678,7 +669,6 @@ func (ta *TruAPI) HandleUserClaims(w http.ResponseWriter, r *http.Request) {
 			if !s.CreatedTime.Before(targetDate) {
 				continue
 			}
-			// m := getClaimMetric(claim)
 			participantsTarget[s.Creator.String()] = true
 			if s.CreatedTime.Before(previousDay) {
 				participantsPreviousDay[s.Creator.String()] = true
@@ -690,7 +680,6 @@ func (ta *TruAPI) HandleUserClaims(w http.ResponseWriter, r *http.Request) {
 			if !c.CreatedAt.Before(targetDate) {
 				continue
 			}
-			// m := getClaimMetric(claim)
 			participantsTarget[c.Creator] = true
 			if c.CreatedAt.Before(previousDay) {
 				participantsPreviousDay[c.Creator] = true

@@ -666,25 +666,6 @@ func (ta *TruAPI) HandleUserClaims(w http.ResponseWriter, r *http.Request) {
 		ParticipantsPreviousDay map[string]bool
 	}
 	previousDay := targetDate.Add(-24 * time.Hour)
-
-	// claimMapping := make(map[uint64]*ClaimMetric, 0)
-
-	// getClaimMetric := func(claim claim.Claim) *ClaimMetric {
-	// 	claimMetric, ok := claimMapping[claim.ID]
-	// 	if !ok {
-	// 		claimMetric = &ClaimMetric{
-	// 			ID:                      claim.ID,
-	// 			CreatedDate:             claim.CreatedTime,
-	// 			Creator:                 claim.Creator.String(),
-	// 			Community:               claim.CommunityID,
-	// 			ParticipantsTarget:      make(map[string]bool),
-	// 			ParticipantsPreviousDay: make(map[string]bool),
-	// 		}
-	// 		claimMapping[claim.ID] = claimMetric
-	// 		return claimMetric
-	// 	}
-	// 	return claimMetric
-	// }
 	for _, claim := range claims {
 		if !claim.CreatedTime.Before(targetDate) {
 			continue

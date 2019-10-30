@@ -244,6 +244,7 @@ var NotificationIcons = map[db.NotificationType]string{
 	db.NotificationRewardTruUnlocked:    "earned_trustake.png",
 	db.NotificationFeaturedDebate:       "featured_debate.png",
 	db.NotificationStakeLimitIncreased:  "limit_increased.png",
+	db.NotificationGift:                 "gift.png",
 }
 
 type RewardType int

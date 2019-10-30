@@ -611,6 +611,124 @@ func (ta *TruAPI) HandleClaimMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (ta *TruAPI) HandleUserClaims(w http.ResponseWriter, r *http.Request) {
+	jobTime := time.Now().UTC().Format("200601021504")
+	w.Header().Add("Content-Type", "text/csv")
+	csvw := csv.NewWriter(w)
+	header := []string{
+		"job_date_time", "date", "claim_id", "claim", "community", "address", "creation_date", "participants",
+	}
+	err := csvw.Write(header)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	ctx := ta.createContext(r.Context())
+	err = r.ParseForm()
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	date := r.FormValue("date")
+	if date == "" {
+		render.Error(w, r, "provide a valid date", http.StatusBadRequest)
+		return
+	}
+
+	targetDate, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Get all claims
+	claims := make([]claim.Claim, 0)
+	result, err := ta.Query(
+		path.Join(claim.QuerierRoute, claim.QueryClaimsBeforeTime),
+		claim.QueryClaimsTimeParams{CreatedTime: targetDate},
+		claim.ModuleCodec,
+	)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = claim.ModuleCodec.UnmarshalJSON(result, &claims)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	type ClaimMetric struct {
+		ID                      uint64
+		CreatedDate             time.Time
+		Community               string
+		Creator                 string
+		ParticipantsTarget      map[string]bool
+		ParticipantsPreviousDay map[string]bool
+	}
+	previousDay := targetDate.Add(-24 * time.Hour)
+
+	// claimMapping := make(map[uint64]*ClaimMetric, 0)
+
+	// getClaimMetric := func(claim claim.Claim) *ClaimMetric {
+	// 	claimMetric, ok := claimMapping[claim.ID]
+	// 	if !ok {
+	// 		claimMetric = &ClaimMetric{
+	// 			ID:                      claim.ID,
+	// 			CreatedDate:             claim.CreatedTime,
+	// 			Creator:                 claim.Creator.String(),
+	// 			Community:               claim.CommunityID,
+	// 			ParticipantsTarget:      make(map[string]bool),
+	// 			ParticipantsPreviousDay: make(map[string]bool),
+	// 		}
+	// 		claimMapping[claim.ID] = claimMetric
+	// 		return claimMetric
+	// 	}
+	// 	return claimMetric
+	// }
+	for _, claim := range claims {
+		if !claim.CreatedTime.Before(targetDate) {
+			continue
+		}
+		participantsTarget := make(map[string]bool)
+		participantsPreviousDay := make(map[string]bool)
+		stakes := ta.claimStakesResolver(ctx, claim)
+
+		for _, s := range stakes {
+			if !s.CreatedTime.Before(targetDate) {
+				continue
+			}
+			// m := getClaimMetric(claim)
+			participantsTarget[s.Creator.String()] = true
+			if s.CreatedTime.Before(previousDay) {
+				participantsPreviousDay[s.Creator.String()] = true
+			}
+		}
+		comments, _ := ta.DBClient.CommentsByClaimID(claim.ID)
+
+		for _, c := range comments {
+			if !c.CreatedAt.Before(targetDate) {
+				continue
+			}
+			// m := getClaimMetric(claim)
+			participantsTarget[c.Creator] = true
+			if c.CreatedAt.Before(previousDay) {
+				participantsPreviousDay[c.Creator] = true
+			}
+		}
+		// "job_date_time", "claim_id", "claim", "community", "address", "creation_date", "participants",
+		row := []string{jobTime, targetDate.Format(time.RFC3339Nano), fmt.Sprintf("%d", claim.ID),
+			claim.Body, claim.CommunityID, claim.Creator.String(), claim.CreatedTime.Format(time.RFC3339Nano),
+			fmt.Sprintf("%d", len(participantsTarget)-len(participantsPreviousDay)),
+		}
+		err := csvw.Write(row)
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		csvw.Flush()
+	}
+}
+
 // HandleUserBase returns the user base.
 func (ta *TruAPI) HandleUserBase(w http.ResponseWriter, r *http.Request) {
 	token := ta.APIContext.Config.Metrics.Secret

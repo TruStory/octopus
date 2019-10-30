@@ -79,6 +79,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	// metrics
 	api.HandleFunc("/metrics/users", ta.HandleUsersMetrics)
 	api.HandleFunc("/metrics/claims", ta.HandleClaimMetrics)
+	api.HandleFunc("/metrics/user_claims", ta.HandleUserClaims)
 	api.HandleFunc("/metrics/auth", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleAuthMetrics)))
 	api.HandleFunc("/metrics/invites", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleInvitesMetrics)))
 	api.HandleFunc("/metrics/user_base", ta.HandleUserBase)

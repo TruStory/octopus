@@ -186,6 +186,56 @@ func claimMetrics(skipDaily bool) {
 		os.Exit(1)
 	}
 }
+
+func userClaims() {
+	fmt.Println("Running claims metrics")
+	metricsEndpoint := mustEnv("METRICS_ENDPOINT")
+	metricsTable := mustEnv("METRICS_USER_CLAIMS_TABLE")
+	httpClient := &http.Client{
+		Timeout: time.Minute * 5,
+	}
+	// date
+	defaultDate := time.Now().Format("2006-01-02")
+	date := getEnv("METRICS_DATE", defaultDate)
+	fmt.Printf("Running user claim metrics for date %s table %s\n", date, metricsTable)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/user_claims?date=%s", metricsEndpoint, date), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		log.Fatal("Error running claim metrics", resp.Status)
+	}
+	ctx := context.Background()
+	bigQClient, err := bigquery.NewClient(ctx, "metrics-240714")
+	if err != nil {
+		log.Fatal("error creating client", err)
+	}
+	source := bigquery.NewReaderSource(resp.Body)
+	source.AutoDetect = true   // Allow BigQuery to determine schema.
+	source.SkipLeadingRows = 1 // CSV has a single header line.
+	source.AllowQuotedNewlines = true
+
+	datasetID := "beta_metrics"
+	loader := bigQClient.Dataset(datasetID).Table(metricsTable).LoaderFrom(source)
+	loader.WriteDisposition = bigquery.WriteAppend
+
+	job, err := loader.Run(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	status, err := job.Wait(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := status.Err(); err != nil {
+		log.Fatal(err)
+	}
+}
 func main() {
 	skipDaily := flag.Bool("skip-daily", false, "skip daily calculation")
 	flag.Parse()
@@ -201,11 +251,14 @@ func main() {
 		claimMetrics(*skipDaily)
 	case "user_base":
 		userBase()
+	case "user_claims":
+		userClaims()
 	case "all":
 		fmt.Println("Running users and claim metrics")
 		usersMetrics(*skipDaily)
 		claimMetrics(*skipDaily)
 		userBase()
+		userClaims()
 	default:
 		log.Fatal("invalid subcommand")
 	}

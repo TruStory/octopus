@@ -29,7 +29,7 @@ func (ta *TruAPI) HandleMockRegistration(w http.ResponseWriter, r *http.Request)
 	}
 
 	http.SetCookie(w, cookie)
-	response := createUserResponse(user, false)
+	response := ta.createUserResponse(r.Context(), user, false)
 	render.Response(w, r, response, http.StatusOK)
 }
 

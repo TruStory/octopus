@@ -95,7 +95,7 @@ func (ta *TruAPI) HandleRegistration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, cookie)
-	response := createUserResponse(user, new)
+	response := ta.createUserResponse(r.Context(), user, new)
 	render.Response(w, r, response, http.StatusOK)
 }
 

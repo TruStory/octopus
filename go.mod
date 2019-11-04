@@ -1,8 +1,9 @@
 module github.com/TruStory/octopus
 
 require (
-	cloud.google.com/go/bigquery v1.0.1
-	cloud.google.com/go/storage v1.0.0 // indirect
+	cloud.google.com/go v0.47.0 // indirect
+	cloud.google.com/go/bigquery v1.2.0
+	cloud.google.com/go/storage v1.1.2 // indirect
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/TruStory/truchain v0.1.29-0.20191017212340-ac458711f273
@@ -20,8 +21,8 @@ require (
 	github.com/go-pg/pg v8.0.3+incompatible
 	github.com/gobuffalo/packr/v2 v2.7.1
 	github.com/gofrs/uuid v3.2.0+incompatible
-	github.com/gogo/protobuf v1.3.0 // indirect
-	github.com/golang/groupcache v0.0.0-20191002201903-404acd9df4cc // indirect
+	github.com/gogo/protobuf v1.3.1 // indirect
+	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9 // indirect
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.7.2
@@ -30,6 +31,7 @@ require (
 	github.com/graphql-go/graphql v0.7.8 // indirect
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/joho/godotenv v1.3.0
+	github.com/json-iterator/go v1.1.8 // indirect
 	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/julianshen/go-readability v0.0.0-20160929030430-accf5123e283 // indirect
 	github.com/julianshen/og v0.0.0-20170124022037-897162c55567
@@ -38,11 +40,8 @@ require (
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/matryer/is v1.2.0 // indirect
 	github.com/oklog/ulid v1.3.1
-	github.com/pelletier/go-toml v1.4.0 // indirect
-	github.com/prometheus/client_golang v1.1.0 // indirect
-	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4 // indirect
-	github.com/prometheus/common v0.7.0 // indirect
-	github.com/prometheus/procfs v0.0.5 // indirect
+	github.com/pelletier/go-toml v1.6.0 // indirect
+	github.com/prometheus/client_golang v1.2.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
 	github.com/rogpeppe/go-internal v1.5.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
@@ -61,19 +60,15 @@ require (
 	github.com/vektah/dataloaden v0.3.0
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	go.opencensus.io v0.22.1 // indirect
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
-	golang.org/x/exp v0.0.0-20191002040644-a1355ae1e2c3 // indirect
-	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
-	golang.org/x/net v0.0.0-20191003171128-d98b1b443823
+	golang.org/x/crypto v0.0.0-20191029031824-8986dd9e96cf
+	golang.org/x/exp v0.0.0-20191030013958-a1ab85dbe136 // indirect
+	golang.org/x/net v0.0.0-20191028085509-fe3aa8a45271
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20191010194322-b09406accb47 // indirect
-	golang.org/x/tools v0.0.0-20191016194801-f0068bd333b2 // indirect
-	google.golang.org/api v0.10.0 // indirect
-	google.golang.org/appengine v1.6.4 // indirect
-	google.golang.org/genproto v0.0.0-20191002211648-c459b9ce5143 // indirect
+	golang.org/x/sys v0.0.0-20191029155521-f43be2a4598c // indirect
+	golang.org/x/tools v0.0.0-20191030232956-1e24073be82c // indirect
+	google.golang.org/appengine v1.6.5 // indirect
 	google.golang.org/grpc v1.24.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
-	gopkg.in/yaml.v2 v2.2.4 // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )
 

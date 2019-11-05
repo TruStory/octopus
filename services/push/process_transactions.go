@@ -5,9 +5,12 @@ import (
 	"fmt"
 
 	"github.com/TruStory/octopus/services/truapi/db"
+	"github.com/TruStory/truchain/x/bank"
 	"github.com/TruStory/truchain/x/slashing"
 	"github.com/TruStory/truchain/x/staking"
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/types"
 )
@@ -111,6 +114,44 @@ func (s *service) processUpvote(data []byte, notifications chan<- *Notification)
 		Type:   db.NotificationAgreeReceived,
 		Meta:   meta,
 		Action: "Agree Received",
+	}
+}
+
+func (s *service) processGift(data []byte, notifications chan<- *Notification) {
+	cdc := codec.New()
+	auth.RegisterCodec(cdc)
+	sdk.RegisterCodec(cdc)
+	bank.RegisterCodec(cdc)
+	codec.RegisterCrypto(cdc)
+	tx := auth.StdTx{}
+	err := cdc.UnmarshalBinaryLengthPrefixed(data, &tx)
+	if err != nil {
+		s.log.WithError(err).Error("Error decoding transaction")
+		return
+	}
+	msgs := tx.GetMsgs()
+	if len(msgs) <= 0 {
+		s.log.WithError(err).Error("Empty msgs")
+		return
+	}
+	msg := bank.MsgSendGift{}
+	err = cdc.UnmarshalJSON(msgs[0].GetSignBytes(), &msg)
+	if err != nil {
+		s.log.WithError(err).Error("Error decoding send gift msg")
+		return
+	}
+
+	nMsg := "You've been gifted %s! %sHappy Debating!"
+	reqMsg := ""
+	if tx.GetMemo() == "request" {
+		reqMsg = "Thanks for being an awesome TruStorian. "
+	}
+	reward := fmt.Sprintf("%s %s", humanReadable(msg.Reward), db.CoinDisplayName)
+	notifications <- &Notification{
+		To:     msg.Recipient.String(),
+		Msg:    fmt.Sprintf(nMsg, reward, reqMsg),
+		Type:   db.NotificationGift,
+		Action: "Gift Received",
 	}
 }
 
@@ -230,6 +271,8 @@ func (s *service) processTxEvent(evt types.EventDataTx, notifications chan<- *No
 						s.processUpvote(evt.Result.Data, notifications)
 					case slashing.TypeMsgSlashArgument:
 						s.processSlash(evt.Result.Data, evt.Result.Events, notifications)
+					case bank.TypeMsgSendGift:
+						s.processGift(evt.TxResult.Tx, notifications)
 					}
 				}
 			}

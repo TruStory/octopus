@@ -1,2 +1,2 @@
 run_verification_attempt: 
-	go run *.go verification-attempt preethi.kasireddy@trustory.io
+	go run *.go verification-attempt "TruStory Community <community@trustory.io>"

@@ -41,11 +41,11 @@ To trigger a campaign, one must run the following command from the CLI:
 ```
 go run *.go CAMAPAIGN_NAME_REGISTERED_IN_REGISTRY EMAIL_ADDRESS_OF_SENDER
 
-go run *.go waitlist-approval preethi@trustory.io
+go run *.go waitlist-approval community@trustory.io
 ```
 
 If the ENV variables are not set on the environment, they can be passed in via CLI like following:
 
 ```
-AWS_ACCESS_KEY=XXX AWS_ACCESS_SECRET=XXX go run *.go waitlist-approval preethi@trustory.io
+AWS_ACCESS_KEY=XXX AWS_ACCESS_SECRET=XXX go run *.go waitlist-approval community@trustory.io
 ```

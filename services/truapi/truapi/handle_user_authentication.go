@@ -58,8 +58,7 @@ func (ta *TruAPI) HandleUserAuthentication(w http.ResponseWriter, r *http.Reques
 		render.LoginError(w, r, ErrServerError, http.StatusBadRequest)
 		return
 	}
-
-	response, err := ta.createUserResponse(user, false)
+	response, err := ta.createUserResponse(r.Context(), user, false)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return

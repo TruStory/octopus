@@ -74,7 +74,7 @@ func (ta *TruAPI) HandleUserSetKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	returnableUser.Address = address.String()
-	userResponse, err := ta.createUserResponse(returnableUser, false)
+	userResponse, err := ta.createUserResponse(r.Context(), returnableUser, false)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return

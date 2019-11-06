@@ -1,6 +1,7 @@
 package truapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
@@ -17,15 +18,17 @@ import (
 
 // UserResponse is a JSON response body representing the result of User
 type UserResponse struct {
-	UserID      int64                `json:"userId"`
-	Address     string               `json:"address"`
-	Bio         string               `json:"bio"`
-	InvitesLeft int64                `json:"invitesLeft"`
-	UserMeta    db.UserMeta          `json:"userMeta"`
-	UserProfile *UserProfileResponse `json:"userProfile"`
-	Group       string               `json:"group"`
-	SignedUp    bool                 `json:"signedUp"`
-	PrivateKey  string               `json:"privateKey"`
+	UserID        int64                `json:"userId"`
+	Address       string               `json:"address"`
+	Bio           string               `json:"bio"`
+	InvitesLeft   int64                `json:"invitesLeft"`
+	UserMeta      db.UserMeta          `json:"userMeta"`
+	UserProfile   *UserProfileResponse `json:"userProfile"`
+	Group         string               `json:"group"`
+	SignedUp      bool                 `json:"signedUp"`
+	AccountNumber uint64               `json:"accountNumber"`
+	Sequence      uint64               `json:"sequence"`
+	PrivateKey    string               `json:"privateKey"`
 }
 
 // VerificationRespose represents the response sent when a users verifies the email
@@ -228,7 +231,7 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 
 	// user is already registered on the chain and has an address
 	if user.Address != "" {
-		userResponse, err := ta.createUserResponse(user, false)
+		userResponse, err := ta.createUserResponse(r.Context(), user, false)
 		if err != nil {
 			render.Error(w, r, err.Error(), http.StatusInternalServerError)
 			return
@@ -273,7 +276,7 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	user.Address = address.String()
-	userResponse, err := ta.createUserResponse(user, false)
+	userResponse, err := ta.createUserResponse(r.Context(), user, false)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
@@ -382,7 +385,7 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := ta.createUserResponse(user, false)
+	response, err := ta.createUserResponse(r.Context(), user, false)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
@@ -390,9 +393,16 @@ func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 	render.Response(w, r, response, http.StatusOK)
 }
 
-func (ta *TruAPI) createUserResponse(user *db.User, singedUp bool) (UserResponse, error) {
+func (ta *TruAPI) createUserResponse(ctx context.Context, user *db.User, singedUp bool) (UserResponse, error) {
 	largeURI := strings.Replace(user.AvatarURL, "_bigger", "_200x200", 1)
 	largeURI = strings.Replace(largeURI, "http://", "https://", 1)
+
+	aa := ta.appAccountResolver(ctx, queryByAddress{ID: user.Address})
+	var accountNumber, sequence uint64
+	if aa != nil {
+		accountNumber = aa.AccountNumber
+		sequence = aa.Sequence
+	}
 
 	keyPair, err := ta.DBClient.KeyPairByUserID(user.ID)
 	if err != nil {
@@ -417,8 +427,10 @@ func (ta *TruAPI) createUserResponse(user *db.User, singedUp bool) (UserResponse
 			FullName:  user.FullName,
 			Username:  user.Username,
 		},
-		SignedUp:   singedUp,
-		PrivateKey: keyPair.EncryptedPrivateKey,
+		SignedUp:      singedUp,
+		PrivateKey:    keyPair.EncryptedPrivateKey,
+		AccountNumber: accountNumber,
+		Sequence:      sequence,
 	}, nil
 }
 

@@ -95,7 +95,7 @@ func (ta *TruAPI) HandleRegistration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, cookie)
-	response, err := ta.createUserResponse(user, new)
+	response, err := ta.createUserResponse(r.Context(), user, new)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return

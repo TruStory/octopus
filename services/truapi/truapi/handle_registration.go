@@ -203,15 +203,6 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User, referrerCode string) (
 			}
 		}
 	} else {
-		user, err := ta.DBClient.UserByID(connectedAccount.UserID)
-		if err != nil {
-			return nil, false, err
-		}
-		user.AvatarURL = avatarURL
-		err = ta.DBClient.UpdateModel(user)
-		if err != nil {
-			return nil, false, err
-		}
 		// this user is already our user, so, we'll just update their meta fields to stay updated
 		connectedAccount.Meta = db.ConnectedAccountMeta{
 			Email:     twitterUser.Email,

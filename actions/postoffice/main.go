@@ -24,7 +24,7 @@ func init() {
 func main() {
 	args := os.Args[1:]
 	if len(args) < 2 {
-		log.Fatal("please pass the campaign name and the email address from which the emails must be sent. eg. go run *.go waitlist-approval preethi@trustory.io")
+		log.Fatal("please pass the campaign name and the email address from which the emails must be sent. eg. go run *.go waitlist-approval community@trustory.io")
 		os.Exit(1)
 	}
 

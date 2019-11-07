@@ -3,7 +3,7 @@ module github.com/TruStory/octopus
 require (
 	cloud.google.com/go v0.47.0 // indirect
 	cloud.google.com/go/bigquery v1.2.0
-	cloud.google.com/go/storage v1.1.2 // indirect
+	cloud.google.com/go/storage v1.2.1 // indirect
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
 	github.com/TruStory/truchain v0.1.29-0.20191017212340-ac458711f273
@@ -37,9 +37,7 @@ require (
 	github.com/julianshen/og v0.0.0-20170124022037-897162c55567
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/machinebox/graphql v0.2.3-0.20181106130121-3a9253180225
-	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/matryer/is v1.2.0 // indirect
-	github.com/oklog/ulid v1.3.1
 	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/prometheus/client_golang v1.2.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
@@ -53,22 +51,23 @@ require (
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.4.0
+	github.com/spf13/viper v1.5.0
 	github.com/stretchr/testify v1.4.0
+	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/tendermint v0.32.2
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/vektah/dataloaden v0.3.0
 	github.com/writeas/go-strip-markdown v2.0.1+incompatible
 	go.opencensus.io v0.22.1 // indirect
-	golang.org/x/crypto v0.0.0-20191029031824-8986dd9e96cf
-	golang.org/x/exp v0.0.0-20191030013958-a1ab85dbe136 // indirect
-	golang.org/x/net v0.0.0-20191028085509-fe3aa8a45271
+	golang.org/x/crypto v0.0.0-20191106202628-ed6320f186d4
+	golang.org/x/net v0.0.0-20191105084925-a882066a44e0
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20191029155521-f43be2a4598c // indirect
-	golang.org/x/tools v0.0.0-20191030232956-1e24073be82c // indirect
+	golang.org/x/sys v0.0.0-20191105231009-c1f44814a5cd // indirect
+	golang.org/x/tools v0.0.0-20191107010934-f79515f33823 // indirect
 	google.golang.org/appengine v1.6.5 // indirect
-	google.golang.org/grpc v1.24.0 // indirect
+	google.golang.org/grpc v1.25.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/yaml.v2 v2.2.5 // indirect
 	mellium.im/sasl v0.2.1 // indirect
 )
 

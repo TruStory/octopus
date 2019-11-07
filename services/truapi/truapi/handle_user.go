@@ -377,6 +377,8 @@ func (ta *TruAPI) updateUserDetailsViaCookie(w http.ResponseWriter, r *http.Requ
 	render.Response(w, r, true, http.StatusOK)
 }
 
+// TODO: need endpoint to query chain account....(to get sequence)
+
 func (ta *TruAPI) getUserDetails(w http.ResponseWriter, r *http.Request) {
 	authenticatedUser, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
 	if err != nil {

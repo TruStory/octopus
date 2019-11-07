@@ -1,6 +1,8 @@
 package chttp
 
 import (
+	"encoding/hex"
+
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -42,7 +44,8 @@ func (a *API) NewUnsignedStdTx(r UnsignedRequest, keyPair db.KeyPair) (auth.StdT
 
 // GetPrivateKeyObject returns the secp's object encapsulating the private key
 func GetPrivateKeyObject(keyPair db.KeyPair) *btcec.PrivateKey {
-	privKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), []byte(keyPair.PrivateKey))
+	pkDecoded, _ := hex.DecodeString(keyPair.PrivateKey)
+	privKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), pkDecoded)
 
 	return privKey
 }

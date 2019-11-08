@@ -55,6 +55,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
+	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/tendermint v0.32.2
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/vektah/dataloaden v0.3.0

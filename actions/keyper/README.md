@@ -1,5 +1,9 @@
 ### Keyper
 
-This action is an one time action that will spit out the correct public keys and the address that need to override the current keys for antehandler to work.
+This action will replace the public keys and the cosmos addresses in the files found in `mixer` directory.
 
-Okay to delete this action after deploying the Antehandler fix to beta.
+#### How to use
+
+Drop files in the `mixer` folder that are needed to be updated and run `make run`.
+
+Done!

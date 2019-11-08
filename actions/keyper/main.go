@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
@@ -13,6 +16,13 @@ import (
 	"github.com/tendermint/btcd/btcec"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
+
+type replacer struct {
+	from string
+	to   string
+}
+
+type replacers []replacer
 
 func main() {
 	dbPort, err := strconv.Atoi(getEnv("PG_PORT", "5432"))
@@ -31,22 +41,66 @@ func main() {
 	}
 	dbClient := db.NewDBClient(config)
 
-	replacers, err := os.Create("replacers.txt")
+	r, err := makeReplacers(dbClient)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	var users []db.User
-	err = dbClient.FindAll(&users)
+	err = filepath.Walk("mixer", replace(r))
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	fmt.Printf("\nFinished writing replacers.")
+}
+
+func replace(r replacers) func(path string, info os.FileInfo, err error) error {
+	return func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !!fi.IsDir() {
+			return nil
+		}
+
+		fmt.Printf("\nReplacing in file: %s ", path)
+
+		content, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		for _, replacer := range r {
+			fmt.Print(".")
+			content = bytes.ReplaceAll(content, []byte(replacer.from), []byte(replacer.to))
+		}
+
+		fmt.Print("DONE.")
+
+		err = ioutil.WriteFile(path, []byte(content), 0)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
+func makeReplacers(dbClient *db.Client) (replacers, error) {
+	var users []db.User
+	err := dbClient.FindAll(&users)
+	if err != nil {
+		return replacers{}, err
+	}
 	fmt.Printf("Found %d users.", len(users))
+
+	r := replacers{}
 	for _, user := range users {
-		fmt.Printf("\n\nFixing %s with ID: %d (%s)", user.Username, user.ID, user.FullName)
+		fmt.Printf("\n\nMaking replacer for %s with ID: %d (%s)", user.Username, user.ID, user.FullName)
 		keyPair, err := dbClient.KeyPairByUserID(user.ID)
 		if err != nil {
-			log.Fatalln(err)
+			return replacers{}, err
 		}
 		if keyPair == nil {
 			fmt.Printf("\nDoes not have a key pair yet. Skipping.")
@@ -56,19 +110,14 @@ func main() {
 
 		newPubK, newAddress, err := calculatePublicKeyAndAddress(keyPair.PrivateKey)
 		if err != nil {
-			log.Fatalln(err)
+			return replacers{}, err
 		}
-		fmt.Printf("\nUpdating them to:\n\tPriv: %s\n\tPub: %s\n\tAddr: %s", keyPair.PrivateKey, newPubK, newAddress)
-		_, err = fmt.Fprintln(replacers, fmt.Sprintf("%s:%s\n%s:%s", keyPair.PublicKey, newPubK, user.Address, newAddress))
-		if err != nil {
-			log.Fatalln(err)
-		}
+		fmt.Printf("\nWill be changed to:\n\tPriv: %s\n\tPub: %s\n\tAddr: %s", keyPair.PrivateKey, newPubK, newAddress)
+		r = append(r, replacer{from: keyPair.PublicKey, to: newPubK})
+		r = append(r, replacer{from: user.Address, to: newAddress})
 	}
-	err = replacers.Close()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	fmt.Printf("\nFinished writing replacers.")
+
+	return r, nil
 }
 
 func calculatePublicKeyAndAddress(privateKey string) (publicKey string, address string, err error) {

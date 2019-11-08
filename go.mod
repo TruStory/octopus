@@ -51,6 +51,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
+	github.com/tendermint/btcd v0.1.1
 	github.com/tendermint/tendermint v0.32.7
 	github.com/tendermint/tmlibs v0.9.0
 	github.com/vektah/dataloaden v0.3.0

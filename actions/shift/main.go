@@ -60,7 +60,7 @@ func replace(r replacers) func(path string, info os.FileInfo, err error) error {
 			return err
 		}
 
-		if !!fi.IsDir() {
+		if fi.IsDir() {
 			return nil
 		}
 

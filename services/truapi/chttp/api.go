@@ -141,7 +141,7 @@ func (a *API) listenAndServeTLS() error {
 }
 
 // RegisterKey generates a new address/account for a public key
-func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (accAddr sdk.AccAddress, err error) {
+func (a *API) RegisterKey(k tcmn.HexBytes, algo string, registrarAccountNumber, registrarSequence uint64) (accAddr sdk.AccAddress, err error) {
 
 	var addr []byte
 	if string(algo[0]) == "*" {
@@ -154,7 +154,7 @@ func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (accAddr sdk.AccAddress,
 		}
 	}
 
-	_, err = a.signAndBroadcastRegistrationTx(addr, k, algo)
+	_, err = a.signAndBroadcastRegistrationTx(addr, k, algo, registrarAccountNumber, registrarSequence)
 	if err != nil {
 		return
 	}
@@ -191,7 +191,7 @@ func deriveAddress(pk string) ([]byte, error) {
 	return address.Bytes(), nil
 }
 
-func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (res sdk.TxResponse, err error) {
+func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string, registrarAccountNumber, registrarSequence uint64) (res sdk.TxResponse, err error) {
 	cliCtx := a.apiCtx
 	config := cliCtx.Config.Registrar
 
@@ -209,11 +209,12 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 		return
 	}
 
-	txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+	txBldr := auth.NewTxBuilderFromCLI().WithAccountNumber(registrarAccountNumber).WithSequence(registrarSequence).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
 		return
 	}
+	fmt.Println("tx -- ", string(txBytes))
 
 	// broadcast to a Tendermint node
 	res, err = cliCtx.WithBroadcastMode(client.BroadcastBlock).BroadcastTx(txBytes)

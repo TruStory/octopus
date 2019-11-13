@@ -252,7 +252,8 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	keyPair.UserID = user.ID
-	address, err := ta.registerUserOnChain(user.ID, keyPair)
+	registrar := ta.appAccountResolver(r.Context(), queryByAddress{ID: ta.APIContext.Config.Registrar.Addr})
+	address, err := ta.registerUserOnChain(user.ID, keyPair, registrar)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return

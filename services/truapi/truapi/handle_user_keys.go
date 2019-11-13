@@ -67,7 +67,8 @@ func (ta *TruAPI) HandleUserSetKey(w http.ResponseWriter, r *http.Request) {
 
 	// adding the key pair
 	keyPair := makeKeyPairFromRequest(*request)
-	address, err := ta.registerUserOnChain(user.ID, keyPair)
+	registrar := ta.appAccountResolver(r.Context(), queryByAddress{ID: ta.APIContext.Config.Registrar.Addr})
+	address, err := ta.registerUserOnChain(user.ID, keyPair, registrar)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
@@ -164,7 +165,7 @@ func newPubKey(pk string) (res crypto.PubKey, err error) {
 	return pkSecp, nil
 }
 
-func (ta *TruAPI) registerUserOnChain(userID int64, keyPair *db.KeyPair) (sdk.AccAddress, error) {
+func (ta *TruAPI) registerUserOnChain(userID int64, keyPair *db.KeyPair, registrar *AppAccount) (sdk.AccAddress, error) {
 	// registering the keypair
 	pubKeyBytes, err := hex.DecodeString(keyPair.PublicKey)
 	if err != nil {
@@ -172,7 +173,7 @@ func (ta *TruAPI) registerUserOnChain(userID int64, keyPair *db.KeyPair) (sdk.Ac
 		// render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		// return
 	}
-	address, err := ta.RegisterKey(pubKeyBytes, "secp256k1")
+	address, err := ta.RegisterKey(pubKeyBytes, "secp256k1", registrar.AccountNumber, registrar.Sequence)
 	if err != nil {
 		return nil, err
 	}

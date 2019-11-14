@@ -20,8 +20,8 @@ import (
 var registry = make(map[string]shifters.Shifter)
 
 func init() {
-	registry["mixpanel"] = shifters.MixpanelShifter{}
 	registry["mixer"] = shifters.MixerShifter{}
+	registry["mixpanel"] = shifters.MixpanelShifter{Token: getEnv("MIXPANEL_PROJECT_TOKEN", "")}
 }
 
 func main() {

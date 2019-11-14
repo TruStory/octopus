@@ -16,6 +16,7 @@ require (
 	github.com/dghubble/go-twitter v0.0.0-20190711044719-dc9b50841e5b
 	github.com/dghubble/gologin v2.1.0+incompatible
 	github.com/dghubble/oauth1 v0.6.0
+	github.com/dukex/mixpanel v0.0.0-20180925151559-f8d5594f958e
 	github.com/gernest/mention v2.0.0+incompatible
 	github.com/go-pg/migrations v6.7.3+incompatible
 	github.com/go-pg/pg v8.0.3+incompatible

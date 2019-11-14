@@ -1,14 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"strconv"
+
+	"github.com/TruStory/octopus/actions/shift/shifters"
 
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
@@ -17,14 +17,16 @@ import (
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
-type replacer struct {
-	from string
-	to   string
+var registry = make(map[string]shifters.Shifter)
+
+func init() {
+	registry["mixpanel"] = shifters.MixpanelShifter{}
+	registry["mixer"] = shifters.MixerShifter{}
 }
 
-type replacers []replacer
-
 func main() {
+	shiftersToRun := os.Args[1:]
+
 	dbPort, err := strconv.Atoi(getEnv("PG_PORT", "5432"))
 	if err != nil {
 		log.Fatalln(err)
@@ -46,61 +48,39 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	err = filepath.Walk("mixer", replace(r))
-	if err != nil {
-		log.Fatalln(err)
+	for _, s := range shiftersToRun {
+		fmt.Printf("\n\n=> Running shifter: %s", s)
+
+		shifter, ok := registry[s]
+		if !ok {
+			log.Fatal(errors.New("no such shifter found in the registry"))
+		}
+
+		err = shifter.Shift(r)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Printf("\n=> Completed running shifter: %s\n", s)
 	}
 
 	fmt.Printf("\nFinished writing replacers.")
 }
 
-func replace(r replacers) func(path string, info os.FileInfo, err error) error {
-	return func(path string, fi os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if fi.IsDir() {
-			return nil
-		}
-
-		fmt.Printf("\nReplacing in file: %s ", path)
-
-		content, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		for _, replacer := range r {
-			fmt.Print(".")
-			content = bytes.ReplaceAll(content, []byte(replacer.from), []byte(replacer.to))
-		}
-
-		fmt.Print("DONE.")
-
-		err = ioutil.WriteFile(path, []byte(content), 0)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-}
-
-func makeReplacers(dbClient *db.Client) (replacers, error) {
+func makeReplacers(dbClient *db.Client) (shifters.Replacers, error) {
 	var users []db.User
 	err := dbClient.FindAll(&users)
 	if err != nil {
-		return replacers{}, err
+		return shifters.Replacers{}, err
 	}
 	fmt.Printf("Found %d users.", len(users))
 
-	r := replacers{}
+	r := shifters.Replacers{}
 	for _, user := range users {
 		fmt.Printf("\n\nMaking replacer for %s with ID: %d (%s)", user.Username, user.ID, user.FullName)
 		keyPair, err := dbClient.KeyPairByUserID(user.ID)
 		if err != nil {
-			return replacers{}, err
+			return shifters.Replacers{}, err
 		}
 		if keyPair == nil {
 			fmt.Printf("\nDoes not have a key pair yet. Skipping.")
@@ -110,11 +90,11 @@ func makeReplacers(dbClient *db.Client) (replacers, error) {
 
 		newPubK, newAddress, err := calculatePublicKeyAndAddress(keyPair.PrivateKey)
 		if err != nil {
-			return replacers{}, err
+			return shifters.Replacers{}, err
 		}
 		fmt.Printf("\nWill be changed to:\n\tPriv: %s\n\tPub: %s\n\tAddr: %s", keyPair.PrivateKey, newPubK, newAddress)
-		r = append(r, replacer{from: keyPair.PublicKey, to: newPubK})
-		r = append(r, replacer{from: user.Address, to: newAddress})
+		r = append(r, shifters.Replacer{From: keyPair.PublicKey, To: newPubK})
+		r = append(r, shifters.Replacer{From: user.Address, To: newAddress})
 	}
 
 	return r, nil

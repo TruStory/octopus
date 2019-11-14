@@ -1,2 +1,2 @@
 run: 
-	go run *.go
+	go run *.go mixer mixpanel

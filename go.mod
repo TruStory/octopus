@@ -4,7 +4,7 @@ require (
 	cloud.google.com/go/bigquery v1.1.0
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0 // indirect
-	github.com/TruStory/truchain v0.3.1-0.20191114193659-1668671828c9
+	github.com/TruStory/truchain v0.0.0-20191115174938-e9e55f86f20d
 	github.com/appleboy/go-fcm v0.1.4
 	github.com/appleboy/gorush v1.11.2
 	github.com/aws/aws-sdk-go v1.21.5

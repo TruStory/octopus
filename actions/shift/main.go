@@ -17,6 +17,21 @@ import (
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
+const (
+	// Bech32PrefixAccAddr defines the Bech32 prefix of an account's address
+	Bech32PrefixAccAddr = "tru"
+	// Bech32PrefixAccPub defines the Bech32 prefix of an account's public key
+	Bech32PrefixAccPub = "trupub"
+	// Bech32PrefixValAddr defines the Bech32 prefix of a validator's operator address
+	Bech32PrefixValAddr = "truvaloper"
+	// Bech32PrefixValPub defines the Bech32 prefix of a validator's operator public key
+	Bech32PrefixValPub = "truvaloperpub"
+	// Bech32PrefixConsAddr defines the Bech32 prefix of a consensus node address
+	Bech32PrefixConsAddr = "truvalcons"
+	// Bech32PrefixConsPub defines the Bech32 prefix of a consensus node public key
+	Bech32PrefixConsPub = "truvalconspub"
+)
+
 var registry = make(map[string]shifters.Shifter)
 
 func init() {
@@ -25,13 +40,19 @@ func init() {
 }
 
 func main() {
+	config := sdk.GetConfig()
+	config.SetBech32PrefixForAccount(Bech32PrefixAccAddr, Bech32PrefixAccPub)
+	config.SetBech32PrefixForValidator(Bech32PrefixValAddr, Bech32PrefixValPub)
+	config.SetBech32PrefixForConsensusNode(Bech32PrefixConsAddr, Bech32PrefixConsPub)
+	config.Seal()
+
 	shiftersToRun := os.Args[1:]
 
 	dbPort, err := strconv.Atoi(getEnv("PG_PORT", "5432"))
 	if err != nil {
 		log.Fatalln(err)
 	}
-	config := truCtx.Config{
+	truConfig := truCtx.Config{
 		Database: truCtx.DatabaseConfig{
 			Host: getEnv("PG_HOST", "localhost"),
 			Port: dbPort,
@@ -41,7 +62,7 @@ func main() {
 			Pool: 25,
 		},
 	}
-	dbClient := db.NewDBClient(config)
+	dbClient := db.NewDBClient(truConfig)
 
 	r, err := makeReplacers(dbClient)
 	if err != nil {

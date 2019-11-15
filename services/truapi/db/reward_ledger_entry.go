@@ -24,7 +24,7 @@ type RewardLedgerEntryCurrency string
 
 const (
 	RewardLedgerEntryCurrencyInvite RewardLedgerEntryCurrency = "invite"
-	RewardLedgerEntryCurrencyTru    RewardLedgerEntryCurrency = "tru"
+	RewardLedgerEntryCurrencyTru    RewardLedgerEntryCurrency = "utru"
 )
 
 // RecordRewardLedgerEntry makes and record an entry in the reward ledger

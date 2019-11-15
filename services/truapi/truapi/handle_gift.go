@@ -2,9 +2,11 @@ package truapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/TruStory/octopus/services/truapi/db"
+	app "github.com/TruStory/truchain/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -40,6 +42,11 @@ func (ta *TruAPI) HandleGift(w http.ResponseWriter, r *http.Request) {
 
 	amount, err := sdk.ParseCoin(request.Amount)
 	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if amount.Denom != app.StakeDenom {
+		err = fmt.Errorf("invalid denomination coin got %s wanted %s", amount.Denom, app.StakeDenom)
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}

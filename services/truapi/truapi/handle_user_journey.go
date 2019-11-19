@@ -98,11 +98,18 @@ func (ta *TruAPI) isSignedUpStepComplete(ctx context.Context, user *db.User) boo
 }
 
 func (ta *TruAPI) isOneArgumentStepComplete(ctx context.Context, user *db.User) bool {
+	if user.Address == "" {
+		return false
+	}
 	arguments := ta.appAccountArgumentsResolver(ctx, queryByAddress{ID: user.Address})
 	return len(arguments) >= 1
 }
 
 func (ta *TruAPI) isFiveAgreesStepComplete(ctx context.Context, user *db.User) bool {
+	if user.Address == "" {
+		return false
+	}
+
 	arguments := ta.appAccountArgumentsResolver(ctx, queryByAddress{ID: user.Address})
 
 	agreesReceived := 0
@@ -119,6 +126,10 @@ func (ta *TruAPI) isFiveAgreesStepComplete(ctx context.Context, user *db.User) b
 }
 
 func (ta *TruAPI) isGivenOneAgreeStepComplete(ctx context.Context, user *db.User) bool {
+	if user.Address == "" {
+		return false
+	}
+
 	agrees := ta.agreesResolver(ctx, queryByAddress{ID: user.Address})
 
 	return len(agrees) >= 1

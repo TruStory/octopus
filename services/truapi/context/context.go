@@ -154,6 +154,12 @@ type DefaultsConfig struct {
 	AvatarURL string `mapstructure:"default-avatar-url"`
 }
 
+type TwilioConfig struct {
+	AccountSID string `mapstructure:"twilio-account-sid"`
+	AuthToken  string `mapstructure:"twilio-auth-token"`
+	From       string `mapstructure:"twilio-from"`
+}
+
 // Config contains all the config variables for the API server
 type Config struct {
 	ChainID      string `mapstructure:"chain-id"`
@@ -176,6 +182,7 @@ type Config struct {
 	Leaderboard  LeaderboardConfig
 	Defaults     DefaultsConfig
 	Metrics      MetricsConfig
+	Twilio       TwilioConfig
 }
 
 // TruAPIContext stores the config for the API and the underlying client context

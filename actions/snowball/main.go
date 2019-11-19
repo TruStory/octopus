@@ -93,7 +93,6 @@ func main() {
 	fmt.Printf("Evaluating %d new user(s).\n", len(newUsers))
 
 	for _, user := range newUsers {
-		time.Sleep(1 * time.Second)
 		fmt.Printf("Evaluating user with ID: %d -- ", user.ID)
 
 		// checking for the progress made

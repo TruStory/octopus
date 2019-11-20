@@ -68,6 +68,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.HandleFunc("/users/validate/email", ta.HandleUniqueEmailUtility)
 	api.HandleFunc("/users/authentication", ta.HandleUserAuthentication)
 	api.HandleFunc("/users/onboard", ta.HandleUserOnboard)
+	api.HandleFunc("/users/phone-verification", ta.HandlePhoneVerification)
 	api.HandleFunc("/users/journey", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleUserJourney)))
 
 	api.HandleFunc("/gift", BasicAuth(apiCtx, http.HandlerFunc(ta.HandleGift)))

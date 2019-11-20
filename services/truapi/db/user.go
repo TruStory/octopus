@@ -66,6 +66,9 @@ type User struct {
 	UserGroup                 UserGroup  `json:"user_group"`
 	LastVerificationAttemptAt time.Time  `json:"last_verification_attempt_at" graphql:"-"`
 	VerificationAttemptCount  int        `json:"verification_attempt_count"`
+	PhoneVerificationToken    string     `json:"-" graphql:"-"`
+	VerifiedPhoneHash         string     `json:"-" graphql:"-"`
+	PhoneVerifiedAt           *time.Time `json:"phone_verified_at"`
 	Meta                      UserMeta   `json:"meta"`
 }
 

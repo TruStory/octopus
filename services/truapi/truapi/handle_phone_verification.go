@@ -22,6 +22,10 @@ type PhoneVerificationInitiateRequest struct {
 	Phone string `json:"phone"`
 }
 
+type PhoneVerificationVerifyRequest struct {
+	Token string `json:"token"`
+}
+
 // HandlePhoneVerification verifies the phone of user
 func (ta *TruAPI) HandlePhoneVerification(w http.ResponseWriter, r *http.Request) {
 	authenticatedUser, err := cookies.GetAuthenticatedUser(ta.APIContext, r)
@@ -91,7 +95,31 @@ func (ta *TruAPI) initiatePhoneVerification(w http.ResponseWriter, r *http.Reque
 }
 
 func (ta *TruAPI) verifyPhone(w http.ResponseWriter, r *http.Request, user *db.User) {
+	if user.PhoneVerifiedAt != nil {
+		render.Error(w, r, "already verified", http.StatusBadRequest)
+		return
+	}
 
+	var request PhoneVerificationVerifyRequest
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if user.PhoneVerificationToken != request.Token {
+		render.Error(w, r, "invalid token", http.StatusBadRequest)
+		return
+	}
+
+	now := time.Now()
+	user.PhoneVerifiedAt = &now
+	err = ta.DBClient.UpdateModel(user)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	render.Response(w, r, true, http.StatusOK)
 }
 
 func generateRandomToken(length int) string {

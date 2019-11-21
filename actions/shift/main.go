@@ -87,8 +87,8 @@ func main() {
 		fmt.Printf("\n=> Completed running shifter: %s\n", s)
 	}
 	for _, s := range shiftersToRun {
-		if s == "mixer" {
-			shifter, ok := registry[s]
+		if s == "mixer_untracked" {
+			shifter, ok := registry["mixer"]
 			if !ok {
 				log.Fatal(errors.New("no such shifter found in the registry"))
 			}

@@ -10,6 +10,7 @@ require (
 	github.com/appleboy/gorush v1.11.2
 	github.com/aws/aws-sdk-go v1.21.5
 	github.com/btcsuite/btcd v0.0.0-20191011231409-07282a6656b8
+	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/cosmos/cosmos-sdk v0.34.4-0.20191029195223-3099b42aa1a9
 	github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d // indirect
 	github.com/dghubble/go-twitter v0.0.0-20190711044719-dc9b50841e5b

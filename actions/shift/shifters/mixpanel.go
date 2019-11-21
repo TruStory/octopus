@@ -30,6 +30,7 @@ func (s MixpanelShifter) Shift(r Replacers) error {
 		err = client.Track(replacer.To, "Alias Shifted", &mixpanel.Event{
 			Properties: map[string]interface{}{
 				"Previous Address": replacer.From,
+				"$ignore_time":     true,
 			},
 		})
 		if err != nil {

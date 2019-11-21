@@ -37,6 +37,21 @@ const (
 	dataLoadersContextKey = ContextKey("dataLoaders")
 )
 
+const (
+	// Bech32PrefixAccAddr defines the Bech32 prefix of an account's address
+	Bech32PrefixAccAddr = "tru"
+	// Bech32PrefixAccPub defines the Bech32 prefix of an account's public key
+	Bech32PrefixAccPub = "trupub"
+	// Bech32PrefixValAddr defines the Bech32 prefix of a validator's operator address
+	Bech32PrefixValAddr = "truvaloper"
+	// Bech32PrefixValPub defines the Bech32 prefix of a validator's operator public key
+	Bech32PrefixValPub = "truvaloperpub"
+	// Bech32PrefixConsAddr defines the Bech32 prefix of a consensus node address
+	Bech32PrefixConsAddr = "truvalcons"
+	// Bech32PrefixConsPub defines the Bech32 prefix of a consensus node public key
+	Bech32PrefixConsPub = "truvalconspub"
+)
+
 type dataLoaders struct {
 	appAccountLoader  *AppAccountLoader
 	userProfileLoader *UserProfileLoader
@@ -60,6 +75,13 @@ type TruAPI struct {
 
 // NewTruAPI returns a `TruAPI` instance populated with the existing app and a new GraphQL client
 func NewTruAPI(apiCtx truCtx.TruAPIContext) *TruAPI {
+	// Read in the configuration file for the sdk
+	config := sdk.GetConfig()
+	config.SetBech32PrefixForAccount(Bech32PrefixAccAddr, Bech32PrefixAccPub)
+	config.SetBech32PrefixForValidator(Bech32PrefixValAddr, Bech32PrefixValPub)
+	config.SetBech32PrefixForConsensusNode(Bech32PrefixConsAddr, Bech32PrefixConsPub)
+	config.Seal()
+
 	postmanService, err := postman.NewPostman(apiCtx.Config)
 	if err != nil {
 		log.Fatal(err)

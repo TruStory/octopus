@@ -201,7 +201,7 @@ func convertUntrackecAddresses() shifters.Replacers {
 				log.Fatal(err)
 			}
 
-			to, err := bech32.ConvertAndEncode(Bech32PrefixConsPub, b)
+			to, err := bech32.ConvertAndEncode(Bech32PrefixConsAddr, b)
 			if err != nil {
 				log.Fatal(err)
 			}

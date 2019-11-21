@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/TruStory/octopus/actions/shift/shifters"
 
@@ -15,6 +16,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/btcd/btcec"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
+	"github.com/tendermint/tendermint/libs/bech32"
 )
 
 const (
@@ -84,6 +86,19 @@ func main() {
 
 		fmt.Printf("\n=> Completed running shifter: %s\n", s)
 	}
+	for _, s := range shiftersToRun {
+		if s == "mixer" {
+			shifter, ok := registry[s]
+			if !ok {
+				log.Fatal(errors.New("no such shifter found in the registry"))
+			}
+			err = shifter.Shift(convertUntrackecAddresses())
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+	convertUntrackecAddresses()
 
 	fmt.Printf("\nFinished writing replacers.")
 }
@@ -146,4 +161,150 @@ func getPrivateKeyObject(privateKey string) *btcec.PrivateKey {
 	privKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), pkBytes)
 
 	return privKey
+}
+
+var untrackedAddreses = []string{
+	"cosmos18rsxqvckda8945hvsupcu99fu7dw3ke0kwf3e0",
+	"cosmos1w3e82cmgv95kuctrvdex2emfwd68yctjpzp3mr",
+	"cosmos1em44grl9ylmmnwawwp5fjn079kesatwp67rxjx",
+	"cosmos1em44grl9ylmmnwawwp5fjn079kesatwp67rxjx",
+	"cosmos1zsfyml5c43ekeq60hm97acklr007tuzerqvw52",
+	"cosmos18rsxqvckda8945hvsupcu99fu7dw3ke0kwf3e0",
+	"cosmos1f7x5wx3adh6klcurmd8n36etx4elgu9d4wkys3",
+	"cosmos1fl48vsnmsdzcv85q5d2q4z5ajdha8yu34mf0eh",
+	"cosmos1tygms3xhhs3yv487phx3dw4a95jn7t7lpm470r",
+	"cosmos1tfpcnjzkthft3ynewqvn7mtdk7guf3knjdqg4d",
+	"cosmos1w3e82cmgv95kuctrvdex2emfwd68yctjpzp3mr",
+	"cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9kn",
+	"cosmos1jv65s3grqf6v6jl3dp4t6c9t9rk99cd88lyufl",
+	"cosmos1ed82m7snyk8mux8xxpwygvtyq633a4k43rfp8l",
+	"cosmos1em44grl9ylmmnwawwp5fjn079kesatwp67rxjx",
+	"cosmos1m3h30wlvsf8llruxtpukdvsy0km2kum8g38c8q",
+	"cosmos17xpfvakm2amg962yls6f84z3kell8c5lserqta",
+	"cosmos1tfpcnjzkthft3ynewqvn7mtdk7guf3knjdqg4d",
+	"cosmos1tfpcnjzkthft3ynewqvn7mtdk7guf3knjdqg4d",
+	"cosmos1tfpcnjzkthft3ynewqvn7mtdk7guf3knjdqg4d",
+	"cosmosvaloper1tfpcnjzkthft3ynewqvn7mtdk7guf3knhe5ae7",
+	"cosmosvaloper1tfpcnjzkthft3ynewqvn7mtdk7guf3knhe5ae7",
+	"cosmosvalcons14dmnmnzsxc95g822n7a2kd6r88j2ahs66k6rsj",
+	"cosmosvaloper1tfpcnjzkthft3ynewqvn7mtdk7guf3knhe5ae7",
+	"cosmosvaloper1tfpcnjzkthft3ynewqvn7mtdk7guf3knhe5ae7",
+	"cosmosvaloper1tfpcnjzkthft3ynewqvn7mtdk7guf3knhe5ae7",
+	"cosmosvalcons14dmnmnzsxc95g822n7a2kd6r88j2ahs66k6rsj",
+	"cosmosvalcons1llfh9se57f6a8scv5slecfsdja3q2kvh4dhdu6",
+	"cosmosvalcons14dmnmnzsxc95g822n7a2kd6r88j2ahs66k6rsj",
+	"cosmosvalcons14dmnmnzsxc95g822n7a2kd6r88j2ahs66k6rsj",
+	"cosmosvalcons1llfh9se57f6a8scv5slecfsdja3q2kvh4dhdu6",
+	"cosmosvalcons1llfh9se57f6a8scv5slecfsdja3q2kvh4dhdu6",
+	"cosmos1tfpcnjzkthft3ynewqvn7mtdk7guf3knjdqg4d",
+	"cosmosvaloper1tfpcnjzkthft3ynewqvn7mtdk7guf3knhe5ae7",
+	"cosmosvaloper1tfpcnjzkthft3ynewqvn7mtdk7guf3knhe5ae7",
+	"cosmosvalconspub1zcjduepqf5hfmgmcsm8quaqfv00yt5s2a6t8ejdj4rsfhjv0d803lpg3zxws9vd47y",
+	"cosmosvaloper1tfpcnjzkthft3ynewqvn7mtdk7guf3knhe5ae7",
+	"cosmos1tfpcnjzkthft3ynewqvn7mtdk7guf3knjdqg4d",
+	"cosmos1w3e82cmgv95kuctrvdex2emfwd68yctjpzp3mr",
+	"cosmos1em44grl9ylmmnwawwp5fjn079kesatwp67rxjx",
+	"cosmos1tfpcnjzkthft3ynewqvn7mtdk7guf3knjdqg4d",
+	"cosmos1tfpcnjzkthft3ynewqvn7mtdk7guf3knjdqg4d",
+	"cosmos1w3e82cmgv95kuctrvdex2emfwd68yctjpzp3mr",
+	"cosmos1em44grl9ylmmnwawwp5fjn079kesatwp67rxjx",
+}
+
+func convertUntrackecAddresses() shifters.Replacers {
+	r := shifters.Replacers{}
+	for _, s := range untrackedAddreses {
+		if strings.HasPrefix(s, "cosmosvalconspub") {
+			b, err := sdk.GetFromBech32(s, sdk.Bech32PrefixConsPub)
+			if err != nil {
+				log.Fatal(err, s)
+			}
+			_, err = sdk.AccAddressFromHex(hex.EncodeToString(b))
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			to, err := bech32.ConvertAndEncode(Bech32PrefixConsPub, b)
+			if err != nil {
+				log.Fatal(err)
+			}
+			r = append(r, shifters.Replacer{From: s, To: to})
+			continue
+		}
+		if strings.HasPrefix(s, "cosmosvalcons") {
+			b, err := sdk.GetFromBech32(s, sdk.Bech32PrefixConsAddr)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			_, err = sdk.AccAddressFromHex(hex.EncodeToString(b))
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			to, err := bech32.ConvertAndEncode(Bech32PrefixConsPub, b)
+			if err != nil {
+				log.Fatal(err)
+			}
+			r = append(r, shifters.Replacer{From: s, To: to})
+			continue
+		}
+		if strings.HasPrefix(s, "cosmosvaloperpub") {
+			b, err := sdk.GetFromBech32(s, sdk.Bech32PrefixValPub)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			_, err = sdk.AccAddressFromHex(hex.EncodeToString(b))
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			to, err := bech32.ConvertAndEncode(Bech32PrefixValPub, b)
+			if err != nil {
+				log.Fatal(err)
+			}
+			r = append(r, shifters.Replacer{From: s, To: to})
+			continue
+		}
+		if strings.HasPrefix(s, "cosmosvaloper") {
+			b, err := sdk.GetFromBech32(s, sdk.Bech32PrefixValAddr)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			_, err = sdk.AccAddressFromHex(hex.EncodeToString(b))
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			to, err := bech32.ConvertAndEncode(Bech32PrefixValAddr, b)
+			if err != nil {
+				log.Fatal(err)
+			}
+			r = append(r, shifters.Replacer{From: s, To: to})
+			continue
+		}
+		if strings.HasPrefix(s, "cosmos") {
+			b, err := sdk.GetFromBech32(s, sdk.Bech32PrefixAccAddr)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			_, err = sdk.AccAddressFromHex(hex.EncodeToString(b))
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			to, err := bech32.ConvertAndEncode(Bech32PrefixAccAddr, b)
+			if err != nil {
+				log.Fatal(err)
+			}
+			r = append(r, shifters.Replacer{From: s, To: to})
+			continue
+		}
+	}
+	if len(r) != len(untrackedAddreses) {
+		log.Fatal("unable to convert all untracked addresses")
+	}
+	return r
 }

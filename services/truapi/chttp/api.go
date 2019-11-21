@@ -2,12 +2,14 @@ package chttp
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"path"
 	"time"
+
+	"github.com/tendermint/tendermint/crypto/secp256k1"
 
 	app "github.com/TruStory/truchain/types"
 	"github.com/TruStory/truchain/x/account"
@@ -18,7 +20,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/gorilla/mux"
-	"github.com/oklog/ulid"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 	trpctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -140,17 +141,20 @@ func (a *API) listenAndServeTLS() error {
 }
 
 // RegisterKey generates a new address/account for a public key
-func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (accAddr sdk.AccAddress, err error) {
+func (a *API) RegisterKey(k tcmn.HexBytes, algo string, registrarAccountNumber, registrarSequence uint64) (accAddr sdk.AccAddress, err error) {
 
 	var addr []byte
 	if string(algo[0]) == "*" {
 		addr = []byte("cosmostestingaddress")
 		algo = algo[1:]
 	} else {
-		addr = generateAddress()
+		addr, err = deriveAddress(k.String())
+		if err != nil {
+			return
+		}
 	}
 
-	_, err = a.signAndBroadcastRegistrationTx(addr, k, algo)
+	_, err = a.signAndBroadcastRegistrationTx(addr, k, algo, registrarAccountNumber, registrarSequence)
 	if err != nil {
 		return
 	}
@@ -170,17 +174,24 @@ func (a *API) RegisterKey(k tcmn.HexBytes, algo string) (accAddr sdk.AccAddress,
 	return stored.PrimaryAddress(), nil
 }
 
-// GenerateAddress returns the first 20 characters of a ULID (https://github.com/oklog/ulid)
-func generateAddress() []byte {
-	t := time.Now()
-	entropy := ulid.Monotonic(rand.New(rand.NewSource(t.UnixNano())), 0)
-	ulidaddr := ulid.MustNew(ulid.Timestamp(t), entropy)
-	addr := []byte(ulidaddr.String())[:20]
+// deriveAddress derives the address from the public key
+func deriveAddress(pk string) ([]byte, error) {
+	pkBytes, err := hex.DecodeString(pk)
+	if err != nil {
+		return nil, err
+	}
+	var pkSecp secp256k1.PubKeySecp256k1
+	copy(pkSecp[:], pkBytes[:])
 
-	return addr
+	address, err := sdk.AccAddressFromHex(pkSecp.Address().String())
+	if err != nil {
+		return nil, err
+	}
+
+	return address.Bytes(), nil
 }
 
-func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string) (res sdk.TxResponse, err error) {
+func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo string, registrarAccountNumber, registrarSequence uint64) (res sdk.TxResponse, err error) {
 	cliCtx := a.apiCtx
 	config := cliCtx.Config.Registrar
 
@@ -198,11 +209,12 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 		return
 	}
 
-	txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+	txBldr := auth.NewTxBuilderFromCLI().WithAccountNumber(registrarAccountNumber).WithSequence(registrarSequence).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
 		return
 	}
+	fmt.Println("tx -- ", string(txBytes))
 
 	// broadcast to a Tendermint node
 	res, err = cliCtx.WithBroadcastMode(client.BroadcastBlock).BroadcastTx(txBytes)

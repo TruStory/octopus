@@ -70,7 +70,7 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
+	r = append(r, convertUntrackecAddresses()...)
 	for _, s := range shiftersToRun {
 		fmt.Printf("\n\n=> Running shifter: %s", s)
 
@@ -86,19 +86,6 @@ func main() {
 
 		fmt.Printf("\n=> Completed running shifter: %s\n", s)
 	}
-	for _, s := range shiftersToRun {
-		if s == "mixer_untracked" {
-			shifter, ok := registry["mixer"]
-			if !ok {
-				log.Fatal(errors.New("no such shifter found in the registry"))
-			}
-			err = shifter.Shift(convertUntrackecAddresses())
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-	convertUntrackecAddresses()
 
 	fmt.Printf("\nFinished writing replacers.")
 }

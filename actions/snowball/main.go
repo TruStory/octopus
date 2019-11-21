@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -34,7 +35,27 @@ var rewardForStep = map[db.UserJourneyStep]string{
 	db.JourneyStepReceiveFiveAgrees: mustEnv("REWARD_STEP_FIVE_AGREES"),
 }
 
+type usersflag []int64
+
+func (u *usersflag) String() string {
+	return fmt.Sprintf("%d", *u)
+}
+
+func (u *usersflag) Set(value string) error {
+	tmp, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		*u = append(*u, -1)
+	} else {
+		*u = append(*u, tmp)
+	}
+	return nil
+}
+
 func main() {
+	var users usersflag
+	flag.Var(&users, "u", "list of users for whom the service will run (optional)")
+	flag.Parse()
+
 	dbPort, err := strconv.Atoi(getEnv("PG_PORT", "5432"))
 	if err != nil {
 		log.Fatalln(err)
@@ -49,22 +70,29 @@ func main() {
 			Pool: 25,
 		},
 	}
+	dbClient := db.NewDBClient(config)
 
 	inviteBatchSize, err := strconv.Atoi(mustEnv("INVITE_BATCH_SIZE"))
 	if err != nil {
 		log.Fatalln(err)
 	}
-	dbClient := db.NewDBClient(config)
 
-	// get all the users who haven't completed their journey yet
-	newUsers, err := getNewUsers(dbClient)
-	if err != nil {
-		log.Fatalln(err)
+	var newUsers []db.User
+	if len(users) == 0 {
+		// get all the users who haven't completed their journey yet
+		newUsers, err = getNewUsers(dbClient)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	} else {
+		newUsers, err = dbClient.UsersByID(users)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}
-	fmt.Printf("Evaluating %d new users.\n", len(newUsers))
+	fmt.Printf("Evaluating %d new user(s).\n", len(newUsers))
 
 	for _, user := range newUsers {
-		time.Sleep(1 * time.Second)
 		fmt.Printf("Evaluating user with ID: %d -- ", user.ID)
 
 		// checking for the progress made
@@ -74,7 +102,7 @@ func main() {
 		}
 		// if there are not new steps done by the user, we are done here
 		if len(user.Meta.Journey) == len(currentJourney) {
-			fmt.Printf("no progress made. ❗️\n")
+			fmt.Printf("no progress made. ❗️(%s) vs (%s) \n", user.Meta.Journey, currentJourney)
 			// moving on to the next one
 			continue
 		}

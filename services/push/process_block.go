@@ -17,7 +17,7 @@ func humanReadable(coin sdk.Coin) string {
 	if (sdk.Coin{}) == coin {
 		return "0"
 	}
-	shanevs := sdk.NewDecFromIntWithPrec(coin.Amount, 9).String()
+	shanevs := sdk.NewDecFromIntWithPrec(coin.Amount, 6).String()
 	parts := strings.Split(shanevs, ".")
 	number := parts[0]
 	decimal := parts[1]

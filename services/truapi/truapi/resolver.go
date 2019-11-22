@@ -20,6 +20,8 @@ import (
 	"github.com/TruStory/truchain/x/slashing"
 	"github.com/TruStory/truchain/x/staking"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	"github.com/julianshen/og"
 	tcmn "github.com/tendermint/tendermint/libs/common"
 	stripmd "github.com/writeas/go-strip-markdown"
@@ -105,6 +107,27 @@ type appAccountEarning struct {
 type appAccountEarnings struct {
 	NetEarnings sdk.Coin            `json:"net_earnings"`
 	DataPoints  []appAccountEarning `json:"data_points"`
+}
+
+func (ta *TruAPI) accountQuery(ctx context.Context, addrStr string) (authexported.Account, error) {
+	queryRoute := path.Join(auth.QuerierRoute, auth.QueryAccount)
+
+	addr, err := sdk.AccAddressFromBech32(addrStr)
+	if err != nil {
+		return nil, err
+	}
+	res, err := ta.Query(queryRoute, auth.QueryAccountParams{Address: addr}, auth.ModuleCdc)
+	if err != nil {
+		fmt.Println("accountResolver err: ", err)
+		return nil, err
+	}
+	var acc authexported.Account
+	err = auth.ModuleCdc.UnmarshalJSON(res, &acc)
+	if err != nil {
+		return nil, err
+	}
+
+	return acc, nil
 }
 
 func (ta *TruAPI) appAccountsResolver(ctx context.Context, addresses []sdk.AccAddress) ([]*AppAccount, error) {

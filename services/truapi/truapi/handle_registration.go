@@ -163,8 +163,11 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User, referrerCode string) (
 			if err != nil {
 				return nil, false, err
 			}
-			registrar := ta.appAccountResolver(ctx, queryByAddress{ID: ta.APIContext.Config.Registrar.Addr})
-			address, err := ta.RegisterKey(pubKeyBytes, "secp256k1", registrar.AccountNumber, registrar.Sequence)
+			registrar, err := ta.accountQuery(ctx, ta.APIContext.Config.Registrar.Addr)
+			if err != nil {
+				return nil, false, err
+			}
+			address, err := ta.RegisterKey(pubKeyBytes, "secp256k1", registrar.GetAccountNumber(), registrar.GetSequence())
 			if err != nil {
 				return nil, false, err
 			}

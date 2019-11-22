@@ -117,7 +117,7 @@ func RegisterTwitterUser(ta *TruAPI, twitterUser *twitter.User) (*db.User, bool,
 // CalibrateUser takes a twitter authenticated user and makes sure it has
 // been properly calibrated in the database with all proper keypairs
 func CalibrateUser(ta *TruAPI, twitterUser *twitter.User, referrerCode string) (user *db.User, new bool, err error) {
-	ctx := context.Background()
+	ctx := ta.createContext(context.Background())
 	connectedAccount, err := ta.DBClient.ConnectedAccountByTypeAndID("twitter", fmt.Sprintf("%d", twitterUser.ID))
 	if err != nil {
 		return nil, false, err
@@ -163,8 +163,11 @@ func CalibrateUser(ta *TruAPI, twitterUser *twitter.User, referrerCode string) (
 			if err != nil {
 				return nil, false, err
 			}
-			registrar := ta.appAccountResolver(ctx, queryByAddress{ID: ta.APIContext.Config.Registrar.Addr})
-			address, err := ta.RegisterKey(pubKeyBytes, "secp256k1", registrar.AccountNumber, registrar.Sequence)
+			registrar, err := ta.accountQuery(ctx, ta.APIContext.Config.Registrar.Addr)
+			if err != nil {
+				return nil, false, err
+			}
+			address, err := ta.RegisterKey(pubKeyBytes, "secp256k1", registrar.GetAccountNumber(), registrar.GetSequence())
 			if err != nil {
 				return nil, false, err
 			}

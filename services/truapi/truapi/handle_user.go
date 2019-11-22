@@ -256,8 +256,13 @@ func (ta *TruAPI) verifyUserViaToken(w http.ResponseWriter, r *http.Request) {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	registrar := ta.appAccountResolver(r.Context(), queryByAddress{ID: ta.APIContext.Config.Registrar.Addr})
-	address, err := ta.RegisterKey(pubKeyBytes, "secp256k1", registrar.AccountNumber, registrar.Sequence)
+
+	registrar, err := ta.accountQuery(ctx, ta.APIContext.Config.Registrar.Addr)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	address, err := ta.RegisterKey(pubKeyBytes, "secp256k1", registrar.GetAccountNumber(), registrar.GetSequence())
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusInternalServerError)
 		return

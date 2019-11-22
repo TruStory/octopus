@@ -40,6 +40,8 @@ github.com/Sereal/Sereal v0.0.0-20190606082811-cf1bab6c7a3a h1:r3TT14Z4rWYwW2U8F
 github.com/Sereal/Sereal v0.0.0-20190606082811-cf1bab6c7a3a/go.mod h1:D0JMgToj/WdxCgd30Kc1UcA9E+WdZoJqeVOuYW7iTBM=
 github.com/TruStory/truchain v0.0.0-20191115174938-e9e55f86f20d h1:x0BCfyhNHA7By8rg91Fnu0sZ6e0GIft1lBjI16IIaB8=
 github.com/TruStory/truchain v0.0.0-20191115174938-e9e55f86f20d/go.mod h1:S/fW+BSYHk3Q/0e+FHE/8fV42L7w5Kd40dZBksx/XQo=
+github.com/TruStory/truchain v0.3.5-beta.0.20191121082217-4adb5d0b9d99 h1:RsV2bZWByquQj6CLcwuiuG5Cluz2TOawt0qNHIV1AmU=
+github.com/TruStory/truchain v0.3.5-beta.0.20191121082217-4adb5d0b9d99/go.mod h1:S/fW+BSYHk3Q/0e+FHE/8fV42L7w5Kd40dZBksx/XQo=
 github.com/VividCortex/gohistogram v1.0.0 h1:6+hBz+qvs0JOrrNhhmR7lFxo5sINxBCGXrdtl/UvroE=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
 github.com/Workiva/go-datastructures v1.0.50/go.mod h1:Z+F2Rca0qCsVYDS8z7bAGm8f3UkzuWYS/oBZz5a7VVA=
@@ -120,6 +122,7 @@ github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f/go.mod h1:F5haX7
 github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
 github.com/cosmos/cosmos-sdk v0.34.4-0.20191029195223-3099b42aa1a9 h1:Il3BdLg7UX8NuoS4lqUuQpnTtNvLdgzgynpKNbTHlNM=
 github.com/cosmos/cosmos-sdk v0.34.4-0.20191029195223-3099b42aa1a9/go.mod h1:PuN72vbZxlorpnHmoIl6RjzVMXEOMejmwORJlZ74K7Q=
+github.com/cosmos/cosmos-sdk v0.37.4 h1:1ioXxkpiS+wOgaUbROeDIyuF7hciU5nti0TSyBmV2Ok=
 github.com/cosmos/go-bip39 v0.0.0-20180618194314-52158e4697b8/go.mod h1:tSxLoYXyBmiFeKpvmq4dzayMdCjCnu8uqmCysIGBT2Y=
 github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d h1:49RLWk1j44Xu4fjHb6JFYmeUnDORVwHNkDxaQ0ctCVU=
 github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d/go.mod h1:tSxLoYXyBmiFeKpvmq4dzayMdCjCnu8uqmCysIGBT2Y=

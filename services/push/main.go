@@ -22,11 +22,27 @@ import (
 	truCtx "github.com/TruStory/octopus/services/truapi/context"
 	"github.com/TruStory/octopus/services/truapi/db"
 	app "github.com/TruStory/octopus/services/truapi/truapi"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
 	// BodyMaxLength for notification
 	BodyMaxLength = 185
+)
+
+const (
+	// Bech32PrefixAccAddr defines the Bech32 prefix of an account's address
+	Bech32PrefixAccAddr = "tru"
+	// Bech32PrefixAccPub defines the Bech32 prefix of an account's public key
+	Bech32PrefixAccPub = "trupub"
+	// Bech32PrefixValAddr defines the Bech32 prefix of a validator's operator address
+	Bech32PrefixValAddr = "truvaloper"
+	// Bech32PrefixValPub defines the Bech32 prefix of a validator's operator public key
+	Bech32PrefixValPub = "truvaloperpub"
+	// Bech32PrefixConsAddr defines the Bech32 prefix of a consensus node address
+	Bech32PrefixConsAddr = "truvalcons"
+	// Bech32PrefixConsPub defines the Bech32 prefix of a consensus node public key
+	Bech32PrefixConsPub = "truvalconspub"
 )
 
 func intPtr(i int) *int {
@@ -310,6 +326,12 @@ func (s *service) run(stop <-chan struct{}) {
 }
 
 func main() {
+	// Read in the configuration file for the sdk
+	sdkConfig := sdk.GetConfig()
+	sdkConfig.SetBech32PrefixForAccount(Bech32PrefixAccAddr, Bech32PrefixAccPub)
+	sdkConfig.SetBech32PrefixForValidator(Bech32PrefixValAddr, Bech32PrefixValPub)
+	sdkConfig.SetBech32PrefixForConsensusNode(Bech32PrefixConsAddr, Bech32PrefixConsPub)
+	sdkConfig.Seal()
 	log := logrus.StandardLogger()
 	log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,

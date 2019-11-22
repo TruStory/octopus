@@ -122,7 +122,7 @@ func (ta *TruAPI) accountQuery(ctx context.Context, addrStr string) (authexporte
 		return nil, err
 	}
 	var acc authexported.Account
-	err = auth.ModuleCdc.UnmarshalJSON(res, acc)
+	err = auth.ModuleCdc.UnmarshalJSON(res, &acc)
 	if err != nil {
 		return nil, err
 	}

@@ -82,7 +82,7 @@ func (ta *TruAPI) initiatePhoneVerification(w http.ResponseWriter, r *http.Reque
 	}
 	err = client.Send(request.Phone, msg)
 	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 

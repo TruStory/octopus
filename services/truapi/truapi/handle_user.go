@@ -110,7 +110,22 @@ func getEmailDomain(email string) string {
 	}
 	return parts[len(parts)-1]
 }
-
+func (ta *TruAPI) checkEmailWhitelist(email string) bool {
+	if !ta.APIContext.Config.App.WhitelistEnabled {
+		return true
+	}
+	domain := getEmailDomain(email)
+	// enable all .edu domains
+	if strings.HasSuffix(domain, ".edu") {
+		return true
+	}
+	whitelisted, err := ta.DBClient.IsDomainWhitelisted(getEmailDomain(email))
+	if err != nil {
+		log.Println("Error consulting whitelist, err")
+		return false
+	}
+	return whitelisted
+}
 func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 	var request RegisterUserRequest
 
@@ -133,11 +148,7 @@ func (ta *TruAPI) createNewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// check domain is in whitelist
-	whitelisted, err := ta.DBClient.IsDomainWhitelisted(getEmailDomain(request.Email))
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	whitelisted := ta.checkEmailWhitelist(request.Email)
 	if !whitelisted {
 		log.Println("Registration failed because domain is not in the whitelist ", request.Email)
 		render.LoginError(

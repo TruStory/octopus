@@ -9,6 +9,7 @@ type AppConfig struct {
 	Name                   string
 	URL                    string
 	MockRegistration       bool   `mapstructure:"mock-registration"`
+	WhitelistEnabled       bool   `mapstructure:"whitelist-enabled"`
 	UploadURL              string `mapstructure:"upload-url"`
 	S3AssetsURL            string `mapstructure:"s3-assets-url"`
 	MixpanelToken          string `mapstructure:"mixpanel-token"`

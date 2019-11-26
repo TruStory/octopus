@@ -11,12 +11,16 @@ import (
 
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
 	"github.com/TruStory/octopus/services/truapi/truapi/twilio"
+	app "github.com/TruStory/truchain/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/TruStory/octopus/services/truapi/db"
 	"github.com/TruStory/octopus/services/truapi/truapi/render"
 )
 
 const PhoneVerificationTokenLength = 6
+
+var PhoneVerificationReward = sdk.Coin{Amount: sdk.NewInt(300 * app.Shanev), Denom: app.StakeDenom}
 
 type PhoneVerificationInitiateRequest struct {
 	Phone string `json:"phone"`
@@ -109,6 +113,17 @@ func (ta *TruAPI) verifyPhone(w http.ResponseWriter, r *http.Request, user *db.U
 
 	if user.PhoneVerificationToken != request.Token {
 		render.Error(w, r, "invalid token", http.StatusBadRequest)
+		return
+	}
+
+	broker, err := ta.accountQuery(r.Context(), ta.APIContext.Config.RewardBroker.Addr)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = ta.SendGiftToAddress(user.Address, PhoneVerificationReward, broker.GetAccountNumber(), broker.GetSequence())
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 

@@ -73,6 +73,12 @@ func (ta *TruAPI) initiatePhoneVerification(w http.ResponseWriter, r *http.Reque
 	user.VerifiedPhoneHash = fmt.Sprintf("%x", (md5.Sum([]byte(request.Phone)))) // md5 hash of the phone
 	user.PhoneVerificationToken = generateRandomToken(PhoneVerificationTokenLength)
 
+	err = ta.DBClient.UpdateModel(user)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	// sending the message
 	client := twilio.NewClient(
 		ta.APIContext.Config.Twilio.AccountSID,
@@ -90,11 +96,6 @@ func (ta *TruAPI) initiatePhoneVerification(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = ta.DBClient.UpdateModel(user)
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	render.Response(w, r, true, http.StatusOK)
 }
 
@@ -112,7 +113,7 @@ func (ta *TruAPI) verifyPhone(w http.ResponseWriter, r *http.Request, user *db.U
 	}
 
 	if user.PhoneVerificationToken != request.Token {
-		render.Error(w, r, "invalid token", http.StatusBadRequest)
+		render.Error(w, r, "invalid verification code", http.StatusBadRequest)
 		return
 	}
 

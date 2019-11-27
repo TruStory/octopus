@@ -51,7 +51,12 @@ func (ta *TruAPI) HandleGift(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ta.SendGiftToAddress(user.Address, amount)
+	broker, err := ta.accountQuery(r.Context(), ta.APIContext.Config.RewardBroker.Addr)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = ta.SendGiftToAddress(user.Address, amount, broker.GetAccountNumber(), broker.GetSequence())
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return

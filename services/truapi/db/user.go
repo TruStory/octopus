@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -223,7 +224,8 @@ func (c *Client) GetAuthenticatedUser(identifier, password string) (*User, error
 	}
 
 	if !user.BlacklistedAt.IsZero() {
-		return nil, errors.New("The user is blacklisted and cannot be authenticated")
+		log.Println("The user is blacklisted and cannot be authenticated", identifier)
+		return nil, errors.New("User cannot be authenticated")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))

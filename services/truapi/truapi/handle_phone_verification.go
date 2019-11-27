@@ -1,7 +1,7 @@
 package truapi
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
-	"github.com/TruStory/octopus/services/truapi/truapi/twilio"
+	"github.com/TruStory/octopus/services/truapi/truapi/police"
 	app "github.com/TruStory/truchain/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -27,6 +27,7 @@ type PhoneVerificationInitiateRequest struct {
 }
 
 type PhoneVerificationVerifyRequest struct {
+	Phone string `json:"phone"`
 	Token string `json:"token"`
 }
 
@@ -47,17 +48,23 @@ func (ta *TruAPI) HandlePhoneVerification(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	officer := police.NewOfficer(
+		ta.APIContext.Config.Twilio.AccountSID,
+		ta.APIContext.Config.Twilio.AuthToken,
+		ta.APIContext.Config.Twilio.VerifySID,
+	)
+
 	switch r.Method {
 	case http.MethodPost:
-		ta.initiatePhoneVerification(w, r, user)
+		ta.initiatePhoneVerification(w, r, user, officer)
 	case http.MethodPut:
-		ta.verifyPhone(w, r, user)
+		ta.verifyPhone(w, r, user, officer)
 	default:
 		render.Error(w, r, "method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func (ta *TruAPI) initiatePhoneVerification(w http.ResponseWriter, r *http.Request, user *db.User) {
+func (ta *TruAPI) initiatePhoneVerification(w http.ResponseWriter, r *http.Request, user *db.User, officer *police.Officer) {
 	if user.PhoneVerifiedAt != nil {
 		render.Error(w, r, "already verified", http.StatusBadRequest)
 		return
@@ -70,8 +77,7 @@ func (ta *TruAPI) initiatePhoneVerification(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	user.VerifiedPhoneHash = fmt.Sprintf("%x", (md5.Sum([]byte(request.Phone)))) // md5 hash of the phone
-	user.PhoneVerificationToken = generateRandomToken(PhoneVerificationTokenLength)
+	user.VerifiedPhoneHash = fmt.Sprintf("%x", (sha256.Sum256([]byte(request.Phone)))) // hash of the phone
 
 	err = ta.DBClient.UpdateModel(user)
 	if err != nil {
@@ -79,18 +85,7 @@ func (ta *TruAPI) initiatePhoneVerification(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// sending the message
-	client := twilio.NewClient(
-		ta.APIContext.Config.Twilio.AccountSID,
-		ta.APIContext.Config.Twilio.AuthToken,
-		ta.APIContext.Config.Twilio.From,
-	)
-	msg, err := twilio.NewMessage("verification", user.PhoneVerificationToken)
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = client.Send(request.Phone, msg)
+	err = officer.Initiate(request.Phone, "sms")
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
@@ -99,7 +94,7 @@ func (ta *TruAPI) initiatePhoneVerification(w http.ResponseWriter, r *http.Reque
 	render.Response(w, r, true, http.StatusOK)
 }
 
-func (ta *TruAPI) verifyPhone(w http.ResponseWriter, r *http.Request, user *db.User) {
+func (ta *TruAPI) verifyPhone(w http.ResponseWriter, r *http.Request, user *db.User, officer *police.Officer) {
 	if user.PhoneVerifiedAt != nil {
 		render.Error(w, r, "already verified", http.StatusBadRequest)
 		return
@@ -112,8 +107,9 @@ func (ta *TruAPI) verifyPhone(w http.ResponseWriter, r *http.Request, user *db.U
 		return
 	}
 
-	if user.PhoneVerificationToken != request.Token {
-		render.Error(w, r, "invalid verification code", http.StatusBadRequest)
+	err = officer.Check(request.Phone, request.Token)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 

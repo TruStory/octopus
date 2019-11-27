@@ -158,7 +158,7 @@ type DefaultsConfig struct {
 type TwilioConfig struct {
 	AccountSID string `mapstructure:"twilio-account-sid"`
 	AuthToken  string `mapstructure:"twilio-auth-token"`
-	From       string `mapstructure:"twilio-from"`
+	VerifySID  string `mapstructure:"twilio-verify-sid"`
 }
 
 // Config contains all the config variables for the API server

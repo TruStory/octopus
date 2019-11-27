@@ -4,9 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/TruStory/octopus/services/truapi/truapi/cookies"
@@ -132,14 +130,4 @@ func (ta *TruAPI) verifyPhone(w http.ResponseWriter, r *http.Request, user *db.U
 		return
 	}
 	render.Response(w, r, true, http.StatusOK)
-}
-
-func generateRandomToken(length int) string {
-	token := ""
-	for i := 0; i < length; i++ {
-		rand.Seed(time.Now().UnixNano())
-		token += strconv.Itoa(rand.Intn(9))
-	}
-
-	return token
 }

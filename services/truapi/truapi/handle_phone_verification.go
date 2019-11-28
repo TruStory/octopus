@@ -111,15 +111,19 @@ func (ta *TruAPI) verifyPhone(w http.ResponseWriter, r *http.Request, user *db.U
 		return
 	}
 
-	broker, err := ta.accountQuery(r.Context(), ta.APIContext.Config.RewardBroker.Addr)
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = ta.SendGiftToAddress(user.Address, PhoneVerificationReward, broker.GetAccountNumber(), broker.GetSequence())
-	if err != nil {
-		render.Error(w, r, err.Error(), http.StatusBadRequest)
-		return
+	// if there's no balance for the user, we gift them some TRU
+	aa := ta.appAccountResolver(r.Context(), queryByAddress{ID: user.Address})
+	if aa.Coins.AmountOf(app.StakeDenom).IsZero() {
+		broker, err := ta.accountQuery(r.Context(), ta.APIContext.Config.RewardBroker.Addr)
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		err = ta.SendGiftToAddress(user.Address, PhoneVerificationReward, broker.GetAccountNumber(), broker.GetSequence())
+		if err != nil {
+			render.Error(w, r, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	now := time.Now()

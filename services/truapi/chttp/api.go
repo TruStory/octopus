@@ -226,13 +226,13 @@ func (a *API) signAndBroadcastRegistrationTx(addr []byte, k tcmn.HexBytes, algo 
 }
 
 // SendGiftToAddress sends gift coins to any user
-func (a *API) SendGiftToAddress(address string, amount sdk.Coin, brokerAccountNumber, brokerSequence uint64) error {
+func (a *API) SendGiftToAddress(address string, amount sdk.Coin, brokerAccountNumber, brokerSequence uint64, memo string) error {
 	recipient, err := sdk.AccAddressFromBech32(address)
 	if err != nil {
 		return err
 	}
 
-	_, err = a.signAndBroadcastGiftTx(recipient, amount, brokerAccountNumber, brokerSequence)
+	_, err = a.signAndBroadcastGiftTx(recipient, amount, brokerAccountNumber, brokerSequence, memo)
 	if err != nil {
 		return err
 	}
@@ -240,7 +240,7 @@ func (a *API) SendGiftToAddress(address string, amount sdk.Coin, brokerAccountNu
 	return nil
 }
 
-func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin, brokerAccountNumber, brokerSequence uint64) (res sdk.TxResponse, err error) {
+func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin, brokerAccountNumber, brokerSequence uint64, memo string) (res sdk.TxResponse, err error) {
 	cliCtx := a.apiCtx
 	config := cliCtx.Config.RewardBroker
 
@@ -257,7 +257,11 @@ func (a *API) signAndBroadcastGiftTx(recipient sdk.AccAddress, amount sdk.Coin, 
 	}
 
 	// build and sign the transaction
-	txBldr := auth.NewTxBuilderFromCLI().WithAccountNumber(brokerAccountNumber).WithSequence(brokerSequence).WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec))
+	txBldr := auth.NewTxBuilderFromCLI().
+		WithAccountNumber(brokerAccountNumber).
+		WithSequence(brokerSequence).
+		WithTxEncoder(utils.GetTxEncoder(cliCtx.Codec)).
+		WithMemo(memo)
 	txBytes, err := txBldr.BuildAndSign(config.Name, config.Pass, []sdk.Msg{msg})
 	if err != nil {
 		fmt.Println(err)

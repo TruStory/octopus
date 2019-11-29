@@ -146,6 +146,10 @@ func (s *service) processGift(data []byte, notifications chan<- *Notification) {
 	if tx.GetMemo() == "request" {
 		reqMsg = "Thanks for being an awesome TruStorian. "
 	}
+	if tx.GetMemo() == "reward" {
+		fmt.Println("ignoring reward notification")
+		return
+	}
 	reward := fmt.Sprintf("%s %s", humanReadable(msg.Reward), db.CoinDisplayName)
 	notifications <- &Notification{
 		To:     msg.Recipient.String(),

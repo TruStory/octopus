@@ -75,6 +75,7 @@ func (ta *TruAPI) RegisterRoutes(apiCtx truCtx.TruAPIContext) {
 	api.Handle("/communities/unfollow/{communityID}",
 		http.HandlerFunc(ta.handleUnfollowCommunity)).Methods(http.MethodDelete)
 	api.Handle("/highlights", http.HandlerFunc(ta.HandleHighlights))
+	api.PathPrefix("/push/").HandlerFunc(ta.HandlePush)
 
 	// metrics
 	api.HandleFunc("/metrics/users", ta.HandleUsersMetrics)

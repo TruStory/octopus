@@ -252,9 +252,11 @@ func sendReward(user db.User, amount string) error {
 	body := struct {
 		UserID int64  `json:"user_id"`
 		Amount string `json:"amount"`
+		Memo   string `json:"memo"`
 	}{
 		UserID: user.ID,
 		Amount: amount,
+		Memo:   "reward",
 	}
 	bodyBuffer := new(bytes.Buffer)
 	err := json.NewEncoder(bodyBuffer).Encode(body)

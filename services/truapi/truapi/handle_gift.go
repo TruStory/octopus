@@ -17,6 +17,7 @@ import (
 type GiftRequest struct {
 	UserID int64  `json:"user_id"`
 	Amount string `json:"amount"`
+	Memo   string `json:"memo"`
 }
 
 // HandleGift gifts TRU to the user
@@ -51,7 +52,12 @@ func (ta *TruAPI) HandleGift(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ta.SendGiftToAddress(user.Address, amount)
+	broker, err := ta.accountQuery(r.Context(), ta.APIContext.Config.RewardBroker.Addr)
+	if err != nil {
+		render.Error(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = ta.SendGiftToAddress(user.Address, amount, broker.GetAccountNumber(), broker.GetSequence(), request.Memo)
 	if err != nil {
 		render.Error(w, r, err.Error(), http.StatusBadRequest)
 		return

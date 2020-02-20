@@ -5,21 +5,25 @@ TruAPI serves as an HTTP server for the TruStory mobile and web apps, as well as
 ## Home folder (.octopus)
 
 Contains:
-* config.toml file (see below)
-* local key store
+
+- config.toml file (see below)
+- local key store
 
 ## Environment configuration
 
 Config vars can be set in 3 ways:
 
 i.e: for the parameter "app.name":
+
 1. Command-line flag: `--app.name=TruStory`
 2. Env var: `APP_NAME=TruStory`
 3. config.toml in .truapid/config
+
 ```toml
-[app] 
+[app]
 name = TruStory
 ```
+
 4. Default value "TruStory" if not supplied by the above
 
 Precedence: 1 -> 2 -> 3 -> 4
@@ -27,10 +31,12 @@ Precedence: 1 -> 2 -> 3 -> 4
 ### Live Debate URL
 
 To update the live debate URL, modify config.toml with the URL path. i.e:
+
 ```
 [app]
 live-debate-url  = "/claim/1036"
 ```
+
 Then restart TruAPI.
 
 ## Running
@@ -44,9 +50,11 @@ make build
 ```
 
 ## GraphQL Queries
+
 You can reach your client at `http://localhost:1337/api/v1/graphql/`
 
 Sample query:
+
 ```graphql
 {
   stories {
@@ -80,4 +88,3 @@ Sample query:
   }
 }
 ```
-
